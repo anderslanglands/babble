@@ -1,0 +1,204 @@
+#ifndef BBL_HPP
+#define BBL_HPP
+
+#include <type_traits>
+
+#define BBL_MODULE(name) static void bbl_bind_##name()
+
+namespace bbl {
+
+namespace detail {
+template <typename...> struct Tuple {};
+
+template <typename T1, typename T2> struct Pair {};
+} // namespace detail
+
+template <typename C, typename... Args> struct Ctor {
+    template <typename... CtorArgs> Ctor(CtorArgs...) {
+        // Make sure length of provided name args matches the length of the type
+        // args
+        if constexpr (sizeof...(CtorArgs) > 0) {
+            static_assert(
+                sizeof...(CtorArgs) == sizeof...(Args),
+                "size of Ctor argument list (parameter names) must match the "
+                "size of the template argument list (parameter types)");
+        }
+    }
+
+    bool is_noexcept = std::is_nothrow_constructible<C, Args...>::value;
+};
+
+/// Bind a class in the current module.
+///
+/// e.g. to bind a class `Foo`, do:
+/// ```
+/// bbl::Class<Foo>();
+/// ```
+/// Optionally, you can specify a replacement name for the type to have it
+/// called something different in the C API. This is particularly helpful for
+/// template types, which would otherwise have horribly unwieldy auto-generated
+/// names:
+/// ```
+/// bbl::Class<std::vector<std::string>>("StringVector");
+/// ```
+///
+/// Note that the spelling of the type between the angle brackets is lifted
+/// exactly as written to represent the type for casts in the C API, so this
+/// must be resolvable as written. For instance, for a class `qux::Foo`,
+/// ```
+/// bbl::Class<qux::Foo>();
+/// ```
+/// will translate correctly as the full type is spelled out, but
+/// ```
+/// using namespace qux;
+/// bbl::Class<Foo>();
+/// ```
+/// will not, as the C API implementation will not have the `using namespace`
+/// import available, so resolution of `Foo` will fail. Hopefully we can lift
+/// this restriction in a future update.
+///
+template <typename C> class Class {
+public:
+    Class() {}
+
+    Class(const char* name) {}
+
+    /// Bind a constructor
+    template <typename T = C, typename... Args>
+    Class ctor(Ctor<C, Args...> ctor, const char* rename = "") {
+        static_assert(std::is_constructible<T, Args...>::value,
+                      "can not construct class with these arguments");
+
+        return *this;
+    }
+
+    /// Bind a method on Class C by passing a member function pointer to it and
+    /// optionally a replacement name.
+    ///
+    /// e.g. for method `bar` on class `Foo`, do:
+    /// ```
+    /// bbl::Class<Foo>()
+    ///    .m(&Foo::bar, "mybar")
+    ///    ;
+    /// ```
+    /// Note that for overloaded methods, the specific overload to be bound must
+    /// be specified with a member-function-pointer cast. Assuming two overloads
+    /// of `void bar()`, one taking an int and one taking a float, you would do:
+    /// ```
+    /// bbl::Class<Foo>()
+    ///    .m((void (Foo::*)(int))&Foo::bar, "bar_int")
+    ///    .m((void (Foo::*)(float))&Foo::bar, "bar_float")
+    ///    ;
+    /// ```
+    template <typename Func> Class m(Func fn, const char* rename = "") {
+        return *this;
+    }
+
+    /// Bind a field from class C, optionally renaming it to `rename`
+    /// This will implicitly convert type bind kind to value type
+    template <typename FieldType>
+    auto f(FieldType C::* field, char const* rename = "") {
+        return *this;
+    }
+
+    /// Specify that the class being bound should be bound as opaque pointer
+    /// bind kind.
+    ///
+    /// e.g. to bind a class `Foo`, do:
+    /// ```
+    /// bbl::Class<Foo>()
+    ///    .opaque_ptr()
+    ///    ;
+    /// ```
+    /// Opaque pointer is the defaut bind kind and means that all passing of
+    /// objects across the API shall be done with pointers to opaque structs.
+    ///
+    /// This is the simplest binding method, but obviously incurs the overhead
+    /// of an extra pointer indirection and often heap allocation.
+    Class opaque_ptr() { return *this; }
+
+    /// Specify that the class being bound should be bound as opaque bytes
+    /// bind kind.
+    ///
+    /// e.g. to bind a class `Foo`, do:
+    /// ```
+    /// bbl::Class<Foo>()
+    ///    .opaque_bytes()
+    ///    ;
+    /// ```
+    /// Opaque bytes represents the the bound object as an opaque "bag of bytes"
+    /// structure. This is useful to represent types that are POD (i.e. that
+    /// they are safe to memcpy), since these objects of these types can then be
+    /// passed on the stack, ignoring extra indirection and heap allocation.
+    /// objects across the API shall be done with pointers to opaque structs.
+    ///
+    /// This kind should be used with great care as objects that are not
+    /// memcpy-safe can easily introduce undefined behaviour when bound this
+    /// way.
+    Class opaque_bytes() {
+        static_assert(std::is_copy_constructible<C>::value ||
+                          std::is_move_constructible<C>::value,
+                      "type cannot be bound as opaque_bytes if it is not move- "
+                      "or copy-constructible");
+        return *this;
+    }
+
+    /// Specify that the class being bound should be bound as value type
+    /// bind kind.
+    ///
+    /// e.g. to bind a class `Foo`, do:
+    /// ```
+    /// bbl::Class<Foo>()
+    ///    .value_type()
+    ///    ;
+    /// ```
+    /// Value types are those which can be natively represented in C, giving the
+    /// downstream languages native access to their fields. A common candidate
+    /// for these is 3D vector types.
+    Class value_type() {
+        static_assert(std::is_copy_constructible<C>::value ||
+                          std::is_move_constructible<C>::value,
+                      "type cannot be bound as value_type if it is not move- "
+                      "or copy-constructible");
+        return *this;
+    }
+
+    /// Size of the bound type
+    size_t type_size = sizeof(C);
+
+    /// Alignment of the bound type
+    size_t type_align = alignof(C);
+
+    /// Is the class abstract?
+    bool is_abstract = std::is_abstract<C>::value;
+
+    /// @{ Rule-of-seven information
+    bool is_copy_constructible = std::is_copy_constructible<C>::value;
+    bool is_nothrow_copy_constructible =
+        std::is_nothrow_copy_constructible<C>::value;
+    bool is_move_constructible = std::is_move_constructible<C>::value;
+    bool is_nothrow_move_constructible =
+        std::is_nothrow_move_constructible<C>::value;
+    bool is_copy_assignable = std::is_copy_assignable<C>::value;
+    bool is_nothrow_copy_assignable = std::is_nothrow_copy_assignable<C>::value;
+    bool is_move_assignable = std::is_move_assignable<C>::value;
+    bool is_nothrow_move_assignable = std::is_nothrow_move_assignable<C>::value;
+    bool is_destructible = std::is_destructible<C>::value;
+    bool has_virtual_destructor = std::has_virtual_destructor<C>::value;
+    /// @}
+};
+
+template <typename Result, typename... Args>
+void fn(Result (*fun)(Args...), const char* rename = "") {}
+
+void rename_namespace(const char* from, const char* to) {}
+void prepend_module_name(bool enable) {}
+
+template <typename E> class Enum {
+public:
+    Enum() {}
+    Enum(char const* rename) {}
+};
+} // namespace bbl
+
+#endif

@@ -1,0 +1,55 @@
+#pragma once
+
+#include "babble"
+
+namespace bbl {
+namespace detail {
+
+template <typename T> struct argument_type;
+template <typename T, typename U> struct argument_type<T(U)> {
+    typedef U type;
+};
+
+} // namespace detail
+} // namespace bbl
+
+// Bind std::vector<TY>
+#define BBL_STD_VECTOR_METHODS(TY)                                             \
+    /*bbl::Class<std::vector<__VA_ARGS__>>(RENAME)*/                           \
+    .m((bbl::detail::argument_type<void(TY)>::type * (std::vector<bbl::detail::argument_type<void(TY)>::type>::*)()) &                       \
+       std::vector<bbl::detail::argument_type<void(TY)>::type>::data)                                         \
+        .m((bbl::detail::argument_type<void(TY)>::type const* (std::vector<bbl::detail::argument_type<void(TY)>::type>::*)() const) &        \
+               std::vector<bbl::detail::argument_type<void(TY)>::type>::data,                                 \
+           "data_const")                                                       \
+        .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::empty)                                   \
+        .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::size)                                    \
+        .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::max_size)                                \
+        .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::reserve)                                 \
+        .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::capacity)                                \
+        .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::clear)                                   \
+        .m((void(std::vector<bbl::detail::argument_type<void(TY)>::type>::*)(bbl::detail::argument_type<void(TY)>::type const&)) &           \
+           std::vector<bbl::detail::argument_type<void(TY)>::type>::push_back)                                \
+        .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::pop_back)                                \
+        .m((void(std::vector<bbl::detail::argument_type<void(TY)>::type>::*)(size_t)) &                       \
+           std::vector<bbl::detail::argument_type<void(TY)>::type>::resize)                                   \
+        .m((void(std::vector<bbl::detail::argument_type<void(TY)>::type>::*)(size_t, bbl::detail::argument_type<void(TY)>::type const&)) &   \
+               std::vector<bbl::detail::argument_type<void(TY)>::type>::resize,                               \
+           "resize_with");
+
+/// XXX: Need to expand the macros here...
+#define BBL_STD_PAIR_FUNCTIONS(TY0, TY1, RENAME)                               \
+    /* Can't do this because we can't get at the spelling after expansion.     \
+     Need to investigate further to make macros better to use.                          \
+     bbl::Class<std::pair<TY0, TY1>>(RENAME); */                               \
+    ; /* << this semicolon is in case users try to use this like hte METHODS   \
+         macros */                                                             \
+    bbl::fn((bbl::detail::argument_type<void(TY0)>::type & (*)(std::pair<bbl::detail::argument_type<void(TY0)>::type, bbl::detail::argument_type<void(TY1)>::type>&)) & std::get<0, bbl::detail::argument_type<void(TY0)>::type, bbl::detail::argument_type<void(TY1)>::type>,         \
+            RENAME "_get0");                                                   \
+    bbl::fn((bbl::detail::argument_type<void(TY0)>::type const& (*)(std::pair<bbl::detail::argument_type<void(TY0)>::type, bbl::detail::argument_type<void(TY1)>::type> const&)) &                     \
+                std::get<0, bbl::detail::argument_type<void(TY0)>::type, bbl::detail::argument_type<void(TY1)>::type>,                                         \
+            RENAME "_get0_const");                                             \
+    bbl::fn((bbl::detail::argument_type<void(TY1)>::type & (*)(std::pair<bbl::detail::argument_type<void(TY0)>::type, bbl::detail::argument_type<void(TY1)>::type>&)) & std::get<1, bbl::detail::argument_type<void(TY0)>::type, bbl::detail::argument_type<void(TY1)>::type>,         \
+            RENAME "_get1");                                                   \
+    bbl::fn((bbl::detail::argument_type<void(TY1)>::type const& (*)(std::pair<bbl::detail::argument_type<void(TY0)>::type, bbl::detail::argument_type<void(TY1)>::type> const&)) &                     \
+                std::get<1, bbl::detail::argument_type<void(TY0)>::type, bbl::detail::argument_type<void(TY1)>::type>,                                         \
+            RENAME "_get1_const");\
