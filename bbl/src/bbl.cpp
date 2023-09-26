@@ -965,37 +965,6 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
     // std::vector<std::unique_ptr<clang::ASTUnit>> ast_units;
     // tool.buildASTs(ast_units);
 
-    // First find the babble declarations
-    ExtractBabble extractor;
-    MatchFinder bbl_finder;
-
-    DeclarationMatcher bbl_class_matcher =
-        traverse(clang::TK_IgnoreUnlessSpelledInSource,
-                 recordDecl(hasName("bbl::Class")).bind("Class"));
-
-    DeclarationMatcher bbl_enum_matcher =
-        traverse(clang::TK_IgnoreUnlessSpelledInSource,
-                 recordDecl(hasName("bbl::Enum")).bind("Enum"));
-
-    bbl_finder.addMatcher(bbl_class_matcher, &extractor);
-    bbl_finder.addMatcher(bbl_enum_matcher, &extractor);
-
-    DeclarationMatcher bbl_class_m_matcher =
-        traverse(clang::TK_IgnoreUnlessSpelledInSource,
-                 cxxMethodDecl(hasName("m"),
-                               hasAncestor(recordDecl(hasName("bbl::Class"))))
-                     .bind("m"));
-    bbl_finder.addMatcher(bbl_class_m_matcher, &extractor);
-
-    // XXX: each one of these takes a while, we need to minimize the number of
-    // passes
-    SPDLOG_INFO("running babble finder");
-    int result = tool.run(newFrontendActionFactory(&bbl_finder).get());
-
-    // ignore diagnostics after the first run - we don't need the same info
-    // printed out again
-    tool.setDiagnosticConsumer(new clang::IgnoringDiagConsumer());
-
     // extract the modules itself
     SPDLOG_INFO("running module finder");
     //  find_module(this);
@@ -1007,14 +976,16 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
         traverse(clang::TK_IgnoreUnlessSpelledInSource,
                  functionDecl(matchesName("bbl_bind_")).bind("Module"));
     module_finder.addMatcher(module_matcher, &module_extractor);
-    result = tool.run(newFrontendActionFactory(&module_finder).get());
+    int result = tool.run(newFrontendActionFactory(&module_finder).get());
 
-    BabbleIDs ids = extractor.get_ids();
+    // ignore diagnostics after the first run - we don't need the same info
+    // printed out again
+    tool.setDiagnosticConsumer(new clang::IgnoringDiagConsumer());
+
 
     // Extract class bindings
     MatchFinder class_finder;
-    ExtractClassBindings class_binding_extractor(this, ids.bbl_class,
-                                                 ids.bbl_enum);
+    ExtractClassBindings class_binding_extractor(this);
 
     StatementMatcher m_construct_expr_matcher = traverse(
         clang::TK_IgnoreUnlessSpelledInSource,
@@ -1052,7 +1023,7 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
 
     // Extract method bindings
     MatchFinder method_finder;
-    ExtractMethodBindings method_binding_extractor(this, ids.bbl_class);
+    ExtractMethodBindings method_binding_extractor(this);
 
     StatementMatcher m_dre_matcher =
         traverse(clang::TK_IgnoreUnlessSpelledInSource,

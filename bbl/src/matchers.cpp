@@ -18,9 +18,9 @@
 #include <llvm/ADT/StringRef.h>
 #include <llvm/Support/Casting.h>
 
-#include <variant>
 #include <exception>
 #include <memory>
+#include <variant>
 
 namespace bbl {
 
@@ -86,41 +86,6 @@ void ExtractModules::run(
     }
 }
 
-void ExtractBabble::run(
-    clang::ast_matchers::MatchFinder::MatchResult const& result) {
-    clang::ASTContext* ast_context = result.Context;
-    std::unique_ptr<clang::MangleContext> mangle_context =
-        create_mangle_context(*ast_context);
-
-    if (clang::CXXRecordDecl const* cxxrecord_decl =
-            result.Nodes.getNodeAs<clang::CXXRecordDecl>("Class")) {
-        _ids.bbl_class = cxxrecord_decl->getID();
-    } else if (clang::CXXRecordDecl const* cxxrecord_decl =
-                   result.Nodes.getNodeAs<clang::CXXRecordDecl>("Enum")) {
-        _ids.bbl_enum = cxxrecord_decl->getID();
-    } else if (clang::CXXMethodDecl const* cxxmethod_decl =
-                   result.Nodes.getNodeAs<clang::CXXMethodDecl>("m")) {
-        // check the name of the first parameter to decide which overload
-        // this is
-        if (clang::ParmVarDecl const* parm = cxxmethod_decl->getParamDecl(0)) {
-            if (parm->getNameAsString() == "ctor") {
-                _ids.bbl_class_m_ctor = cxxmethod_decl->getID();
-            } else if (parm->getNameAsString() == "copy_ctor") {
-                _ids.bbl_class_m_copy_ctor = cxxmethod_decl->getID();
-            } else if (parm->getNameAsString() == "move_ctor") {
-                _ids.bbl_class_m_move_ctor = cxxmethod_decl->getID();
-            } else if (parm->getNameAsString() == "dtor") {
-                _ids.bbl_class_m_dtor = cxxmethod_decl->getID();
-            } else if (parm->getNameAsString() == "fn") {
-                _ids.bbl_class_m = cxxmethod_decl->getID();
-            }
-        } else {
-            throw std::runtime_error(
-                fmt::format("found bbl::Class::m with no parameters"));
-        }
-    }
-}
-
 /// Find all DeclRefExr descendents of `stmt` and if they refer to a
 /// CXXMethodDecl then push them onto `method_decls`
 void find_cxxmethoddecl_descendents(
@@ -140,8 +105,7 @@ void find_cxxmethoddecl_descendents(
 }
 
 clang::CXXRecordDecl const*
-get_record_to_extract_from_construct_expr(clang::CXXConstructExpr const* cce,
-                                          int64_t bbl_class_id) {
+get_record_to_extract_from_construct_expr(clang::CXXConstructExpr const* cce) {
     clang::CXXConstructorDecl* ctor_decl = cce->getConstructor();
     if (!ctor_decl) {
         BBL_THROW("could not get constructor decl from construct expr");
@@ -177,10 +141,10 @@ get_record_to_extract_from_construct_expr(clang::CXXConstructExpr const* cce,
     // further in case user has written something very weird...
     // XXX: Do we really need to do this? It's an abundance of caution that's
     // costing us an extra tool run...
-    if (crd->getID() != bbl_class_id) {
+    if (crd->getQualifiedNameAsString() != "bbl::Class") {
         BBL_THROW("got class binding but underlying record {} - {} "
-                  "does not match bbl::Class - {}",
-                  crd->getQualifiedNameAsString(), crd->getID(), bbl_class_id);
+                  "does not match bbl::Class",
+                  crd->getQualifiedNameAsString(), crd->getID());
     }
 
     // Now we get the type that we're binding from the template
@@ -210,8 +174,7 @@ get_record_to_extract_from_construct_expr(clang::CXXConstructExpr const* cce,
 }
 
 clang::EnumDecl const*
-get_enum_to_extract_from_construct_expr(clang::CXXConstructExpr const* cce,
-                                        int64_t bbl_enum_id) {
+get_enum_to_extract_from_construct_expr(clang::CXXConstructExpr const* cce) {
     clang::CXXConstructorDecl* ctor_decl = cce->getConstructor();
     if (!ctor_decl) {
         BBL_THROW("could not get constructor decl from construct expr");
@@ -245,10 +208,10 @@ get_enum_to_extract_from_construct_expr(clang::CXXConstructExpr const* cce,
 
     // then check that it's definitely bbl::Class before we go any
     // further in case user has written something very weird...
-    if (crd->getID() != bbl_enum_id) {
+    if (crd->getQualifiedNameAsString() != "bbl::Enum") {
         BBL_THROW("got enum binding but underlying record {} - {} "
-                  "does not match bbl::Enum - {}",
-                  crd->getQualifiedNameAsString(), crd->getID(), bbl_enum_id);
+                  "does not match bbl::Enum",
+                  crd->getQualifiedNameAsString(), crd->getID());
     }
 
     // Now we get the type that we're binding from the template
@@ -387,8 +350,7 @@ llvm::APSInt evaluate_field_expression_int(clang::RecordDecl const* rd,
 }
 
 static auto get_target_record_decl_from_member_call_expr(
-    clang::CXXMemberCallExpr const* mce, int64_t bbl_class_id)
-    -> clang::CXXRecordDecl const* {
+    clang::CXXMemberCallExpr const* mce) -> clang::CXXRecordDecl const* {
 
     // find the CXXConstructExpr to get the class we're
     // attaching to
@@ -443,7 +405,7 @@ static auto get_target_record_decl_from_member_call_expr(
 
         return crd_target;
     } else {
-        return get_record_to_extract_from_construct_expr(cce, bbl_class_id);
+        return get_record_to_extract_from_construct_expr(cce);
     }
 }
 
@@ -478,8 +440,7 @@ void ExtractMethodBindings::run(
                 }
 
                 clang::CXXRecordDecl const* crd_target =
-                    get_target_record_decl_from_member_call_expr(mce,
-                                                                 _bbl_class_id);
+                    get_target_record_decl_from_member_call_expr(mce);
 
                 // Check that if there's a mismatch between the parent class of
                 // this method and the target class we are binding to, that the
@@ -568,7 +529,7 @@ void ExtractMethodBindings::run(
         }
 
         clang::CXXRecordDecl const* crd_target =
-            get_target_record_decl_from_member_call_expr(mce, _bbl_class_id);
+            get_target_record_decl_from_member_call_expr(mce);
 
         // Check that if there's a mismatch between the parent class of
         // this field and the target class we are binding to, that the
@@ -695,7 +656,8 @@ void ExtractMethodBindings::run(
         });
 
         if (cce == nullptr) {
-            auto const* mod_decl = find_containing_module_decl(mce, ast_context);
+            auto const* mod_decl =
+                find_containing_module_decl(mce, ast_context);
             mod_decl->dumpColor();
 
             BBL_THROW(
@@ -779,8 +741,7 @@ void ExtractMethodBindings::run(
         // And finally get the target class that we're going to add the
         // constructor to
         clang::CXXRecordDecl const* crd_target =
-            get_record_to_extract_from_construct_expr(cce_target,
-                                                      _bbl_class_id);
+            get_record_to_extract_from_construct_expr(cce_target);
 
         std::string target_class_id =
             get_mangled_name(crd_target, mangle_context.get());
@@ -818,8 +779,7 @@ void ExtractClassBindings::run(
         // Find the class decl that we're binding from the bbl::Class<Foo>()
         // constructor
         clang::CXXRecordDecl const* type_record_decl =
-            get_record_to_extract_from_construct_expr(construct_expr,
-                                                      _bbl_class_id);
+            get_record_to_extract_from_construct_expr(construct_expr);
 
         Layout layout = get_record_layout(construct_expr, *ast_context);
         BindKind bind_kind =
@@ -963,8 +923,7 @@ void ExtractClassBindings::run(
         // Find the class decl that we're binding from the bbl::Class<Foo>()
         // constructor
         clang::EnumDecl const* enum_decl =
-            get_enum_to_extract_from_construct_expr(construct_expr,
-                                                    _bbl_enum_id);
+            get_enum_to_extract_from_construct_expr(construct_expr);
 
         // Get the source range of the type part of the ctor expr
         // for bbl::Class<Foo<float>>("FooFloat") this will be
