@@ -428,7 +428,6 @@ int main(int argc, char const** argv) {
     int double_dash_count = 0;
     for (int i = 1; i < argc; ++i) {
         if (std::string("--") == argv[i]) {
-            SPDLOG_INFO("Got double dash {}", i);
             double_dash_count++;
             if (double_dash_count == 2) {
                 clang_arg_count = i;
@@ -450,6 +449,7 @@ int main(int argc, char const** argv) {
     }
 
     size_t len;
+
 #if 0
     // When compilation has completed successfully, we can now iterate over the modules to inspect
     // the types, functions etc.

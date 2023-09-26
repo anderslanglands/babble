@@ -1,5 +1,3 @@
-#include <pxr/usd/usd/common.h>
-#include <pxr/usd/usd/stage.h>
 #if defined(__clang__)
 
 #include "babble"
@@ -17,6 +15,8 @@
 #include <pxr/usd/usd/resolveTarget.h>
 #include <pxr/usd/usd/specializes.h>
 #include <pxr/usd/usd/variantSets.h>
+#include <pxr/usd/usd/common.h>
+#include <pxr/usd/usd/stage.h>
 
 #include <pxr/base/tf/token.h>
 
@@ -375,72 +375,6 @@ BBL_MODULE(usd) {
         .m(&PrimRangeIterator::operator*, "deref");
 
     bbl::Enum<PXR_NS::UsdStage::InitialLoadSet>("StageInitialLoadSet");
-}
-
-BBL_MODULE(pcp) {
-    bbl::rename_namespace("PXR_NS::", "pxr");
-    bbl::prepend_module_name(true);
-
-    bbl::Class<PXR_NS::PcpPrimIndex>("PrimIndex");
-}
-
-BBL_MODULE(std) {
-    bbl::prepend_module_name(false);
-    bbl::Class<std::string>("String").ctor(
-        bbl::Ctor<std::string, char const*>(), "from_char_ptr");
-
-    // We provide macros for automating the binding of common types' methods
-    bbl::Class<std::vector<std::string>>("StringVector")
-        BBL_STD_VECTOR_METHODS(std::string);
-}
-
-BBL_MODULE(tf) {
-    bbl::rename_namespace("PXR_NS::", "pxr");
-    bbl::prepend_module_name(true);
-
-    bbl::Class<PXR_NS::TfToken>("Token")
-        .opaque_ptr()
-        .ctor(bbl::Ctor<Token>(), "new")
-        .m((Token& (Token::*)(Token const&))&Token::operator=, "op_assign")
-        .m(&PXR_NS::TfToken::GetText);
-
-    bbl::Class<PXR_NS::TfType>("Type");
-
-    bbl::Class<PXR_NS::TfTokenVector>("TokenVector")
-        BBL_STD_VECTOR_METHODS(PXR_NS::TfToken);
-}
-
-BBL_MODULE(sdf) {
-    bbl::rename_namespace("PXR_NS::", "pxr");
-    bbl::prepend_module_name(true);
-
-    bbl::Class<PXR_NS::SdfPrimSpecHandle>("PrimSpecHandle");
-    bbl::Enum<PXR_NS::SdfSpecifier>("Specifier");
-
-    bbl::Class<PXR_NS::SdfPrimSpecHandleVector>("PrimSpecHandleVector")
-        BBL_STD_VECTOR_METHODS(PXR_NS::SdfPrimSpecHandle);
-
-    bbl::Class<std::pair<PXR_NS::SdfPrimSpecHandle, PXR_NS::SdfLayerOffset>>(
-        "PrimSpecHandleOffsetPair");
-    // BBL_STD_PAIR_FUNCTIONS(PXR_NS::SdfPrimSpecHandle, PXR_NS::SdfLayerOffset,
-    //                        "PrimSpecHandleOffsetPair");
-
-    bbl::Class<std::vector<
-        std::pair<PXR_NS::SdfPrimSpecHandle, PXR_NS::SdfLayerOffset>>>(
-        "PrimSpecHandleOffsetPairVector")
-        BBL_STD_VECTOR_METHODS(
-            (std::pair<PXR_NS::SdfPrimSpecHandle, PXR_NS::SdfLayerOffset>));
-
-    bbl::Class<PXR_NS::SdfLayerOffset>("LayerOffset");
-
-    bbl::Enum<PXR_NS::SdfVariability>("Variability");
-
-    bbl::Class<PXR_NS::SdfPath>("Path").opaque_ptr();
-
-    bbl::Class<PXR_NS::SdfPathVector>("PathVector")
-        BBL_STD_VECTOR_METHODS(PXR_NS::SdfPath);
-
-    bbl::Class<PXR_NS::SdfValueTypeName>("ValueTypeName").opaque_bytes();
 }
 
 #endif
