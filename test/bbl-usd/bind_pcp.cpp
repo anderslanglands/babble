@@ -1,3 +1,4 @@
+#include <pxr/usd/pcp/types.h>
 #if defined(__clang__)
 
 #include "babble"
@@ -10,6 +11,9 @@ BBL_MODULE(pcp) {
     bbl::prepend_module_name(true);
 
     bbl::Class<PXR_NS::PcpPrimIndex>("PrimIndex");
+
+    bbl::Class<PXR_NS::PcpVariantFallbackMap>("VariantFallbackMap")
+        ;
 }
 
 
