@@ -39,17 +39,18 @@ namespace bbl {
     throw std::runtime_error(                                                  \
         fmt::format("{}:{} {}", __FILE__, __LINE__, fmt::format(__VA_ARGS__)))
 
-#define BBL_THROW_MTBE(...)                                                         \
-    throw MissingTypeBindingException(                                                  \
+#define BBL_THROW_MTBE(...)                                                    \
+    throw MissingTypeBindingException(                                         \
         fmt::format("{}:{} {}", __FILE__, __LINE__, fmt::format(__VA_ARGS__)))
 
 #define BBL_RETHROW(E, ...)                                                    \
     throw std::runtime_error(fmt::format("{}:{} {}\n  {}", __FILE__, __LINE__, \
                                          fmt::format(__VA_ARGS__), E.what()))
 
-#define BBL_RETHROW_MTBE(E, ...)                                                    \
-    throw MissingTypeBindingException(fmt::format("{}:{} {}\n  {}", __FILE__, __LINE__, \
-                                         fmt::format(__VA_ARGS__), E.what()))
+#define BBL_RETHROW_MTBE(E, ...)                                               \
+    throw MissingTypeBindingException(                                         \
+        fmt::format("{}:{} {}\n  {}", __FILE__, __LINE__,                      \
+                    fmt::format(__VA_ARGS__), E.what()))
 
 template <typename Key, typename Value>
 using MapType = ankerl::unordered_dense::map<Key, Value>;
@@ -124,6 +125,7 @@ struct Function {
     std::string name;
     std::string rename;
     std::string spelling;
+    std::string template_call;
 
     QType return_type;
     std::vector<Param> params;
@@ -351,7 +353,8 @@ public:
     auto has_stdfunction(std::string const& id) const noexcept -> bool;
     auto get_stdfunction(std::string const& id) noexcept -> StdFunction*;
 
-    auto stdfunctions() const noexcept -> StdFunctionMap::value_container_type const&;
+    auto stdfunctions() const noexcept
+        -> StdFunctionMap::value_container_type const&;
 
     [[nodiscard("returned binding must be inserted")]] auto
     extract_enum_binding(clang::EnumDecl const* ed, std::string const& spelling,
@@ -370,6 +373,7 @@ public:
     [[nodiscard("returned binding must be inserted")]] auto
     extract_method_binding(clang::CXXMethodDecl const* cmd,
                            std::string const& rename,
+                           std::string const& template_call,
                            clang::MangleContext* mangle_ctx) -> Method;
 
     auto has_method(std::string const& method_id) const -> bool;
@@ -378,9 +382,10 @@ public:
     auto get_method(std::string const& method_id) const -> Method const*;
 
     auto has_constructor(std::string const& constructor_id) const -> bool;
-    auto insert_constructor_binding(std::string const& constructor_id, Constructor&& constructor)
-        -> void;
-    auto get_constructor(std::string const& constructor_id) const -> Constructor const*;
+    auto insert_constructor_binding(std::string const& constructor_id,
+                                    Constructor&& constructor) -> void;
+    auto get_constructor(std::string const& constructor_id) const
+        -> Constructor const*;
 
     /// Extracts type information from FunctionDecl `fd` and converts it to a
     /// bbl::Function
@@ -388,6 +393,7 @@ public:
     extract_function_binding(clang::FunctionDecl const* fd,
                              std::string const& rename,
                              std::string const& spelling,
+                             std::string const& template_call,
                              clang::MangleContext* mangle_ctx) -> Function;
 
     /// Insert the Function `fun` with given `id` in the Module with ID `mod_id`

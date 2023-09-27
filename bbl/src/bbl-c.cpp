@@ -492,7 +492,7 @@ auto C_API::_translate_method(Method const* method,
     _translate_parameter_list(method->function.params, c_params, expr_params);
 
     ExprPtr expr_call =
-        ExprCall::create(method->function.name, std::move(expr_params));
+        ExprCall::create(method->function.name + method->function.template_call, std::move(expr_params));
 
     Class const* cls = _cpp_ctx.get_class(class_id);
     assert(cls);
@@ -597,7 +597,7 @@ auto C_API::_translate_function(Function const* function,
     _translate_parameter_list(function->params, c_params, expr_params);
 
     ExprPtr expr_call =
-        ExprCall::create(function->name, std::move(expr_params));
+        ExprCall::create(function->name + function->template_call, std::move(expr_params));
 
     if (result.has_value()) {
         // if the function returns a reference, we need to wrap the call in an

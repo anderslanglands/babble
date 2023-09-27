@@ -418,11 +418,12 @@ auto Context::insert_class_binding(std::string const& mod_id,
 
 auto Context::extract_method_binding(clang::CXXMethodDecl const* cmd,
                                      std::string const& rename,
+                                     std::string const& template_call,
                                      clang::MangleContext* mangle_ctx)
     -> Method {
     return Method{
         extract_function_binding(cmd, rename, cmd->getNameAsString(),
-                                 mangle_ctx),
+                                 template_call, mangle_ctx),
         cmd->isConst(),
         cmd->isStatic(),
         cmd->isVirtual(),
@@ -433,6 +434,7 @@ auto Context::extract_method_binding(clang::CXXMethodDecl const* cmd,
 auto Context::extract_function_binding(clang::FunctionDecl const* fd,
                                        std::string const& rename,
                                        std::string const& spelling,
+                                       std::string const& template_call,
                                        clang::MangleContext* mangle_ctx)
     -> Function {
     std::string qualified_name = fd->getQualifiedNameAsString();
@@ -470,9 +472,14 @@ auto Context::extract_function_binding(clang::FunctionDecl const* fd,
         (est == clang::EST_NoThrow || est == clang::EST_NoexceptTrue ||
          est == clang::EST_BasicNoexcept);
 
-    return Function{
-        qualified_name,    name,     rename, spelling, std::move(return_type),
-        std::move(params), no_except};
+    return Function{qualified_name,
+                    name,
+                    rename,
+                    spelling,
+                    std::move(template_call),
+                    std::move(return_type),
+                    std::move(params),
+                    no_except};
 }
 
 auto Context::insert_function_binding(std::string const& mod_id,
@@ -981,7 +988,6 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
     // ignore diagnostics after the first run - we don't need the same info
     // printed out again
     tool.setDiagnosticConsumer(new clang::IgnoringDiagConsumer());
-
 
     // Extract class bindings
     MatchFinder class_finder;

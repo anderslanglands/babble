@@ -82,7 +82,7 @@ void ExtractModules::run(
                 source_filename, SourceFile{{}, {module_id}, source_filename});
         }
 
-        // fd->dumpColor();
+        fd->dumpColor();
     }
 }
 
@@ -422,6 +422,38 @@ void ExtractMethodBindings::run(
                 llvm::dyn_cast<clang::CXXMethodDecl>(dre->getDecl())) {
             clang::CXXRecordDecl const* crd_parent = cmd->getParent();
 
+            // Handle templated calls. These are calls that require spelling one
+            // or more template arguments in the call to be resolved, for
+            // instance anything where the template argument appears only in the
+            // return type.
+            std::string template_call;
+            if (cmd->isFunctionTemplateSpecialization()) {
+                std::string dre_text =
+                    get_source_text(dre->getSourceRange(), sm);
+                if (dre_text.back() == '>') {
+                    // this is a templated call, loop back through the string
+                    // and find the opening angle bracket
+                    int bracket_count = 1;
+                    int template_start_pos = 0;
+                    for (int i = dre_text.size() - 2; i >= 0; --i) {
+                        if (dre_text[i] == '>') {
+                            bracket_count++;
+                        } else if (dre_text[i] == '<') {
+                            bracket_count--;
+                        }
+
+                        if (bracket_count == 0) {
+                            template_start_pos = i;
+                            break;
+                        }
+                    }
+
+                    template_call =
+                        dre_text.substr(template_start_pos,
+                                        dre_text.size() - template_start_pos);
+                }
+            }
+
             clang::CXXMemberCallExpr const* mce =
                 find_first_ancestor_of_type<clang::CXXMemberCallExpr>(
                     dre, ast_context);
@@ -475,7 +507,8 @@ void ExtractMethodBindings::run(
                         try {
                             bbl::Method method =
                                 _bbl_ctx->extract_method_binding(
-                                    cmd, rename_str, mangle_context.get());
+                                    cmd, rename_str, template_call,
+                                    mangle_context.get());
                             _bbl_ctx->insert_method_binding(method_id,
                                                             std::move(method));
                             cls->methods.emplace_back(std::move(method_id));
@@ -618,9 +651,40 @@ void ExtractMethodBindings::run(
 
         if (auto const* fd =
                 llvm::dyn_cast<clang::FunctionDecl>(dre_target->getDecl())) {
+
+            // Handle templated calls. These are calls that require spelling one
+            // or more template arguments in the call to be resolved, for
+            // instance anything where the template argument appears only in the
+            // return type.
+            std::string template_call;
+            if (fd->isFunctionTemplateSpecialization()) {
+                if (spelling.back() == '>') {
+                    // this is a templated call, loop back through the string
+                    // and find the opening angle bracket
+                    int bracket_count = 1;
+                    int template_start_pos = 0;
+                    for (int i = spelling.size() - 2; i >= 0; --i) {
+                        if (spelling[i] == '>') {
+                            bracket_count++;
+                        } else if (spelling[i] == '<') {
+                            bracket_count--;
+                        }
+
+                        if (bracket_count == 0) {
+                            template_start_pos = i;
+                            break;
+                        }
+                    }
+
+                    template_call =
+                        spelling.substr(template_start_pos,
+                                        spelling.size() - template_start_pos);
+                }
+            }
+
             // Now extract the function
             Function function = _bbl_ctx->extract_function_binding(
-                fd, rename_str, spelling, mangle_context.get());
+                fd, rename_str, spelling, template_call, mangle_context.get());
             std::string id = get_mangled_name(fd, mangle_context.get());
 
             std::string mod_id;
