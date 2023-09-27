@@ -30,9 +30,6 @@
 // that support them like Rust or Python
 BBL_MODULE(usd) {
 
-    bbl::rename_namespace("PXR_NS::", "pxr");
-    bbl::prepend_module_name(true);
-
     // clang-format off
 
     using Token = PXR_NS::TfToken;

@@ -1020,8 +1020,18 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
             hasAncestor(functionDecl(matchesName("bbl_bind_"))))
             .bind("enum_ctor_expr"));
 
+    StatementMatcher m_rename_namespace_matcher = traverse(
+        clang::TK_AsIs,
+            callExpr(
+                hasDeclaration(functionDecl(hasName("bbl::rename_namespace"))),
+            hasAncestor(functionDecl(matchesName("bbl_bind_")))
+            ).bind("rename_namespace")
+    );
+
     class_finder.addMatcher(m_construct_expr_matcher, &class_binding_extractor);
     class_finder.addMatcher(m_enum_construct_expr_matcher,
+                            &class_binding_extractor);
+    class_finder.addMatcher(m_rename_namespace_matcher,
                             &class_binding_extractor);
     class_finder.addMatcher(m_var_decl_matcher, &class_binding_extractor);
     SPDLOG_INFO("running class finder");

@@ -11,16 +11,9 @@ namespace bbl {
 static auto replace_namespace_prefix(std::string const& spelling,
                                      std::string const& mod_name)
     -> std::string {
-    size_t pos = spelling.find_last_of(':');
-    if (pos == std::string::npos) {
-        // return fmt::format("{}_{}", mod_name, spelling);
-        return spelling;
-    } else {
-        // return fmt::format("{}_{}_{}", spelling.substr(0, pos - 1), mod_name,
-        //                    spelling.substr(pos + 1));
-        return fmt::format("{}_{}", spelling.substr(0, pos - 1),
-                           spelling.substr(pos + 1));
-    }
+    std::string result = fmt::format("{}_{}", mod_name, spelling);
+    // XXX: sanitize any bad characters
+    return result;
 }
 
 static auto is_void(C_QType const& qt) -> bool {
@@ -445,7 +438,8 @@ auto C_API::_translate_method(Method const* method,
     //     into that
     //       *result = call()
     std::optional<C_Param> result;
-    bool result_is_reference = is_lvalue_reference(method->function.return_type);
+    bool result_is_reference =
+        is_lvalue_reference(method->function.return_type);
     bool result_is_reference_to_opaqueptr =
         is_reference_to_opaqueptr(method->function.return_type, _cpp_ctx);
     bool result_is_reference_to_bytes_or_value =
@@ -492,7 +486,8 @@ auto C_API::_translate_method(Method const* method,
     _translate_parameter_list(method->function.params, c_params, expr_params);
 
     ExprPtr expr_call =
-        ExprCall::create(method->function.name + method->function.template_call, std::move(expr_params));
+        ExprCall::create(method->function.name + method->function.template_call,
+                         std::move(expr_params));
 
     Class const* cls = _cpp_ctx.get_class(class_id);
     assert(cls);
@@ -596,8 +591,8 @@ auto C_API::_translate_function(Function const* function,
 
     _translate_parameter_list(function->params, c_params, expr_params);
 
-    ExprPtr expr_call =
-        ExprCall::create(function->name + function->template_call, std::move(expr_params));
+    ExprPtr expr_call = ExprCall::create(
+        function->name + function->template_call, std::move(expr_params));
 
     if (result.has_value()) {
         // if the function returns a reference, we need to wrap the call in an

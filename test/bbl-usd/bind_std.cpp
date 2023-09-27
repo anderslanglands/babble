@@ -7,7 +7,7 @@
 #include <string>
 
 BBL_MODULE(std) {
-    bbl::prepend_module_name(false);
+
     bbl::Class<std::string>("String").ctor(
         bbl::Ctor<std::string, char const*>(), "from_char_ptr");
 

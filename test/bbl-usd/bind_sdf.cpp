@@ -11,9 +11,6 @@
 
 
 BBL_MODULE(sdf) {
-    bbl::rename_namespace("PXR_NS::", "pxr");
-    bbl::prepend_module_name(true);
-
     bbl::Class<PXR_NS::SdfLayerRefPtr>("LayerRefPtr");
     bbl::Class<PXR_NS::SdfLayerHandle>("LayerHandle");
     bbl::Class<PXR_NS::SdfLayerHandleVector>("LayerHandleVector");

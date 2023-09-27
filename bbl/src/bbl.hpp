@@ -257,6 +257,10 @@ struct Module {
     std::vector<std::string> stdfunctions;
     /// List of Enums bound in this module
     std::vector<std::string> enums;
+    /// Namespace string to replace
+    std::string namespace_from;
+    /// Namespace string to replace with
+    std::string namespace_to;
 };
 
 /// Represents a `#include` directive from the binding source file

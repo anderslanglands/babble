@@ -7,63 +7,63 @@ int main(int argc, char** argv) {
         printf("usage:\n\t%s <usdlayer>", argv[0]);
     }
 
-    String_t* str_path = nullptr;
-    String_from_char_ptr(argv[1], &str_path);
+    std_String_t* str_path = nullptr;
+    std_String_from_char_ptr(argv[1], &str_path);
 
-    StageRefPtr_t* stage_ref = nullptr;
-    StageRefPtr_ctor(&stage_ref);
-    Stage_Open(str_path, LoadAll, stage_ref);
+    usd_StageRefPtr_t* stage_ref = nullptr;
+    usd_StageRefPtr_ctor(&stage_ref);
+    usd_Stage_Open(str_path, LoadAll, stage_ref);
 
     // Note: make sure stage_ref outlives any use of stage
-    Stage_t* stage = nullptr;
-    StageRefPtr_get(stage_ref, &stage);
+    usd_Stage_t* stage = nullptr;
+    usd_StageRefPtr_get(stage_ref, &stage);
     if (stage == nullptr) {
         printf("error: could not open stage\n");
     }
 
-    Prim_t* pseudo_root;
-    Prim_new(&pseudo_root);
-    Stage_GetPseudoRoot(stage, pseudo_root);
+    usd_Prim_t* pseudo_root;
+    usd_Prim_new(&pseudo_root);
+    usd_Stage_GetPseudoRoot(stage, pseudo_root);
 
-    PrimRange_t* prim_range;
-    PrimRange_from_prim(pseudo_root, &prim_range);
+    usd_PrimRange_t* prim_range;
+    usd_PrimRange_from_prim(pseudo_root, &prim_range);
 
-    PrimRangeIterator_t* current;
-    PrimRangeIterator_new(&current);
-    PrimRangeIterator_t* end;
-    PrimRangeIterator_new(&end);
-    PrimRangeIterator_t* dummy;
-    PrimRangeIterator_new(&dummy);
+    usd_PrimRangeIterator_t* current;
+    usd_PrimRangeIterator_new(&current);
+    usd_PrimRangeIterator_t* end;
+    usd_PrimRangeIterator_new(&end);
+    usd_PrimRangeIterator_t* dummy;
+    usd_PrimRangeIterator_new(&dummy);
 
-    PrimRange_begin(prim_range, current);
-    PrimRange_end(prim_range, end);
+    usd_PrimRange_begin(prim_range, current);
+    usd_PrimRange_end(prim_range, end);
 
     bool done = false;
-    PrimRangeIterator_op_eq(current, end, &done);
-    Prim_t* prim;
-    Prim_new(&prim);
+    usd_PrimRangeIterator_op_eq(current, end, &done);
+    usd_Prim_t* prim;
+    usd_Prim_new(&prim);
     while (!done) {
-        PrimRangeIterator_deref(current, prim);
+        usd_PrimRangeIterator_deref(current, prim);
 
-        Token_t const* tok_name;
-        Prim_GetName(prim, &tok_name);
+        tf_Token_t const* tok_name;
+        usd_Prim_GetName(prim, &tok_name);
         char const* name_str = nullptr;
-        Token_GetText(tok_name, &name_str);
+        tf_Token_GetText(tok_name, &name_str);
 
         printf("%s\n", name_str);
 
-        PrimRangeIterator_op_inc(current, &dummy);
-        PrimRangeIterator_op_eq(current, end, &done);
+        usd_PrimRangeIterator_op_inc(current, &dummy);
+        usd_PrimRangeIterator_op_eq(current, end, &done);
     }
 
-    Prim_dtor(prim);
+    usd_Prim_dtor(prim);
 
-    PrimRangeIterator_dtor(end);
-    PrimRangeIterator_dtor(current);
-    PrimRange_dtor(prim_range);
+    usd_PrimRangeIterator_dtor(end);
+    usd_PrimRangeIterator_dtor(current);
+    usd_PrimRange_dtor(prim_range);
 
-    Prim_dtor(pseudo_root);
+    usd_Prim_dtor(pseudo_root);
 
-    StageRefPtr_dtor(stage_ref);
-    String_dtor(str_path);
+    usd_StageRefPtr_dtor(stage_ref);
+    std_String_dtor(str_path);
 }

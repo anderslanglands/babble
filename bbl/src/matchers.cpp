@@ -82,7 +82,7 @@ void ExtractModules::run(
                 source_filename, SourceFile{{}, {module_id}, source_filename});
         }
 
-        fd->dumpColor();
+        // fd->dumpColor();
     }
 }
 
@@ -1095,6 +1095,29 @@ void ExtractClassBindings::run(
         }
 
         cls->spelling = bbl_type_str.substr(begin + 1, end - begin - 1);
+    } else if (clang::CallExpr const* ce =
+                   result.Nodes.getNodeAs<clang::CallExpr>(
+                       "rename_namespace")) {
+
+        std::vector<clang::StringLiteral const*> lits;
+        find_all_descendents_of_type<clang::StringLiteral>(ce, lits);
+        if (lits.size() != 2) {
+            BBL_THROW("rename_namespace call does not have two string literal arguments");
+        }
+
+        std::string rename_from = lits[0]->getString().str();
+        std::string rename_to = lits[1]->getString().str();
+
+        std::string mod_id;
+        if (!find_containing_module(ce, ast_context, mangle_context.get(),
+                                    mod_id)) {
+            BBL_THROW("could not find module containing CallExpr {}",
+                      get_source_text(ce->getSourceRange(), sm));
+        }
+
+        Module* mod = _bbl_ctx->get_module(mod_id); 
+        mod->namespace_from = rename_from;
+        mod->namespace_to = rename_to;
     }
 }
 
