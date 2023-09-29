@@ -163,6 +163,16 @@ public:
         return *this;
     }
 
+    template <typename R>
+    Class replace_with() {
+        static_assert(sizeof(C) == sizeof(R), "R and C must be same size");
+        static_assert(sizeof(C) == sizeof(R), "R and C must be same alignment");
+        static_assert(std::is_trivially_constructible<R>::value, "R must be trivially default-constructible");
+        static_assert(std::is_trivially_copy_constructible<R>::value, "R must be trivially copy-constructible");
+
+        return *this;
+    }
+
     /// Size of the bound type
     size_t type_size = sizeof(C);
 

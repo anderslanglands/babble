@@ -1,6 +1,8 @@
 #include "matchers.hpp"
 #include "astutil.hpp"
 #include "bbl.hpp"
+#include "clang/AST/DeclTemplate.h"
+#include "clang/AST/Type.h"
 
 #include <spdlog/spdlog.h>
 
@@ -82,7 +84,7 @@ void ExtractModules::run(
                 source_filename, SourceFile{{}, {module_id}, source_filename});
         }
 
-        // fd->dumpColor();
+        fd->dumpColor();
     }
 }
 
@@ -828,6 +830,61 @@ void ExtractMethodBindings::run(
                       crd_target->getQualifiedNameAsString());
         }
     }
+
+    if (clang::CXXMemberCallExpr const* mce =
+            result.Nodes.getNodeAs<clang::CXXMemberCallExpr>("replace_with")) {
+        // type to replace with will be the first (and only) template argument
+        clang::CXXMethodDecl const* cmd = mce->getMethodDecl();
+        clang::TemplateArgumentList const* template_args =
+            cmd->getTemplateSpecializationArgs();
+        if (template_args == nullptr || template_args->size() != 1) {
+            BBL_THROW("got bad template argument list for replace_with. "
+                      "Expected single template argument");
+        }
+
+        clang::RecordDecl const* rd_replace =
+            template_args->data()->getAsType()->getAsRecordDecl();
+        if (!rd_replace) {
+            BBL_THROW("could not get RecordDecl for replace_with type");
+        }
+
+        // Get all the fields from the replacement record
+        std::vector<Field> fields;
+        for (auto const& field : rd_replace->fields()) {
+            fields.emplace_back(
+                Field{_bbl_ctx->extract_qualtype(field->getType(),
+                                                 mangle_context.get()),
+                      field->getNameAsString()});
+        }
+
+        // find the CXXConstructExpr to get the class we're
+        // attaching to
+        // XXX: handle object instance not ctor
+        auto const* cce_target =
+            find_first_descendent_of_type<clang::CXXConstructExpr>(mce);
+        if (cce_target == nullptr) {
+            BBL_THROW("could not get CXXConstructExpr from "
+                      "CXXMemberCallExpr {}",
+                      get_source_text(mce->getSourceRange(), sm));
+        }
+
+        // And finally get the target class that we're going to add the
+        // constructor to
+        clang::CXXRecordDecl const* crd_target =
+            get_record_to_extract_from_construct_expr(cce_target);
+
+        std::string target_class_id =
+            get_mangled_name(crd_target, mangle_context.get());
+
+        if (bbl::Class* cls = _bbl_ctx->get_class(target_class_id)) {
+            cls->fields = std::move(fields);
+            cls->bind_kind = BindKind::ValueType;
+        } else {
+            BBL_THROW("replace_with is targeting class {} but this class "
+                      "is not extracted",
+                      crd_target->getQualifiedNameAsString());
+        }
+    }
 }
 
 void ExtractClassBindings::run(
@@ -1102,7 +1159,8 @@ void ExtractClassBindings::run(
         std::vector<clang::StringLiteral const*> lits;
         find_all_descendents_of_type<clang::StringLiteral>(ce, lits);
         if (lits.size() != 2) {
-            BBL_THROW("rename_namespace call does not have two string literal arguments");
+            BBL_THROW("rename_namespace call does not have two string literal "
+                      "arguments");
         }
 
         std::string rename_from = lits[0]->getString().str();
@@ -1115,7 +1173,7 @@ void ExtractClassBindings::run(
                       get_source_text(ce->getSourceRange(), sm));
         }
 
-        Module* mod = _bbl_ctx->get_module(mod_id); 
+        Module* mod = _bbl_ctx->get_module(mod_id);
         mod->namespace_from = rename_from;
         mod->namespace_to = rename_to;
     }

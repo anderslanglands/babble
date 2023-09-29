@@ -1022,11 +1022,9 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
 
     StatementMatcher m_rename_namespace_matcher = traverse(
         clang::TK_AsIs,
-            callExpr(
-                hasDeclaration(functionDecl(hasName("bbl::rename_namespace"))),
-            hasAncestor(functionDecl(matchesName("bbl_bind_")))
-            ).bind("rename_namespace")
-    );
+        callExpr(hasDeclaration(functionDecl(hasName("bbl::rename_namespace"))),
+                 hasAncestor(functionDecl(matchesName("bbl_bind_"))))
+            .bind("rename_namespace"));
 
     class_finder.addMatcher(m_construct_expr_matcher, &class_binding_extractor);
     class_finder.addMatcher(m_enum_construct_expr_matcher,
@@ -1063,18 +1061,22 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
 
     StatementMatcher m_ctor_matcher = traverse(
         clang::TK_AsIs,
-        // cxxConstructExpr(hasAncestor(functionDecl(matchesName("bbl_bind_"))),
-        //                  hasDeclaration(cxxConstructorDecl(hasName("Ctor"))),
-        //                  unless(anyOf(cxxTemporaryObjectExpr(),
-        //                               hasParent(cxxFunctionalCastExpr()))))
         cxxMemberCallExpr(hasAncestor(functionDecl(matchesName("bbl_bind_"))),
                           hasDeclaration(cxxMethodDecl(hasName("ctor"))))
             .bind("Ctor"));
+
+    StatementMatcher m_replace_with_matcher =
+        traverse(clang::TK_AsIs,
+                 cxxMemberCallExpr(
+                     hasAncestor(functionDecl(matchesName("bbl_bind_"))),
+                     hasDeclaration(cxxMethodDecl(hasName("replace_with"))))
+                     .bind("replace_with"));
 
     method_finder.addMatcher(m_dre_matcher, &method_binding_extractor);
     method_finder.addMatcher(m_dre_fn_matcher, &method_binding_extractor);
     method_finder.addMatcher(m_ctor_matcher, &method_binding_extractor);
     method_finder.addMatcher(m_dre_field_matcher, &method_binding_extractor);
+    method_finder.addMatcher(m_replace_with_matcher, &method_binding_extractor);
 
     SPDLOG_INFO("running method finder");
     result = tool.run(newFrontendActionFactory(&method_finder).get());
