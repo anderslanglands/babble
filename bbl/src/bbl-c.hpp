@@ -37,10 +37,15 @@ struct C_Pointer {
     std::shared_ptr<C_QType> pointee;
 };
 
+struct C_Array {
+    std::shared_ptr<C_QType> element_type;
+    size_t size;
+};
+
 struct C_QType {
     QType const* cpp_qt;
     bool is_const;
-    std::variant<C_Type, C_Pointer> type;
+    std::variant<C_Type, C_Pointer, C_Array> type;
 };
 
 struct C_Param {
@@ -128,7 +133,7 @@ class C_API {
 
     auto _translate_qtype(QType const& qt) -> C_QType;
 
-    auto _get_c_qtype_as_string(C_QType const& qt) const -> std::string;
+    auto _get_c_qtype_as_string(C_QType const& qt, std::string const& name) const -> std::string;
     auto _get_function_declaration(C_Function const& c_fun) const
         -> std::string;
 

@@ -198,29 +198,35 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
     }
 }
 
-auto C_API::_get_c_qtype_as_string(C_QType const& qt) const -> std::string {
+auto C_API::_get_c_qtype_as_string(C_QType const& qt,
+                                   std::string const& name) const
+    -> std::string {
     char const* s_const = qt.is_const ? " const" : "";
+
+    std::string name_with_space =
+        name.empty() ? name : fmt::format(" {}", name);
 
     if (std::holds_alternative<C_Type>(qt.type)) {
         C_Type const& c_type = std::get<C_Type>(qt.type);
 
         if (std::holds_alternative<bbl_builtin_t>(c_type.kind)) {
             bbl_builtin_t builtin = std::get<bbl_builtin_t>(c_type.kind);
-            return fmt::format("{}{}", builtin, s_const);
+            return fmt::format("{}{}{}", builtin, s_const, name_with_space);
         } else if (std::holds_alternative<C_StructId>(c_type.kind)) {
             C_StructId struct_id = std::get<C_StructId>(c_type.kind);
             C_Struct const& c_struct = _structs.at(struct_id.id);
-            return fmt::format("{}{}", c_struct.name, s_const);
+            return fmt::format("{}{}{}", c_struct.name, s_const,
+                               name_with_space);
         } else if (std::holds_alternative<C_EnumId>(c_type.kind)) {
             C_EnumId enum_id = std::get<C_EnumId>(c_type.kind);
             C_Enum const& c_enum = _enums.at(enum_id.id);
-            return fmt::format("{}", c_enum.integer_type);
+            return fmt::format("{}{}", c_enum.integer_type, name_with_space);
         } else if (std::holds_alternative<C_StdFunctionId>(c_type.kind)) {
             C_StdFunctionId fun_id = std::get<C_StdFunctionId>(c_type.kind);
             C_StdFunction const& fun = _stdfunctions.at(fun_id.id);
 
-            std::string result =
-                fmt::format("{}(*)(", _get_c_qtype_as_string(fun.return_type));
+            std::string result = fmt::format(
+                "{}(*{})(", _get_c_qtype_as_string(fun.return_type, ""), name);
             bool first = true;
             for (auto const& param : fun.params) {
                 if (first) {
@@ -229,8 +235,8 @@ auto C_API::_get_c_qtype_as_string(C_QType const& qt) const -> std::string {
                     result = fmt::format("{}, ", result);
                 }
 
-                result =
-                    fmt::format("{}{}", result, _get_c_qtype_as_string(param));
+                result = fmt::format("{}{}", result,
+                                     _get_c_qtype_as_string(param, ""));
             }
             return fmt::format("{})", result);
         } else {
@@ -239,8 +245,14 @@ auto C_API::_get_c_qtype_as_string(C_QType const& qt) const -> std::string {
 
     } else if (std::holds_alternative<C_Pointer>(qt.type)) {
         C_Pointer const& c_pointer = std::get<C_Pointer>(qt.type);
-        return fmt::format("{}*{}", _get_c_qtype_as_string(*c_pointer.pointee),
-                           s_const);
+        return fmt::format("{}*{}{}",
+                           _get_c_qtype_as_string(*c_pointer.pointee, ""),
+                           s_const, name_with_space);
+    } else if (std::holds_alternative<C_Array>(qt.type)) {
+        C_Array const& c_array = std::get<C_Array>(qt.type);
+        return fmt::format("{} {}[{}]{}",
+                           _get_c_qtype_as_string(*c_array.element_type, ""),
+                           name, c_array.size, s_const);
     } else {
         BBL_THROW("unhandled variant");
     }
@@ -869,9 +881,17 @@ auto C_API::_translate_qtype(QType const& qt) -> C_QType {
         return C_QType{&qt, qt.is_const,
                        C_Pointer{std::unique_ptr<C_QType>(new C_QType(
                            std::move(_translate_qtype(*pointer.pointee))))}};
+    } else if (std::holds_alternative<Array>(qt.type)) {
+        Array const& array = std::get<Array>(qt.type);
+        return C_QType{
+            &qt, qt.is_const,
+            C_Array{std::shared_ptr<C_QType>(new C_QType(
+                        std::move(_translate_qtype(*array.element_type)))),
+                    array.size}
+        };
     }
 
-    BBL_THROW("unreachable");
+    BBL_THROW("unreachable variant");
 }
 
 std::string C_API::get_header() const {
@@ -925,8 +945,8 @@ extern "C" {
 
             for (C_Field const& field : c_struct.fields) {
                 result =
-                    fmt::format("{}    {} {};\n", result,
-                                _get_c_qtype_as_string(field.type), field.name);
+                    fmt::format("{}    {};\n", result,
+                                _get_c_qtype_as_string(field.type, field.name));
             }
 
             result = fmt::format("{}}};\n", result);
@@ -964,9 +984,9 @@ auto C_API::_get_function_declaration(C_Function const& c_fun) const
     // as the first parameter
     if (c_fun.receiver.has_value()) {
         result =
-            fmt::format("{}{} {}", result,
-                        _get_c_qtype_as_string(c_fun.receiver.value().type),
-                        c_fun.receiver.value().name);
+            fmt::format("{}{}", result,
+                        _get_c_qtype_as_string(c_fun.receiver.value().type,
+                                               c_fun.receiver.value().name));
 
         first = false;
     }
@@ -979,8 +999,9 @@ auto C_API::_get_function_declaration(C_Function const& c_fun) const
             result = fmt::format("{}, ", result);
         }
 
-        std::string type_string = _get_c_qtype_as_string(c_param.type);
-        result = fmt::format("{}{} {}", result, type_string, c_param.name);
+        std::string type_string =
+            _get_c_qtype_as_string(c_param.type, c_param.name);
+        result = fmt::format("{}{}", result, type_string);
     }
 
     // Finally, we convert the return type (if it's not void) to an out
@@ -990,10 +1011,9 @@ auto C_API::_get_function_declaration(C_Function const& c_fun) const
         if (!first) {
             result = fmt::format("{}, ", result);
         }
-        std::string type_string =
-            _get_c_qtype_as_string(c_fun.result.value().type);
-        result = fmt::format("{}{} {}", result, type_string,
-                             c_fun.result.value().name);
+        std::string type_string = _get_c_qtype_as_string(
+            c_fun.result.value().type, c_fun.result.value().name);
+        result = fmt::format("{}{}", result, type_string);
     }
 
     result = fmt::format("{})", result);
@@ -1058,9 +1078,9 @@ std::string C_API::get_source() const {
                 c_struct.cls.layout.align_bytes, c_struct.name);
 
             for (C_Field const& field : c_struct.fields) {
-                result =
-                    fmt::format("{}    {} {};\n", result,
-                                _get_c_qtype_as_string(field.type), field.name);
+                result = fmt::format(
+                    "{}    {};\n", result,
+                    _get_c_qtype_as_string(field.type, field.name));
             }
 
             result = fmt::format("{}}};\n", result);

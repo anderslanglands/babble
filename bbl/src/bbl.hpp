@@ -99,10 +99,15 @@ struct RValueReference {
     std::unique_ptr<QType> pointee;
 };
 
+struct Array {
+    std::unique_ptr<QType> element_type;
+    size_t size;
+};
+
 /// A (const) qualified type
 struct QType {
     bool is_const;
-    std::variant<Type, Pointer, LValueReference, RValueReference> type;
+    std::variant<Type, Pointer, LValueReference, RValueReference, Array> type;
 };
 
 /// An integral value, represented as a string for precision's sake. Used to

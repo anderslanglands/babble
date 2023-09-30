@@ -923,6 +923,8 @@ bbl_result_t bbl_qtype_get_type_kind(bbl_qtype_t qtype,
         *type_kind = BBL_TYPEKIND_LValueReference;
     } else if (std::holds_alternative<bbl::RValueReference>(qtype->type)) {
         *type_kind = BBL_TYPEKIND_RValueReference;
+    } else if (std::holds_alternative<bbl::Array>(qtype->type)) {
+        *type_kind = BBL_TYPEKIND_Array;
     } else {
         return BBL_RESULT_UnknownKind;
     }
@@ -1016,6 +1018,33 @@ bbl_result_t bbl_qtype_get_pointee_type(bbl_qtype_t qtype,
     } else if (std::holds_alternative<bbl::RValueReference>(qtype->type)) {
         *pointee_type =
             std::get<bbl::RValueReference>(qtype->type).pointee.get();
+        return BBL_RESULT_Success;
+    }
+
+    return BBL_RESULT_WrongKind;
+}
+
+bbl_result_t bbl_qtype_get_array_element_type(bbl_qtype_t qtype,
+                                        bbl_qtype_t* element_type) {
+    if (qtype == nullptr) {
+        return BBL_RESULT_ArgumentIsNull;
+    }
+
+    if (std::holds_alternative<bbl::Array>(qtype->type)) {
+        *element_type = std::get<bbl::Array>(qtype->type).element_type.get();
+        return BBL_RESULT_Success;
+    }
+
+    return BBL_RESULT_WrongKind;
+}
+
+bbl_result_t bbl_qtype_get_array_size(bbl_qtype_t qtype, size_t* size) {
+    if (qtype == nullptr) {
+        return BBL_RESULT_ArgumentIsNull;
+    }
+
+    if (std::holds_alternative<bbl::Array>(qtype->type)) {
+        *size = std::get<bbl::Array>(qtype->type).size;
         return BBL_RESULT_Success;
     }
 

@@ -2,6 +2,7 @@
 #define BBL_BBL_H
 
 #include "bbl_detail.h"
+#include <vcruntime.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -326,6 +327,17 @@ bbl_result_t bbl_qtype_get_as_classid(bbl_qtype_t qtype, bbl_classid_t* classid)
 bbl_result_t bbl_qtype_get_as_stdfunctionid(bbl_qtype_t qtype, bbl_stdfunctionid_t* stdfunctionid);
 bbl_result_t bbl_qtype_get_as_enumid(bbl_qtype_t qtype, bbl_enumid_t* enumid);
 bbl_result_t bbl_qtype_get_pointee_type(bbl_qtype_t qtype, bbl_qtype_t* pointee_type);
+
+/**
+ * @brief Get the element type if `qtype` is an array, leaving `element_type` untouched otherwise
+ * 
+ * @param qtype 
+ * @param element_type 
+ * @return bbl_result_t 
+ */
+bbl_result_t bbl_qtype_get_array_element_type(bbl_qtype_t qtype, bbl_qtype_t* element_type);
+
+bbl_result_t bbl_qtype_get_array_size(bbl_qtype_t qtype, size_t* size);
 
 #ifdef __cplusplus
 }

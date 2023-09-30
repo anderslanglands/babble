@@ -8,6 +8,17 @@ if (POLICY CMP0074)
     cmake_policy(SET CMP0074 NEW)
 endif()
 
+# Screw you, visual studio
+if (MSVC)
+    add_definitions(-D_ITERATOR_DEBUG_LEVEL=0)
+    add_definitions(-DNOMINMAX)
+    add_definitions(-D_SILENCE_ALL_CXX20_DEPRECATION_WARNINGS)
+    # Disable optimizations in relwithdebinfo build on Windows so we can use it for debugging
+    string(REPLACE "/O2" "/Od" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+    string(REPLACE "/Ob1" "/Ob0" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+    string(CONCAT CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}" " /Zi")
+endif()
+
 set(BUILD_SHARED_LIBS OFF)
 
 set(SPDLOG_INSTALL ON)

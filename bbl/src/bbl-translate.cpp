@@ -91,6 +91,12 @@ std::string qtype_to_string(bbl_context_t ctx, bbl_qtype_t qt) {
         return fmt::format("{}&&{}", qtype_to_string(ctx, pointee_type),
                            s_const);
         break;
+    case BBL_TYPEKIND_Array:
+        bbl_qtype_get_array_element_type(qt, &pointee_type);
+        bbl_qtype_get_array_size(qt, &len);
+        return fmt::format("{}[{}]{}", qtype_to_string(ctx, pointee_type), len,
+                           s_const);
+        break;
     case BBL_TYPEKIND_Class:
     case BBL_TYPEKIND_ClassTemplateSpecialization:
         bbl_qtype_get_as_classid(qt, &classid);

@@ -16,6 +16,7 @@
 #include "llvm/Support/raw_ostream.h"
 
 #include <filesystem>
+#include <memory>
 #include <regex>
 #include <spdlog/spdlog.h>
 
@@ -106,6 +107,10 @@ std::string to_string(QType const& qt, DeclMaps const& decl_maps) {
     } else if (std::holds_alternative<bbl::Pointer>(qt.type)) {
         bbl::Pointer const& ptr = std::get<bbl::Pointer>(qt.type);
         return fmt::format("{}*{}", to_string(*ptr.pointee, decl_maps),
+                           s_const);
+    } else if (std::holds_alternative<bbl::Array>(qt.type)) {
+        bbl::Array const& arr = std::get<bbl::Array>(qt.type);
+        return fmt::format("{}[{}]{}", to_string(*arr.element_type, decl_maps), arr.size,
                            s_const);
     } else {
         BBL_THROW("unhandled QType kind in format");
@@ -287,6 +292,16 @@ auto Context::extract_qualtype(clang::QualType const& qt,
         }
 
         return QType{is_const, Type{EnumId{id}}};
+    } else if (clang::ConstantArrayType const* cat =
+                   dyn_cast<clang::ConstantArrayType>(qt.getTypePtr())) {
+        QType element_type =
+            extract_qualtype(cat->getElementType(), mangle_ctx);
+        size_t size = cat->getSize().getLimitedValue();
+        return QType{
+            is_const,
+            Array{std::unique_ptr<QType>(new QType(std::move(element_type))),
+                  size}
+        };
     } else {
         qt.dump();
         BBL_THROW("unhandled qtype {}", qt.getAsString());
@@ -372,7 +387,8 @@ auto Context::extract_class_binding(clang::CXXRecordDecl const* crd,
 
     if (clang::ClassTemplateSpecializationDecl const* ctsd =
             dyn_cast<clang::ClassTemplateSpecializationDecl>(crd)) {
-        // extract_template_arguments(ctsd, template_args, mangle_ctx);
+        // extract_template_arguments(ctsd, template_args,
+        // mangle_ctx);
     }
 
     return Class{this,
@@ -401,10 +417,12 @@ auto Context::insert_class_binding(std::string const& mod_id,
     }
     Module& mod = it_mod->second;
 
-    // Now check that we don't already have another binding somewhere
+    // Now check that we don't already have another binding
+    // somewhere
     if (auto it = _type_to_module_map.find(id);
         it != _type_to_module_map.end()) {
-        BBL_THROW("Class {} ({}) is already bound in module {} in {}\n{}",
+        BBL_THROW("Class {} ({}) is already bound in module {} in "
+                  "{}\n{}",
                   cls.spelling, id, mod.name, mod.source_file,
                   get_class_as_string(_decl_maps.class_map.at(id)));
     } else {
@@ -460,7 +478,9 @@ auto Context::extract_function_binding(clang::FunctionDecl const* fd,
             BBL_RETHROW(e, "{} param \"{}\" has missing binding",
                         qualified_name, param_name);
         } catch (std::exception& e) {
-            BBL_RETHROW(e, "could not extract type of param {} on function {}",
+            BBL_RETHROW(e,
+                        "could not extract type of param {} on "
+                        "function {}",
                         param_name, qualified_name);
         }
 
@@ -493,10 +513,12 @@ auto Context::insert_function_binding(std::string const& mod_id,
     }
     Module& mod = it_mod->second;
 
-    // Now check that we don't already have another binding somewhere
+    // Now check that we don't already have another binding
+    // somewhere
     if (auto it = _type_to_module_map.find(id);
         it != _type_to_module_map.end()) {
-        BBL_THROW("Function {} ({}) is already bound in module {} in {}",
+        BBL_THROW("Function {} ({}) is already bound in module "
+                  "{} in {}",
                   fun.qualified_name, id, mod.name, mod.source_file);
     } else {
         _type_to_module_map.emplace(id, mod_id);
@@ -587,7 +609,8 @@ auto Context::extract_stdfunction_binding(
         return StdFunction{spelling, std::move(return_type),
                            std::move(parameters)};
     } else {
-        BBL_THROW("got std::function CTSD {} but template argument is not a "
+        BBL_THROW("got std::function CTSD {} but template "
+                  "argument is not a "
                   "function prototype",
                   ctsd->getQualifiedNameAsString());
     }
@@ -604,10 +627,12 @@ auto Context::insert_stdfunction_binding(std::string const& mod_id,
     }
     Module& mod = it_mod->second;
 
-    // Now check that we don't already have another binding somewhere
+    // Now check that we don't already have another binding
+    // somewhere
     if (auto it = _type_to_module_map.find(id);
         it != _type_to_module_map.end()) {
-        BBL_THROW("StdFunction {} ({}) is already bound in module {} in {}",
+        BBL_THROW("StdFunction {} ({}) is already bound in "
+                  "module {} in {}",
                   fun.spelling, id, mod.name, mod.source_file);
     } else {
         _type_to_module_map.emplace(id, mod_id);
@@ -648,7 +673,8 @@ auto Context::insert_enum_binding(std::string const& mod_id,
     }
     Module& mod = it_mod->second;
 
-    // Now check that we don't already have another binding somewhere
+    // Now check that we don't already have another binding
+    // somewhere
     if (auto it = _type_to_module_map.find(id);
         it != _type_to_module_map.end()) {
         BBL_THROW("Enum {} ({}) is already bound in module {} in {}",
@@ -716,8 +742,8 @@ std::string Context::get_class_as_string(Class const& cls) {
                 result = fmt::format("{}, ", result);
             }
 
-            result = fmt::format("{}{}", result, to_string(arg, _class_map,
-    _typename_map));
+            result = fmt::format("{}{}", result, to_string(arg,
+    _class_map, _typename_map));
         }
         result = fmt::format("{}>", result);
     }
@@ -912,10 +938,11 @@ auto Context::extract_inclusions(std::string const& source_file)
     -> std::vector<Inclusion> {
     std::vector<Inclusion> result;
 
-    /// XXX: There's definitely a way to do this with the preprocessor, but I
-    /// can't figure out how to invoke it correctly in our context This will do
-    /// for now, but note that it will fail if the user #if's out any includes
-    /// (it will still include them)
+    /// XXX: There's definitely a way to do this with the
+    /// preprocessor, but I can't figure out how to invoke it
+    /// correctly in our context This will do for now, but note
+    /// that it will fail if the user #if's out any includes (it
+    /// will still include them)
     std::ifstream infile(source_file);
 
     std::string line;
@@ -957,9 +984,10 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
             std::filesystem::absolute(source_path).string();
         auto inclusions = extract_inclusions(absolute_path);
 
-        // create a new SourceFile object for this file and stick the found
-        // inclusions in it these can then be queried from each module to decide
-        // what headers it needs to include
+        // create a new SourceFile object for this file and stick
+        // the found inclusions in it these can then be queried
+        // from each module to decide what headers it needs to
+        // include
         insert_source_file(absolute_path,
                            SourceFile{
                                inclusions,
@@ -975,7 +1003,8 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
     // extract the modules itself
     SPDLOG_INFO("running module finder");
     //  find_module(this);
-    // result = tool.run(newFrontendActionFactory(&find_module).get());
+    // result =
+    // tool.run(newFrontendActionFactory(&find_module).get());
     ExtractModules module_extractor(this);
     MatchFinder module_finder;
 
@@ -985,8 +1014,8 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
     module_finder.addMatcher(module_matcher, &module_extractor);
     int result = tool.run(newFrontendActionFactory(&module_finder).get());
 
-    // ignore diagnostics after the first run - we don't need the same info
-    // printed out again
+    // ignore diagnostics after the first run - we don't need the
+    // same info printed out again
     tool.setDiagnosticConsumer(new clang::IgnoringDiagConsumer());
 
     // Extract class bindings

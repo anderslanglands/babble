@@ -62,6 +62,7 @@ enum bbl_type_kind_t {
     BBL_TYPEKIND_Pointer,
     BBL_TYPEKIND_LValueReference,
     BBL_TYPEKIND_RValueReference,
+    BBL_TYPEKIND_Array,
 };
 
 
