@@ -84,7 +84,7 @@ void ExtractModules::run(
                 source_filename, SourceFile{{}, {module_id}, source_filename});
         }
 
-        fd->dumpColor();
+        // fd->dumpColor();
     }
 }
 
@@ -544,8 +544,15 @@ void ExtractMethodBindings::run(
             BBL_THROW("could not get FieldDecl from DeclRefExpr");
         }
 
-        QType qt_field =
-            _bbl_ctx->extract_qualtype(fd->getType(), mangle_context.get());
+        QType qt_field;
+        try {
+            qt_field =
+                _bbl_ctx->extract_qualtype(fd->getType(), mangle_context.get());
+        } catch (std::exception& e) {
+            BBL_RETHROW(e, "could not extract field \"{}\" from class \"{}\"",
+                        fd->getNameAsString(),
+                        fd->getParent()->getQualifiedNameAsString());
+        }
 
         clang::CXXMemberCallExpr const* mce =
             find_first_ancestor_of_type<clang::CXXMemberCallExpr>(dre,
