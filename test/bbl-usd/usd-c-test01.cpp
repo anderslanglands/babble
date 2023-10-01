@@ -5,6 +5,7 @@ int main(int argc, char** argv) {
 
     if (argc != 2) {
         printf("usage:\n\t%s <usdlayer>", argv[0]);
+        return 1;
     }
 
     std_String_t* str_path = nullptr;
@@ -12,7 +13,7 @@ int main(int argc, char** argv) {
 
     usd_StageRefPtr_t* stage_ref = nullptr;
     usd_StageRefPtr_ctor(&stage_ref);
-    usd_Stage_Open(str_path, LoadAll, stage_ref);
+    usd_Stage_Open(str_path, usd_StageInitialLoadSet_LoadAll, stage_ref);
 
     // Note: make sure stage_ref outlives any use of stage
     usd_Stage_t* stage = nullptr;

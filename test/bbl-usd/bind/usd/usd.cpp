@@ -1,4 +1,5 @@
-#include <pxr/usd/usd/object.h>
+#include <pxr/usd/sdf/path.h>
+#include <pxr/usd/usd/stageLoadRules.h>
 #if defined(__clang__)
 
 #include "babble"
@@ -8,7 +9,9 @@
 #include <pxr/base/vt/value.h>
 #include <pxr/usd/ar/resolverContext.h>
 #include <pxr/usd/sdf/assetPath.h>
+#include <pxr/usd/sdf/layerOffset.h>
 #include <pxr/usd/sdf/payload.h>
+#include <pxr/usd/sdf/reference.h>
 #include <pxr/usd/sdf/types.h>
 #include <pxr/usd/usd/attribute.h>
 #include <pxr/usd/usd/attributeQuery.h>
@@ -16,6 +19,7 @@
 #include <pxr/usd/usd/editTarget.h>
 #include <pxr/usd/usd/inherits.h>
 #include <pxr/usd/usd/interpolation.h>
+#include <pxr/usd/usd/object.h>
 #include <pxr/usd/usd/payloads.h>
 #include <pxr/usd/usd/prim.h>
 #include <pxr/usd/usd/primDefinition.h>
@@ -23,14 +27,16 @@
 #include <pxr/usd/usd/property.h>
 #include <pxr/usd/usd/references.h>
 #include <pxr/usd/usd/relationship.h>
+#include <pxr/usd/usd/resolveInfo.h>
 #include <pxr/usd/usd/resolveTarget.h>
 #include <pxr/usd/usd/schemaBase.h>
 #include <pxr/usd/usd/schemaRegistry.h>
 #include <pxr/usd/usd/specializes.h>
-#include <pxr/usd/usd/stage.h>
+#include <pxr/usd/usd/stageCache.h>
 #include <pxr/usd/usd/stagePopulationMask.h>
 #include <pxr/usd/usd/timeCode.h>
 #include <pxr/usd/usd/variantSets.h>
+
 
 #include <pxr/base/tf/token.h>
 
@@ -293,7 +299,24 @@ BBL_MODULE(usd) {
     bbl::Class<std::vector<PXR_NS::UsdProperty>>("PropertyVector")
         BBL_STD_VECTOR_METHODS(PXR_NS::UsdProperty);
 
-    bbl::Class<PXR_NS::UsdReferences>("References");
+    bbl::Class<PXR_NS::UsdReferences>("References")
+        .m((bool (PXR_NS::UsdReferences::*)(PXR_NS::SdfReference const&, PXR_NS::UsdListPosition))
+            &PXR_NS::UsdReferences::AddReference
+        )
+        .m((bool (PXR_NS::UsdReferences::*)(std::string const&, PXR_NS::SdfPath const&, PXR_NS::SdfLayerOffset const&, PXR_NS::UsdListPosition))
+            &PXR_NS::UsdReferences::AddReference, "AddReference_with_identifier_and_path"
+        )
+        .m((bool (PXR_NS::UsdReferences::*)(std::string const&, PXR_NS::SdfLayerOffset const&, PXR_NS::UsdListPosition))
+            &PXR_NS::UsdReferences::AddReference, "AddReference_with_identifier"
+        )
+        .m(&PXR_NS::UsdReferences::AddInternalReference)
+        .m(&PXR_NS::UsdReferences::RemoveReference)
+        .m(&PXR_NS::UsdReferences::ClearReferences)
+        .m(&PXR_NS::UsdReferences::SetReferences)
+        .m((PXR_NS::UsdPrim const& (PXR_NS::UsdReferences::*)() const)
+            &PXR_NS::UsdReferences::GetPrim
+        )
+    ;
 
     bbl::Class<PXR_NS::UsdRelationship>("Relationship")
         .ctor(bbl::Ctor<Relationship>(), "default")
@@ -313,14 +336,38 @@ BBL_MODULE(usd) {
     bbl::Class<std::vector<PXR_NS::UsdRelationship>>("RelationshipVector")
         BBL_STD_VECTOR_METHODS(PXR_NS::UsdRelationship);
 
-    bbl::Class<PXR_NS::UsdResolveTarget>("ResolveTarget");
+    bbl::Class<PXR_NS::UsdResolveInfo>("ResolveInfo")
+        .m(&PXR_NS::UsdResolveInfo::GetSource)
+        .m(&PXR_NS::UsdResolveInfo::HasAuthoredValueOpinion)
+        .m(&PXR_NS::UsdResolveInfo::HasAuthoredValue)
+        .m(&PXR_NS::UsdResolveInfo::GetNode)
+        .m(&PXR_NS::UsdResolveInfo::ValueIsBlocked)
+    ;
+
+    bbl::Enum<PXR_NS::UsdResolveInfoSource>("ResolveInfoSource");
+
+    bbl::Class<PXR_NS::UsdResolveTarget>("ResolveTarget")
+        .m(&PXR_NS::UsdResolveTarget::GetPrimIndex)
+        .m(&PXR_NS::UsdResolveTarget::GetStartNode)
+        .m(&PXR_NS::UsdResolveTarget::GetStartLayer)
+        .m(&PXR_NS::UsdResolveTarget::GetStopNode)
+        .m(&PXR_NS::UsdResolveTarget::GetStopLayer)
+        .m(&PXR_NS::UsdResolveTarget::IsNull)
+    ;
 
     bbl::Enum<PXR_NS::UsdSchemaRegistry::VersionPolicy>(
         "SchemaRegistryVersionPolicy");
 
     bbl::Enum<PXR_NS::UsdSchemaKind>("SchemaKind");
 
-    bbl::Class<PXR_NS::UsdSpecializes>("Specializes");
+    bbl::Class<PXR_NS::UsdSpecializes>("Specializes")
+        .m(&PXR_NS::UsdSpecializes::AddSpecialize)
+        .m(&PXR_NS::UsdSpecializes::RemoveSpecialize)
+        .m(&PXR_NS::UsdSpecializes::ClearSpecializes)
+        .m(&PXR_NS::UsdSpecializes::SetSpecializes)
+        .m((PXR_NS::UsdPrim const& (PXR_NS::UsdSpecializes::*)() const)
+            &PXR_NS::UsdSpecializes::GetPrim)
+        ;
 
     bbl::Class<PXR_NS::UsdVariantSet>("VariantSet");
 
@@ -515,13 +562,111 @@ BBL_MODULE(usd) {
 
     bbl::Enum<PXR_NS::UsdStage::InitialLoadSet>("StageInitialLoadSet");
 
-    bbl::Class<PXR_NS::UsdStageLoadRules>("StageLoadRules");
+    bbl::Class<PXR_NS::UsdStageCache>("StageCache")
+        .ctor(bbl::Ctor<PXR_NS::UsdStageCache>(), "default")
+        .m(&PXR_NS::UsdStageCache::GetAllStages)
+        .m(&PXR_NS::UsdStageCache::Size)
+        .m(&PXR_NS::UsdStageCache::IsEmpty)
+        .m(&PXR_NS::UsdStageCache::Find)
+        .m((PXR_NS::UsdStageRefPtr (PXR_NS::UsdStageCache::*)(PXR_NS::SdfLayerHandle const&) const)
+            &PXR_NS::UsdStageCache::FindOneMatching, "FindOneMatching_with_root_layer"
+        )
+        .m((PXR_NS::UsdStageRefPtr (PXR_NS::UsdStageCache::*)(PXR_NS::SdfLayerHandle const&, PXR_NS::SdfLayerHandle const&) const)
+            &PXR_NS::UsdStageCache::FindOneMatching, "FindOneMatching_with_root_and_session_layer"
+        )
+        .m((PXR_NS::UsdStageRefPtr (PXR_NS::UsdStageCache::*)(PXR_NS::SdfLayerHandle const&, PXR_NS::ArResolverContext const&) const)
+            &PXR_NS::UsdStageCache::FindOneMatching, "FindOneMatching_with_root_layer_and_resolver"
+        )
+        .m((PXR_NS::UsdStageRefPtr (PXR_NS::UsdStageCache::*)(PXR_NS::SdfLayerHandle const&, PXR_NS::SdfLayerHandle const&, PXR_NS::ArResolverContext const&) const)
+            &PXR_NS::UsdStageCache::FindOneMatching, "FindOneMatching_with_root_and_session_layer_and_resolver"
+        )
+        .m((PXR_NS::UsdStageRefPtrVector (PXR_NS::UsdStageCache::*)(PXR_NS::SdfLayerHandle const&) const)
+            &PXR_NS::UsdStageCache::FindAllMatching, "FindAllMatching_with_root_layer"
+        )
+        .m((PXR_NS::UsdStageRefPtrVector (PXR_NS::UsdStageCache::*)(PXR_NS::SdfLayerHandle const&, PXR_NS::SdfLayerHandle const&) const)
+            &PXR_NS::UsdStageCache::FindAllMatching, "FindAllMatching_with_root_and_session_layer"
+        )
+        .m((PXR_NS::UsdStageRefPtrVector (PXR_NS::UsdStageCache::*)(PXR_NS::SdfLayerHandle const&, PXR_NS::ArResolverContext const&) const)
+            &PXR_NS::UsdStageCache::FindAllMatching, "FindAllMatching_with_root_layer_and_resolver"
+        )
+        .m((PXR_NS::UsdStageRefPtrVector (PXR_NS::UsdStageCache::*)(PXR_NS::SdfLayerHandle const&, PXR_NS::SdfLayerHandle const&, PXR_NS::ArResolverContext const&) const)
+            &PXR_NS::UsdStageCache::FindAllMatching, "FindAllMatching_with_root_and_session_layer_and_resolver"
+        )
+        .m(&PXR_NS::UsdStageCache::GetId)
+        .m((bool (PXR_NS::UsdStageCache::*)(PXR_NS::UsdStageRefPtr const&) const)
+            &PXR_NS::UsdStageCache::Contains
+        )
+        .m((bool (PXR_NS::UsdStageCache::*)(PXR_NS::UsdStageCache::Id) const)
+            &PXR_NS::UsdStageCache::Contains, "Contains_id"
+        )
+        .m(&PXR_NS::UsdStageCache::Insert)
+        .m((bool (PXR_NS::UsdStageCache::*)(PXR_NS::UsdStageRefPtr const&))
+            &PXR_NS::UsdStageCache::Erase
+        )
+        .m((bool (PXR_NS::UsdStageCache::*)(PXR_NS::UsdStageCache::Id))
+            &PXR_NS::UsdStageCache::Erase, "Erase_id"
+        )
+        .m((size_t (PXR_NS::UsdStageCache::*)(PXR_NS::SdfLayerHandle const&))
+            &PXR_NS::UsdStageCache::EraseAll, "EraseAll_with_root_layer"
+        )
+        .m((size_t (PXR_NS::UsdStageCache::*)(PXR_NS::SdfLayerHandle const&, PXR_NS::SdfLayerHandle const&))
+            &PXR_NS::UsdStageCache::EraseAll, "EraseAll_with_root_and_session_layer"
+        )
+        .m((size_t (PXR_NS::UsdStageCache::*)(PXR_NS::SdfLayerHandle const&, PXR_NS::SdfLayerHandle const&, PXR_NS::ArResolverContext const&))
+            &PXR_NS::UsdStageCache::EraseAll, "EraseAll_with_root_and_session_layer_and_resolver"
+        )
+        .m(&PXR_NS::UsdStageCache::Clear)
+        .m(&PXR_NS::UsdStageCache::SetDebugName)
+        .m(&PXR_NS::UsdStageCache::GetDebugName)
+        ;
 
-    bbl::Class<PXR_NS::UsdStagePopulationMask>("StagePopulationMask");
+    bbl::Class<PXR_NS::UsdStageCache::Id>("StageCacheId")
+        .opaque_bytes()
+        .m(&PXR_NS::UsdStageCache::Id::ToLongInt)
+        .m(&PXR_NS::UsdStageCache::Id::ToString)
+        .m(&PXR_NS::UsdStageCache::Id::IsValid)
+        .m(&PXR_NS::UsdStageCache::Id::FromLongInt)
+        .m(&PXR_NS::UsdStageCache::Id::FromString)
+        ;
+
+    bbl::Class<PXR_NS::UsdStageLoadRules>("StageLoadRules")
+        .ctor(bbl::Ctor<PXR_NS::UsdStageLoadRules>(), "default")
+        .m(&PXR_NS::UsdStageLoadRules::LoadWithDescendants)
+        .m(&PXR_NS::UsdStageLoadRules::LoadWithoutDescendants)
+        .m(&PXR_NS::UsdStageLoadRules::Unload)
+        .m(&PXR_NS::UsdStageLoadRules::LoadAndUnload)
+        .m(&PXR_NS::UsdStageLoadRules::AddRule)
+        // SetRules
+        .m(&PXR_NS::UsdStageLoadRules::Minimize)
+        .m(&PXR_NS::UsdStageLoadRules::IsLoaded)
+        .m(&PXR_NS::UsdStageLoadRules::IsLoadedWithAllDescendants)
+        .m(&PXR_NS::UsdStageLoadRules::IsLoadedWithNoDescendants)
+        .m(&PXR_NS::UsdStageLoadRules::GetEffectiveRuleForPath)
+        .m(&PXR_NS::UsdStageLoadRules::GetRules)
+        .m(&PXR_NS::UsdStageLoadRules::LoadAll)
+        .m(&PXR_NS::UsdStageLoadRules::LoadNone)
+        ;
+
+    bbl::Class<std::pair<PXR_NS::SdfPath, PXR_NS::UsdStageLoadRules::Rule>>("PathStageLoadRulesRulePair");
+    bbl::Class<std::vector<std::pair<PXR_NS::SdfPath, PXR_NS::UsdStageLoadRules::Rule>>>("PathStageLoadRulesRulePairVector")
+        BBL_STD_VECTOR_METHODS((std::pair<PXR_NS::SdfPath, PXR_NS::UsdStageLoadRules::Rule>))
+        ;
+
+    bbl::Enum<PXR_NS::UsdStageLoadRules::Rule>("StageLoadRulesRule");
+
+    bbl::Class<PXR_NS::UsdStagePopulationMask>("StagePopulationMask")
+        .ctor(bbl::Ctor<PXR_NS::UsdStagePopulationMask>(), "default")
+        .ctor(bbl::Ctor<PXR_NS::UsdStagePopulationMask, PXR_NS::SdfPathVector>(), "from_path_vector")
+        ;
 
     bbl::Class<PXR_NS::UsdStageRefPtr>("StageRefPtr")
         .ctor(bbl::Ctor<StageRefPtr>(), "ctor")
-        .m(&StageRefPtr::operator->, "get");
+        .m(&StageRefPtr::operator->, "get")
+        ;
+
+    bbl::Class<PXR_NS::UsdStageRefPtrVector>("StageRefPtrVector")
+        BBL_STD_VECTOR_METHODS(PXR_NS::UsdStageRefPtr)
+        ;
 
     bbl::Class<PXR_NS::UsdStageWeakPtr>("StageWeakPtr")
         .ctor(bbl::Ctor<PXR_NS::UsdStageWeakPtr>(), "ctor")

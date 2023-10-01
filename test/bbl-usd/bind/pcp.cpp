@@ -1,4 +1,4 @@
-#include <pxr/pxr.h>
+#include <pxr/usd/pcp/node.h>
 #if defined(__clang__)
 
 #include "babble"
@@ -9,7 +9,7 @@
 #include <pxr/usd/pcp/types.h>
 
 BBL_MODULE(pcp) {
-    bbl::Class<PXR_NS::PcpPrimIndex>("PrimIndex");
+    bbl::Enum<PXR_NS::PcpArcType>("ArcType");
 
     bbl::Class<PXR_NS::PcpMapFunction>("MapFunction")
         .ctor(bbl::Ctor<PXR_NS::PcpMapFunction>(), "default")
@@ -31,9 +31,12 @@ BBL_MODULE(pcp) {
         .m(&PXR_NS::PcpMapFunction::IdentityPathMap)
         ;
 
-    bbl::Class<PXR_NS::PcpMapFunction::PathMap>("MapFunctionPathMap")
+    bbl::Class<PXR_NS::PcpNodeRef>("NodeRef");
 
+    bbl::Class<PXR_NS::PcpMapFunction::PathMap>("MapFunctionPathMap")
     ;
+
+    bbl::Class<PXR_NS::PcpPrimIndex>("PrimIndex");
 
     bbl::Class<PXR_NS::PcpVariantFallbackMap>("VariantFallbackMap")
         ;
