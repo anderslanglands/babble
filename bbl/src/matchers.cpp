@@ -64,14 +64,19 @@ void ExtractModules::run(
 
         std::string module_id = get_mangled_name(fd, mangle_context.get());
 
-        _bbl_ctx->insert_module(module_id, Module{
-                                               source_filename,
-                                               name,
-                                               {}, // classes
-                                               {}, // functions
-                                               {}, // stdfunctions
-                                               {}, // enums
-                                           });
+        if (Module* mod = _bbl_ctx->get_module(module_id)) {
+            // module has already been created, add this source file to it
+            mod->source_files.push_back(source_filename);
+        } else {
+            _bbl_ctx->insert_module(module_id, Module{
+                                                   {source_filename},
+                                                   name,
+                                                   {}, // classes
+                                                   {}, // functions
+                                                   {}, // stdfunctions
+                                                   {}, // enums
+                                               });
+        }
 
         // Add this module's id to the list of modules in its source file
         /// XXX: source files should probably already be created if we do

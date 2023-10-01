@@ -110,8 +110,8 @@ std::string to_string(QType const& qt, DeclMaps const& decl_maps) {
                            s_const);
     } else if (std::holds_alternative<bbl::Array>(qt.type)) {
         bbl::Array const& arr = std::get<bbl::Array>(qt.type);
-        return fmt::format("{}[{}]{}", to_string(*arr.element_type, decl_maps), arr.size,
-                           s_const);
+        return fmt::format("{}[{}]{}", to_string(*arr.element_type, decl_maps),
+                           arr.size, s_const);
     } else {
         BBL_THROW("unhandled QType kind in format");
     }
@@ -421,9 +421,9 @@ auto Context::insert_class_binding(std::string const& mod_id,
     // somewhere
     if (auto it = _type_to_module_map.find(id);
         it != _type_to_module_map.end()) {
-        BBL_THROW("Class {} ({}) is already bound in module {} in "
-                  "{}\n{}",
-                  cls.spelling, id, mod.name, mod.source_file,
+        BBL_THROW("Class {} ({}) is already bound in module {}"
+                  "\n{}",
+                  cls.spelling, id, mod.name,
                   get_class_as_string(_decl_maps.class_map.at(id)));
     } else {
         _type_to_module_map.emplace(id, mod_id);
@@ -518,8 +518,8 @@ auto Context::insert_function_binding(std::string const& mod_id,
     if (auto it = _type_to_module_map.find(id);
         it != _type_to_module_map.end()) {
         BBL_THROW("Function {} ({}) is already bound in module "
-                  "{} in {}",
-                  fun.qualified_name, id, mod.name, mod.source_file);
+                  "{}",
+                  fun.qualified_name, id, mod.name);
     } else {
         _type_to_module_map.emplace(id, mod_id);
     }
@@ -632,8 +632,8 @@ auto Context::insert_stdfunction_binding(std::string const& mod_id,
     if (auto it = _type_to_module_map.find(id);
         it != _type_to_module_map.end()) {
         BBL_THROW("StdFunction {} ({}) is already bound in "
-                  "module {} in {}",
-                  fun.spelling, id, mod.name, mod.source_file);
+                  "module {}",
+                  fun.spelling, id, mod.name);
     } else {
         _type_to_module_map.emplace(id, mod_id);
     }
@@ -677,8 +677,8 @@ auto Context::insert_enum_binding(std::string const& mod_id,
     // somewhere
     if (auto it = _type_to_module_map.find(id);
         it != _type_to_module_map.end()) {
-        BBL_THROW("Enum {} ({}) is already bound in module {} in {}",
-                  enm.spelling, id, mod.name, mod.source_file);
+        BBL_THROW("Enum {} ({}) is already bound in module {}", enm.spelling,
+                  id, mod.name);
     } else {
         _type_to_module_map.emplace(id, mod_id);
     }

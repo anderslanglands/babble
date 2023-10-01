@@ -124,15 +124,32 @@ bbl_result_t bbl_context_get_enum(bbl_context_t ctx, bbl_enumid_t id,
     return BBL_RESULT_Success;
 }
 
-bbl_result_t bbl_module_get_source_file(bbl_module_t module, char const** ptr,
+bbl_result_t bbl_module_get_num_source_files(bbl_module_t module, size_t* num_source_files) {
+    if (module == nullptr) {
+        *num_source_files = 0;
+        return BBL_RESULT_ArgumentIsNull;
+    }
+
+    *num_source_files = module->source_files.size();
+    return BBL_RESULT_Success;
+}
+
+bbl_result_t bbl_module_get_source_file(bbl_module_t module, size_t index, char const** ptr,
                                         size_t* len) {
     if (module == nullptr) {
         *ptr = nullptr;
         *len = 0;
         return BBL_RESULT_ArgumentIsNull;
     }
-    *ptr = module->source_file.c_str();
-    *len = module->source_file.size();
+
+    if (index >= module->source_files.size()) {
+        *ptr = nullptr;
+        *len = 0;
+        return BBL_RESULT_ArgumentOutOfRange;
+    }
+
+    *ptr = module->source_files[index].c_str();
+    *len = module->source_files[index].size();
     return BBL_RESULT_Success;
 }
 

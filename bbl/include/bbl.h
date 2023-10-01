@@ -200,7 +200,25 @@ bbl_result_t bbl_context_get_stdfunction(bbl_context_t ctx, bbl_stdfunctionid_t 
  */
 bbl_result_t bbl_context_get_enum(bbl_context_t ctx, bbl_enumid_t id, bbl_enum_t* cls);
 
-bbl_result_t bbl_module_get_source_file(bbl_module_t module, char const** ptr, size_t* len);
+/**
+ * @brief Get the number of source files that this module was created in
+ * 
+ * @param module 
+ * @param num_source_files 
+ * @return bbl_result_t 
+ */
+bbl_result_t bbl_module_get_num_source_files(bbl_module_t module, size_t* num_source_files);
+
+/**
+ * @brief Get the index'th source file for this module
+ * 
+ * @param module 
+ * @param index 
+ * @param ptr 
+ * @param len 
+ * @return bbl_result_t 
+ */
+bbl_result_t bbl_module_get_source_file(bbl_module_t module, size_t index, char const** ptr, size_t* len);
 
 /**
  * @brief Get the name of this module, i.e. "X" in BBL_MODULE(X)

@@ -250,8 +250,8 @@ struct Enum {
 /// A single Module, as declared by the BBL_MODULE(name) macro in the binding
 /// source
 struct Module {
-    /// The binding source file that this module was authored in
-    std::string source_file;
+    /// The binding source files that this module was authored in
+    std::vector<std::string> source_files;
     /// The name of the module
     std::string name;
     /// List of Classes bound in this module

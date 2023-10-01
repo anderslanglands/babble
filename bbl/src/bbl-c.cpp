@@ -168,22 +168,26 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
             }
         }
 
-        SourceFile const* source_file =
-            _cpp_ctx.get_source_file(cpp_mod.source_file);
-        assert(source_file);
+        std::vector<Inclusion> mod_inclusions;
+        for (auto const& source_filename: cpp_mod.source_files) {
+            SourceFile const* source_file =
+                _cpp_ctx.get_source_file(source_filename);
+            assert(source_file);
 
-        // add the source inclusions to the main list
-        for (Inclusion const& inclusion : source_file->inclusions) {
-            if (!seen_includes.contains(inclusion.filename)) {
-                _inclusions.push_back(inclusion);
-                seen_includes.insert(inclusion.filename);
+            // add the source inclusions to the main list
+            for (Inclusion const& inclusion : source_file->inclusions) {
+                if (!seen_includes.contains(inclusion.filename)) {
+                    _inclusions.push_back(inclusion);
+                    mod_inclusions.push_back(inclusion);
+                    seen_includes.insert(inclusion.filename);
+                }
             }
         }
 
         _modules.emplace_back(C_Module{
             cpp_id,
             cpp_mod.name,
-            source_file->inclusions,
+            mod_inclusions,
             std::move(mod_structs),
             std::move(mod_functions),
         });
