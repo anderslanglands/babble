@@ -144,9 +144,17 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
             std::string enum_name = fmt::format("{}", enum_namespace);
             bbl_builtin_t integer_type = get_builtin(cpp_enum->integer_type);
 
+            std::vector<EnumVariant> c_variants;
+            for (auto const& var: cpp_enum->variants) {
+                c_variants.emplace_back(
+                    fmt::format("{}_{}", enum_name, var.first),
+                    var.second
+                );
+            }
+
             _enums.emplace(cpp_enum_id, C_Enum{
                                             enum_name,
-                                            cpp_enum->variants,
+                                            std::move(c_variants),
                                             integer_type,
                                         });
             mod_enums.push_back(cpp_enum_id);
