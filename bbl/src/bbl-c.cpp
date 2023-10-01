@@ -331,14 +331,26 @@ static bool is_opaqueptr(QType const& qt, Context const& ctx) {
         Type const& type = std::get<Type>(qt.type);
         if (std::holds_alternative<ClassId>(type.kind)) {
             ClassId const& id = std::get<ClassId>(type.kind);
-            if (ctx.get_class(id.id)->bind_kind == BindKind::OpaquePtr) {
+
+            Class const* cls = ctx.get_class(id.id);
+            if (cls == nullptr) {
+                BBL_THROW("class {} is not bound", id.id);
+            }
+
+            if (cls->bind_kind == BindKind::OpaquePtr) {
                 return true;
             }
         } else if (std::holds_alternative<ClassTemplateSpecializationId>(
                        type.kind)) {
             ClassTemplateSpecializationId const& id =
                 std::get<ClassTemplateSpecializationId>(type.kind);
-            if (ctx.get_class(id.id)->bind_kind == BindKind::OpaquePtr) {
+
+            Class const* cls = ctx.get_class(id.id);
+            if (cls == nullptr) {
+                BBL_THROW("class {} is not bound", id.id);
+            }
+
+            if (cls->bind_kind == BindKind::OpaquePtr) {
                 return true;
             }
         }
@@ -372,12 +384,24 @@ static bool is_value_opaque_ptr(QType const& qt, Context& cpp_ctx) {
         Type const& type = std::get<Type>(qt.type);
         if (std::holds_alternative<ClassId>(type.kind)) {
             ClassId const& id = std::get<ClassId>(type.kind);
-            return cpp_ctx.get_class(id.id)->bind_kind == BindKind::OpaquePtr;
+
+            Class const* cls = cpp_ctx.get_class(id.id);
+            if (cls == nullptr) {
+                BBL_THROW("class {} is not bound", id.id);
+            }
+
+            return cls->bind_kind == BindKind::OpaquePtr;
         } else if (std::holds_alternative<ClassTemplateSpecializationId>(
                        type.kind)) {
             ClassTemplateSpecializationId const& id =
                 std::get<ClassTemplateSpecializationId>(type.kind);
-            return cpp_ctx.get_class(id.id)->bind_kind == BindKind::OpaquePtr;
+
+            Class const* cls = cpp_ctx.get_class(id.id);
+            if (cls == nullptr) {
+                BBL_THROW("class {} is not bound", id.id);
+            }
+
+            return cls->bind_kind == BindKind::OpaquePtr;
         }
     }
 
@@ -392,14 +416,18 @@ static bool is_opaque_ptr(QType const& qt, Context const& ctx) {
         if (std::holds_alternative<ClassId>(type.kind)) {
             ClassId const& id = std::get<ClassId>(type.kind);
             Class const* cls = ctx.get_class(id.id);
-            assert(cls);
+            if (cls == nullptr) {
+                BBL_THROW("class {} is not bound", id.id);
+            }
             return cls->bind_kind == BindKind::OpaquePtr;
         } else if (std::holds_alternative<ClassTemplateSpecializationId>(
                        type.kind)) {
             ClassTemplateSpecializationId const& id =
                 std::get<ClassTemplateSpecializationId>(type.kind);
             Class const* cls = ctx.get_class(id.id);
-            assert(cls);
+            if (cls == nullptr) {
+                BBL_THROW("class {} is not bound", id.id);
+            }
             return cls->bind_kind == BindKind::OpaquePtr;
         }
     }
