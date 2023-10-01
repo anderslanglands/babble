@@ -501,10 +501,23 @@ void ExtractMethodBindings::run(
                         get_mangled_name(cmd, mangle_context.get());
 
                     if (_bbl_ctx->has_method(method_id)) {
-                        /// XXX: report loction of binding
-                        SPDLOG_WARN("method {} is already bound, ignoring "
-                                    "second binding",
-                                    cmd->getQualifiedNameAsString());
+
+                        // methods mangled names are based on the class in which
+                        // they're first declared, which means we'll get
+                        // "duplicate" entries for inherited methods.
+
+                        if (std::find(cls->methods.begin(), cls->methods.end(),
+                                      method_id) != cls->methods.end()) {
+                            // class already has method insert, warn
+                            /// XXX: report loction of binding
+                            SPDLOG_WARN("method {} is already bound on class "
+                                        "{}, ignoring "
+                                        "second binding",
+                                        cmd->getQualifiedNameAsString(),
+                                        cls->qualified_name);
+                        } else {
+                            cls->methods.push_back(method_id);
+                        }
                     } else {
                         try {
                             bbl::Method method =

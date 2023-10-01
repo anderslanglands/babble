@@ -86,8 +86,14 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
                     C_Function c_fun = _translate_method(
                         method, struct_namespace, cpp_class_id);
 
-                    _functions.emplace(method_id, std::move(c_fun));
-                    mod_functions.push_back(method_id);
+                    // we can have multiple instances of the "same" method
+                    // through inheritance, so make a new function id including
+                    // the class id
+                    std::string function_id =
+                        fmt::format("{}/{}", method_id, cpp_class_id);
+
+                    _functions.emplace(function_id, std::move(c_fun));
+                    mod_functions.push_back(function_id);
                 } catch (MissingTypeBindingException& e) {
                     SPDLOG_ERROR("could not translate method {} of class {}. "
                                  "Method will be ignored.\n{}",
@@ -1106,9 +1112,9 @@ std::string C_API::get_source() const {
                 c_struct.cls.layout.align_bytes, c_struct.name);
 
             for (C_Field const& field : c_struct.fields) {
-                result = fmt::format(
-                    "{}    {};\n", result,
-                    _get_c_qtype_as_string(field.type, field.name));
+                result =
+                    fmt::format("{}    {};\n", result,
+                                _get_c_qtype_as_string(field.type, field.name));
             }
 
             result = fmt::format("{}}};\n", result);
