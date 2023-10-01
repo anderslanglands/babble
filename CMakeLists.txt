@@ -27,4 +27,4 @@ add_subdirectory(ext/tiny-process-library)
 
 add_subdirectory(bbl)
 
-# add_subdirectory(test/bbl-usd)
+add_subdirectory(test/bbl-usd)

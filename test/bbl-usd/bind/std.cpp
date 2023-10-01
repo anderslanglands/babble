@@ -14,6 +14,11 @@ BBL_MODULE(std) {
     // We provide macros for automating the binding of common types' methods
     bbl::Class<std::vector<std::string>>("StringVector")
         BBL_STD_VECTOR_METHODS(std::string);
+
+    bbl::Class<std::vector<double>>("DoubleVector")
+        BBL_STD_VECTOR_METHODS(double);
+
+    
 }
 
 

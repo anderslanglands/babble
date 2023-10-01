@@ -10,7 +10,9 @@ enum class Bar: int64_t {
 
 class Foo {
 public:
-    Foo const& foo(Bar b) const;
+    void take_enum(Bar b) const;
+    Bar return_enum();
+
 };
 
 }
@@ -24,6 +26,7 @@ BBL_MODULE(test016) {
 
     bbl::Class<qux::Foo>()
         .ctor(bbl::Ctor<qux::Foo>())
-        .m(&qux::Foo::foo)
+        .m(&qux::Foo::take_enum)
+        .m(&qux::Foo::return_enum)
         ;
 }

@@ -1,74 +1,26 @@
-#include <pxr/usd/ar/resolverContext.h>
-#include <pxr/usd/usd/interpolation.h>
-#include <pxr/usd/usd/schemaRegistry.h>
-#include <pxr/usd/usd/stagePopulationMask.h>
 #if defined(__clang__)
 
 #include "babble"
 #include "babble-std"
 
-#include <pxr/usd/usd/attribute.h>
-#include <pxr/usd/usd/editTarget.h>
-#include <pxr/usd/usd/inherits.h>
-#include <pxr/usd/usd/payloads.h>
 #include <pxr/usd/usd/prim.h>
+#include <pxr/usd/usd/primDefinition.h>
 #include <pxr/usd/usd/primRange.h>
-#include <pxr/usd/usd/property.h>
-#include <pxr/usd/usd/references.h>
-#include <pxr/usd/usd/relationship.h>
-#include <pxr/usd/usd/resolveTarget.h>
-#include <pxr/usd/usd/specializes.h>
-#include <pxr/usd/usd/variantSets.h>
-#include <pxr/usd/usd/common.h>
-#include <pxr/usd/usd/stage.h>
-
-#include <pxr/base/tf/token.h>
+#include <pxr/usd/usd/schemaRegistry.h>
 
 
-// We define modules that just act as a way to group binding declarations
-// together. These would then likely be turned into real modules in languages
-// that support them like Rust or Python
 BBL_MODULE(usd) {
-
-    // clang-format off
-
-    using Token = PXR_NS::TfToken;
-    using Type = PXR_NS::TfType;
+    using Prim = PXR_NS::UsdPrim;
+    using PrimRange = PXR_NS::UsdPrimRange;
+    using PrimRangeIterator = PXR_NS::UsdPrimRange::iterator;
     using Property = PXR_NS::UsdProperty;
     using Attribute = PXR_NS::UsdAttribute;
     using Relationship = PXR_NS::UsdRelationship;
     using Object = PXR_NS::UsdObject;
-    using Prim = PXR_NS::UsdPrim;
-    using PrimRange = PXR_NS::UsdPrimRange;
-    using PrimRangeIterator = PXR_NS::UsdPrimRange::iterator;
+    using Token = PXR_NS::TfToken;
+    using Type = PXR_NS::TfType;
     using SchemaVersion = PXR_NS::UsdSchemaVersion;
     using SchemaRegistry = PXR_NS::UsdSchemaRegistry;
-    using Stage = PXR_NS::UsdStage;
-    using StageRefPtr = PXR_NS::UsdStageRefPtr;
-    using EditTarget = PXR_NS::UsdEditTarget;
-    using LayerHandle = PXR_NS::SdfLayerHandle;
-    using Value = PXR_NS::VtValue;
-    using StageInitialLoadSet = PXR_NS::UsdStage::InitialLoadSet;
-    using ResolverContext = PXR_NS::ArResolverContext;
-    using StagePopulationMask = PXR_NS::UsdStagePopulationMask;
-
-    bbl::Class<PXR_NS::UsdAttribute>("Attribute").opaque_ptr();
-
-    bbl::Class<std::vector<PXR_NS::UsdAttribute>>("AttributeVector")
-        BBL_STD_VECTOR_METHODS(PXR_NS::UsdAttribute);
-
-    bbl::Class<PXR_NS::UsdEditTarget>("EditTarget");
-
-    bbl::Class<PXR_NS::UsdInherits>("Inherits");
-
-    bbl::Enum<PXR_NS::UsdInterpolationType>("InterpolationType")
-        ;
-
-    bbl::Enum<PXR_NS::UsdLoadPolicy>("LoadPolicy");
-
-    bbl::Class<PXR_NS::UsdObject>("Object");
-
-    bbl::Class<PXR_NS::UsdPayloads>("Payloads");
 
     // Binding a class looks like this
     bbl::Class<PXR_NS::UsdPrim>("Prim")
@@ -335,7 +287,32 @@ BBL_MODULE(usd) {
 
     // end Prim
 
-    bbl::Class<PXR_NS::UsdPrimDefinition>("PrimDefinition");
+    bbl::Class<PXR_NS::UsdPrimDefinition>("PrimDefinition")
+        .m(&PXR_NS::UsdPrimDefinition::GetPropertyNames)
+        .m(&PXR_NS::UsdPrimDefinition::GetAppliedAPISchemas)
+        .m(&PXR_NS::UsdPrimDefinition::GetSpecType)
+        .m(&PXR_NS::UsdPrimDefinition::GetSchemaPropertySpec)
+        .m(&PXR_NS::UsdPrimDefinition::GetSchemaAttributeSpec)
+        .m(&PXR_NS::UsdPrimDefinition::GetSchemaRelationshipSpec)
+        /// GetAttriutFallbackValue
+        .m(&PXR_NS::UsdPrimDefinition::ListMetadataFields)
+        // GetMetadata
+        // GetMetadataByDictKey
+        .m(&PXR_NS::UsdPrimDefinition::GetDocumentation)
+        .m(&PXR_NS::UsdPrimDefinition::ListPropertyMetadataFields)
+        // GetPropertyMetadata
+        // GetPropertyMetadataByDictKey
+        .m(&PXR_NS::UsdPrimDefinition::GetPropertyDocumentation)
+        .m((bool (PXR_NS::UsdPrimDefinition::*)(PXR_NS::SdfLayerHandle const&, PXR_NS::SdfPath const&, PXR_NS::SdfSpecifier) const)
+            &PXR_NS::UsdPrimDefinition::FlattenTo
+        )
+        .m((PXR_NS::UsdPrim (PXR_NS::UsdPrimDefinition::*)(PXR_NS::UsdPrim const&, PXR_NS::TfToken const& name, PXR_NS::SdfSpecifier) const)
+            &PXR_NS::UsdPrimDefinition::FlattenTo, "FlattenTo_prim_under_parent"
+        )
+        .m((PXR_NS::UsdPrim (PXR_NS::UsdPrimDefinition::*)(PXR_NS::UsdPrim const&, PXR_NS::SdfSpecifier) const)
+            &PXR_NS::UsdPrimDefinition::FlattenTo, "FlattenTo_prim"
+        )
+        ;
 
     bbl::Class<PXR_NS::Usd_PrimFlagsPredicate>("PrimFlagsPredicate");
 
@@ -371,230 +348,6 @@ BBL_MODULE(usd) {
         BBL_STD_VECTOR_METHODS(PXR_NS::UsdPrim)
         ;
 
-    bbl::Class<PXR_NS::UsdProperty>("Property");
-
-    bbl::Class<PXR_NS::UsdPrim::PropertyPredicateFunc>("PropertyPredicateFunc");
-
-    bbl::Class<std::vector<PXR_NS::UsdProperty>>("PropertyVector")
-        BBL_STD_VECTOR_METHODS(PXR_NS::UsdProperty);
-
-    bbl::Class<PXR_NS::UsdReferences>("References");
-
-    bbl::Class<PXR_NS::UsdRelationship>("Relationship").opaque_ptr();
-
-    bbl::Class<std::vector<PXR_NS::UsdRelationship>>("RelationshipVector")
-        BBL_STD_VECTOR_METHODS(PXR_NS::UsdRelationship);
-
-    bbl::Class<PXR_NS::UsdResolveTarget>("ResolveTarget");
-
-    bbl::Enum<PXR_NS::UsdSchemaRegistry::VersionPolicy>(
-        "SchemaRegistryVersionPolicy");
-
-    bbl::Class<PXR_NS::UsdSpecializes>("Specializes");
-
-    bbl::Class<PXR_NS::UsdVariantSet>("VariantSet");
-
-    bbl::Class<PXR_NS::UsdVariantSets>("VariantSets");
-
-
-    // bbl::Class<std::function<bool(PXR_NS::UsdAttribute const&)>>(
-    //     "FindAttributePredicate");
-    // bbl::Class<std::function<bool(PXR_NS::UsdRelationship const&)>>(
-    //     "FindRelationshipPredicate");
-
-    bbl::Class<PXR_NS::UsdStage>("Stage")
-        // Layer Serialization
-        .m(&Stage::Save)
-        .m(&Stage::SaveSessionLayers)
-
-        // Working Set Management
-        .m(&Stage::Load)
-        .m(&Stage::Unload)
-        .m(&Stage::LoadAndUnload)
-        .m(&Stage::GetLoadSet)
-        .m(&Stage::FindLoadable)
-        .m(&Stage::GetLoadRules)
-        .m(&Stage::SetLoadRules)
-        .m(&Stage::GetPopulationMask)
-        .m(&Stage::SetPopulationMask)
-        // .m(&Stage::ExpandPopulationMask) //< need std::function
-
-        // Layers and Edit Targets
-        .m(&Stage::GetSessionLayer)
-        .m(&Stage::GetRootLayer)
-        .m(&Stage::GetPathResolverContext)
-        .m(&Stage::ResolveIdentifierToEditTarget)
-        .m(&Stage::GetLayerStack)
-        .m(&Stage::GetUsedLayers)
-        .m(&Stage::HasLocalLayer)
-        .m(&Stage::GetEditTarget)
-        .m((EditTarget(Stage::*)(LayerHandle const&))
-            &Stage::GetEditTargetForLocalLayer
-        )
-        .m((EditTarget(Stage::*)(size_t))
-            &Stage::GetEditTargetForLocalLayer, "GetEditTargetForLocalLayer_with_index"
-        )
-        .m(&Stage::SetEditTarget)
-        .m(&Stage::MuteLayer)
-        .m(&Stage::UnmuteLayer)
-        .m(&Stage::MuteAndUnmuteLayers)
-        .m(&Stage::GetMutedLayers)
-        .m(&Stage::IsLayerMuted)
-
-        // Flatten & Export Utilities
-        .m(&Stage::Export)
-        .m(&Stage::ExportToString)
-        .m(&Stage::Flatten)
-
-        // Stage Metadata
-        .m((bool (Stage::*)(Token const&, Value*) const)
-            &Stage::GetMetadata
-        )
-        .m(&Stage::HasMetadata)
-        .m(&Stage::HasAuthoredMetadata)
-        .m((bool (Stage::*)(Token const&, Value const&) const)
-            &Stage::SetMetadata
-        )
-        .m(&Stage::ClearMetadata)
-        .m((bool (Stage::*)(Token const&, Token const&, Value*) const)
-            &Stage::GetMetadataByDictKey
-        )
-        .m(&Stage::HasMetadataDictKey)
-        .m(&Stage::HasAuthoredMetadataDictKey)
-        .m((bool (Stage::*)(Token const&, Token const&, Value const&) const)
-            &Stage::SetMetadataByDictKey
-        )
-        .m(&Stage::ClearMetadataByDictKey)
-        .m(&Stage::WriteFallbackPrimTypes)
-
-        // TimeCode API
-        .m(&Stage::GetStartTimeCode)
-        .m(&Stage::SetStartTimeCode)
-        .m(&Stage::GetEndTimeCode)
-        .m(&Stage::SetEndTimeCode)
-        .m(&Stage::HasAuthoredTimeCodeRange)
-        .m(&Stage::GetTimeCodesPerSecond)
-        .m(&Stage::SetTimeCodesPerSecond)
-        .m(&Stage::GetFramesPerSecond)
-        .m(&Stage::SetFramesPerSecond)
-
-        // Attribute Value Interpolation
-        .m(&Stage::SetInterpolationType)
-        .m(&Stage::GetInterpolationType)
-
-        // Instancing
-        .m(&Stage::GetPrototypes)
-
-        // Variant Management
-        .m(&Stage::GetGlobalVariantFallbacks)
-        .m(&Stage::SetGlobalVariantFallbacks)
-
-        // Lifetime Management
-        .m((StageRefPtr(*)(std::string const&, StageInitialLoadSet))
-            &Stage::CreateNew
-        )
-        .m((StageRefPtr(*)(std::string const&, LayerHandle const&, StageInitialLoadSet))
-            &Stage::CreateNew, "CreateNew_with_session_layer"
-        )
-        .m((StageRefPtr(*)(std::string const&, LayerHandle const&, ResolverContext const&, StageInitialLoadSet))
-            &Stage::CreateNew, "CreateNew_with_session_layer_and_resolver_context"
-        )
-        .m((StageRefPtr(*)(std::string const&, ResolverContext const&, StageInitialLoadSet))
-            &Stage::CreateNew, "CreateNew_with_resolver_context"
-        )
-        .m((StageRefPtr(*)(StageInitialLoadSet))
-            &Stage::CreateInMemory
-        )
-        .m((StageRefPtr(*)(std::string const&, StageInitialLoadSet))
-            &Stage::CreateInMemory, "CreateInMemory_with_identifier"
-        )
-        .m((StageRefPtr(*)(std::string const&, ResolverContext const&, StageInitialLoadSet))
-            &Stage::CreateInMemory, "CreateInMemory_with_resolver_context"
-        )
-        .m((StageRefPtr(*)(std::string const&, LayerHandle const&, StageInitialLoadSet))
-            &Stage::CreateInMemory, "CreateInMemory_with_session_layer"
-        )
-        .m((StageRefPtr(*)(std::string const&, LayerHandle const&, ResolverContext const&, StageInitialLoadSet))
-            &Stage::CreateInMemory, "CreateInMemory_with_session_layer_and_resolver_context"
-        )
-        .m((StageRefPtr(*)(std::string const&, Stage::InitialLoadSet))
-            &Stage::Open
-        )
-        .m((StageRefPtr(*)(std::string const&, ResolverContext const&, Stage::InitialLoadSet))
-            &Stage::Open, "Open_with_resolver_context"
-        )
-        .m((StageRefPtr(*)(LayerHandle const&, Stage::InitialLoadSet))
-            &Stage::Open, "Open_at_root"
-        )
-        .m((StageRefPtr(*)(LayerHandle const&, ResolverContext const&, Stage::InitialLoadSet))
-            &Stage::Open, "Open_at_root_with_resolver_context"
-        )
-        .m((StageRefPtr(*)(LayerHandle const&, LayerHandle const&, ResolverContext const&, Stage::InitialLoadSet))
-            &Stage::Open, "Open_at_root_with_session_layer_and_resolver_context"
-        )
-        .m((StageRefPtr(*)(LayerHandle const&, LayerHandle const&, Stage::InitialLoadSet))
-            &Stage::Open, "Open_at_root_with_session_layer"
-        )
-        .m((StageRefPtr(*)(std::string const&, StagePopulationMask const&, Stage::InitialLoadSet))
-            &Stage::OpenMasked
-        )
-        .m((StageRefPtr(*)(std::string const&, ResolverContext const&, StagePopulationMask const&, Stage::InitialLoadSet))
-            &Stage::OpenMasked, "OpenMasked_with_resolver_context"
-        )
-        .m((StageRefPtr(*)(LayerHandle const&, StagePopulationMask const&, Stage::InitialLoadSet))
-            &Stage::OpenMasked, "OpenMasked_at_root"
-        )
-        .m((StageRefPtr(*)(LayerHandle const&, ResolverContext const&, StagePopulationMask const&, Stage::InitialLoadSet))
-            &Stage::OpenMasked, "OpenMasked_at_root_with_resolver_context"
-        )
-        .m((StageRefPtr(*)(LayerHandle const&, LayerHandle const&, ResolverContext const&, StagePopulationMask const&, Stage::InitialLoadSet))
-            &Stage::OpenMasked, "OpenMasked_at_root_with_session_layer_and_resolver_context"
-        )
-        .m((StageRefPtr(*)(LayerHandle const&, LayerHandle const&, StagePopulationMask const&, Stage::InitialLoadSet))
-            &Stage::OpenMasked, "OpenMasked_at_root_with_session_layer"
-        )
-        .m(&Stage::IsSupportedFile)
-        .m(&Stage::Reload)
-
-        // Color Configuration API
-        .m(&Stage::GetColorConfigFallbacks)
-        .m(&Stage::SetColorConfigFallbacks)
-        .m(&Stage::SetColorConfiguration)
-        .m(&Stage::GetColorConfiguration)
-        .m(&Stage::SetColorManagementSystem)
-        .m(&Stage::GetColorManagementSystem)
-
-        // Prim Access, Creation and Mutation
-        .m(&Stage::GetPseudoRoot)
-        .m(&Stage::GetDefaultPrim)
-        .m(&Stage::SetDefaultPrim)
-        .m(&Stage::ClearDefaultPrim)
-        .m(&Stage::HasDefaultPrim)
-        .m(&Stage::GetPrimAtPath)
-        .m(&Stage::GetObjectAtPath)
-        .m(&Stage::GetPropertyAtPath)
-        .m(&Stage::GetAttributeAtPath)
-        .m(&Stage::GetRelationshipAtPath)
-        // Cannot bind Traverse because it returns a PrimRange by value and PrimRange has no default constructor
-        // Could possibly work around this by defining one ourselves that just zeroed the memory...
-        .m(&Stage::OverridePrim)
-        .m(&Stage::DefinePrim)
-        .m(&Stage::CreateClassPrim)
-        .m(&Stage::RemovePrim)
-        ;
-
-    bbl::Enum<PXR_NS::UsdStage::InitialLoadSet>("StageInitialLoadSet");
-
-    bbl::Class<PXR_NS::UsdStageLoadRules>("StageLoadRules");
-
-    bbl::Class<PXR_NS::UsdStagePopulationMask>("StagePopulationMask");
-
-    bbl::Class<PXR_NS::UsdStageRefPtr>("StageRefPtr")
-        .ctor(bbl::Ctor<StageRefPtr>(), "ctor")
-        .m(&StageRefPtr::operator->, "get");
-
-
-    // clang-format off
 }
 
 #endif
