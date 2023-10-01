@@ -117,6 +117,8 @@ class C_API {
                                    std::vector<C_Param>& c_params,
                                    std::vector<ExprPtr>& expr_params) -> void;
 
+    auto _translate_return_type(QType const& cpp_return_type) -> std::optional<C_Param>;
+
     auto _translate_method(Method const* method,
                            std::string const& function_prefix,
                            std::string const& class_id) -> C_Function;

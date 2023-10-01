@@ -1,6 +1,7 @@
 #include "bbl-c.hpp"
 #include "bbl_detail.h"
 #include "bblfmt.hpp"
+#include "spdlog/spdlog.h"
 
 #include <memory>
 #include <optional>
@@ -448,16 +449,8 @@ static void remove_const_on_pointee(C_QType& qt) {
     }
 }
 
-auto C_API::_translate_method(Method const* method,
-                              std::string const& function_prefix,
-                              std::string const& class_id) -> C_Function {
-    // Function name is the name of the struct followed by either the rename or
-    // original method name
-    std::string function_name =
-        fmt::format("{}_{}", function_prefix,
-                    method->function.rename.empty() ? method->function.name
-                                                    : method->function.rename);
-
+auto C_API::_translate_return_type(QType const& cpp_return_type)
+    -> std::optional<C_Param> {
     // For return values:
     //
     // + opaque ptr
@@ -484,13 +477,9 @@ auto C_API::_translate_method(Method const* method,
     //     into that
     //       *result = call()
     std::optional<C_Param> result;
-    bool result_is_reference =
-        is_lvalue_reference(method->function.return_type);
-    bool result_is_reference_to_opaqueptr =
-        is_reference_to_opaqueptr(method->function.return_type, _cpp_ctx);
     bool result_is_reference_to_bytes_or_value =
-        is_reference_to_bytes_or_value(method->function.return_type, _cpp_ctx);
-    C_QType return_type = _translate_qtype(method->function.return_type);
+        is_reference_to_bytes_or_value(cpp_return_type, _cpp_ctx);
+    C_QType return_type = _translate_qtype(cpp_return_type);
     if (!is_void(return_type)) {
         if (result_is_reference_to_bytes_or_value) {
             remove_const_on_pointee(return_type);
@@ -508,8 +497,25 @@ auto C_API::_translate_method(Method const* method,
         }
     }
 
-    std::vector<C_Param> c_params;
+    return result;
+}
 
+auto C_API::_translate_method(Method const* method,
+                              std::string const& function_prefix,
+                              std::string const& class_id) -> C_Function {
+    // Function name is the name of the struct followed by either the rename or
+    // original method name
+    std::string function_name =
+        fmt::format("{}_{}", function_prefix,
+                    method->function.rename.empty() ? method->function.name
+                                                    : method->function.rename);
+
+    std::optional<C_Param> result =
+        _translate_return_type(method->function.return_type);
+    bool result_is_reference_to_opaqueptr =
+        is_reference_to_opaqueptr(method->function.return_type, _cpp_ctx);
+
+    std::vector<C_Param> c_params;
     // if the method is not static, create _this param, which will be a (maybe
     // const) pointer to a struct of this class_id
     std::optional<C_Param> receiver;
@@ -549,6 +555,21 @@ auto C_API::_translate_method(Method const* method,
         // address operator in order to convert it back to a pointer
         if (result_is_reference_to_opaqueptr) {
             receiving_call = ExprAddress::create(std::move(receiving_call));
+        } else if (is_enum(method->function.return_type)) {
+            // enums must be explicitly static_cast to their underlying type on
+            // the way back
+            EnumId enum_id = std::get<EnumId>(
+                std::get<Type>(method->function.return_type.type).kind);
+            Enum const* enm = _cpp_ctx.get_enum(enum_id.id);
+            if (enm == nullptr) {
+                BBL_THROW("could not get enum {} while translating return type",
+                          enum_id.id);
+            }
+
+            receiving_call = ExprStaticCast::create(
+                ExprToken::create(
+                    fmt::format("{}", get_builtin(enm->integer_type))),
+                std::move(receiving_call));
         }
 
         body.emplace_back(ExprAssign::create(
@@ -582,53 +603,10 @@ auto C_API::_translate_function(Function const* function,
         function_name = fmt::format("{}_{}", function_prefix, function_name);
     }
 
-    // For return values:
-    //
-    // + opaque ptr
-    //   o if the result is by value
-    //     - wrap the param in a pointer, and assign into it
-    //       *result = call()
-    //   o if the result is by pointer
-    //     - wrap the param in another pointer, and assign the pointer into it
-    //       *result = call()
-    //   o if the result is by reference
-    //     - wrap the param in a pointer, and assign the addres of the result
-    //     into it
-    //       *result = &call()
-    //
-    // + opaque bytes/value type
-    //   o if the result is by value
-    //     - wrap the param in a pointer, assign into it
-    //       *result = call()
-    //   o if the result is by pointer
-    //     - wrap the param in another pointer and assign the pointer into it
-    //       *result = call()
-    //   o if the result is by reference
-    //     - use the existing pointer from the reference conversion, and assign
-    //     into that
-    //       *result = call()
-    std::optional<C_Param> result;
-    bool result_is_reference = is_lvalue_reference(function->return_type);
+    std::optional<C_Param> result =
+        _translate_return_type(function->return_type);
     bool result_is_reference_to_opaqueptr =
         is_reference_to_opaqueptr(function->return_type, _cpp_ctx);
-    bool result_is_reference_to_bytes_or_value =
-        is_reference_to_bytes_or_value(function->return_type, _cpp_ctx);
-    C_QType return_type = _translate_qtype(function->return_type);
-    if (!is_void(return_type)) {
-        if (result_is_reference_to_bytes_or_value) {
-            result = C_Param{
-                std::move(return_type),
-                "_result",
-            };
-        } else {
-            result = C_Param{
-                C_QType{nullptr, false,
-                        C_Pointer{
-                            std::make_shared<C_QType>(std::move(return_type))}},
-                "_result",
-            };
-        }
-    }
 
     std::vector<C_Param> c_params;
 
@@ -646,6 +624,21 @@ auto C_API::_translate_function(Function const* function,
         // returning an opaqueptr
         if (result_is_reference_to_opaqueptr) {
             expr_call = ExprAddress::create(std::move(expr_call));
+        } else if (is_enum(function->return_type)) {
+            // enums must be explicitly static_cast to their underlying type on
+            // the way back
+            EnumId enum_id = std::get<EnumId>(
+                std::get<Type>(function->return_type.type).kind);
+            Enum const* enm = _cpp_ctx.get_enum(enum_id.id);
+            if (enm == nullptr) {
+                BBL_THROW("could not get enum {} while translating return type",
+                          enum_id.id);
+            }
+
+            expr_call = ExprStaticCast::create(
+                ExprToken::create(
+                    fmt::format("{}", get_builtin(enm->integer_type))),
+                std::move(expr_call));
         }
 
         body.emplace_back(ExprAssign::create(

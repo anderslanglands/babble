@@ -456,7 +456,7 @@ public:
 
     /// Get a string representation of the given `QType` suitable for debugging
     /// and test printing
-    std::string get_qtype_as_string(QType const& qt);
+    std::string get_qtype_as_string(QType const& qt) const;
 
     /// Get a string representation of the given `Class` suitable for debugging
     /// and test printing

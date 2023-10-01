@@ -882,7 +882,7 @@ std::string Context::get_enum_as_string(Enum const& enm) {
     return result;
 }
 
-std::string Context::get_qtype_as_string(QType const& qt) {
+std::string Context::get_qtype_as_string(QType const& qt) const {
     return to_string(qt, _decl_maps);
 }
 
