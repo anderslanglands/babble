@@ -145,11 +145,9 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
             bbl_builtin_t integer_type = get_builtin(cpp_enum->integer_type);
 
             std::vector<EnumVariant> c_variants;
-            for (auto const& var: cpp_enum->variants) {
+            for (auto const& var : cpp_enum->variants) {
                 c_variants.emplace_back(
-                    fmt::format("{}_{}", enum_name, var.first),
-                    var.second
-                );
+                    fmt::format("{}_{}", enum_name, var.first), var.second);
             }
 
             _enums.emplace(cpp_enum_id, C_Enum{
@@ -177,7 +175,7 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
         }
 
         std::vector<Inclusion> mod_inclusions;
-        for (auto const& source_filename: cpp_mod.source_files) {
+        for (auto const& source_filename : cpp_mod.source_files) {
             SourceFile const* source_file =
                 _cpp_ctx.get_source_file(source_filename);
             assert(source_file);
@@ -1153,5 +1151,23 @@ std::string C_API::get_source() const {
 
     return result;
 }
+
+auto C_API::get_modules() const -> std::vector<C_Module> const& {
+    return _modules;
+}
+
+auto C_API::get_inclusions() const -> std::vector<Inclusion> const& {
+    return _inclusions;
+}
+
+auto C_API::get_structs() const -> C_StructMap const& { return _structs; }
+
+auto C_API::get_functions() const -> C_FunctionMap const& { return _functions; }
+
+auto C_API::get_stdfunctions() const -> C_StdFunctionMap const& {
+    return _stdfunctions;
+}
+
+auto C_API::get_enums() const -> C_EnumMap const& { return _enums; }
 
 } // namespace bbl

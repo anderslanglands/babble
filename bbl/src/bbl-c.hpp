@@ -144,6 +144,13 @@ public:
 
     std::string get_header() const;
     std::string get_source() const;
+
+    auto get_modules() const -> std::vector<C_Module> const&;
+    auto get_inclusions() const -> std::vector<Inclusion> const&;
+    auto get_structs() const -> C_StructMap const&;
+    auto get_functions() const -> C_FunctionMap const&;
+    auto get_stdfunctions() const -> C_StdFunctionMap const&;
+    auto get_enums() const -> C_EnumMap const&;
 };
 
 } // namespace bbl
