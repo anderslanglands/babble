@@ -64,6 +64,7 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
                     fields.emplace_back(C_Field{
                         _translate_qtype(field.type),
                         field.name,
+                        field.comment,
                     });
                 }
             } catch (MissingTypeBindingException& e) {
@@ -74,8 +75,8 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
             }
 
             // Push the struct into the main list and the module list
-            _structs.emplace(cpp_class_id,
-                             C_Struct{*cpp_cls, struct_name, fields});
+            _structs.emplace(cpp_class_id, C_Struct{*cpp_cls, struct_name,
+                                                    cpp_cls->comment, fields});
             mod_structs.push_back(cpp_class_id);
 
             // Translate all methods to functions
@@ -152,6 +153,7 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
 
             _enums.emplace(cpp_enum_id, C_Enum{
                                             enum_name,
+                                            cpp_enum->comment,
                                             std::move(c_variants),
                                             integer_type,
                                         });
@@ -210,6 +212,7 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
 
         _stdfunctions.emplace(cpp_stdfun_id, C_StdFunction{
                                                  result_type,
+                                                 cpp_stdfun.comment,
                                                  std::move(c_params),
                                              });
     }
@@ -594,6 +597,7 @@ auto C_API::_translate_method(Method const* method,
     return C_Function{
         method,
         function_name,
+        method->function.comment,
         std::move(result),
         std::move(receiver),
         std::move(c_params),
@@ -661,7 +665,7 @@ auto C_API::_translate_function(Function const* function,
     body.emplace_back(ExprReturn::create(ExprToken::create("0")));
 
     return C_Function{
-        function, function_name,       std::move(result),
+        function, function_name,       function->comment, std::move(result),
         {},       std::move(c_params), std::move(body),
     };
 }
@@ -803,7 +807,7 @@ auto C_API::_translate_constructor(Constructor const* ctor,
     body.emplace_back(ExprReturn::create(ExprToken::create("0")));
 
     return C_Function{
-        ctor, function_name,       std::move(result),
+        ctor, function_name,       ctor->comment,   std::move(result),
         {},   std::move(c_params), std::move(body),
     };
 }
@@ -831,8 +835,13 @@ auto C_API::_generate_destructor(std::string const& function_prefix,
     body.emplace_back(ExprReturn::create(ExprToken::create("0")));
 
     return C_Function{
-        Generated{}, function_name,           {},
-        {},          std::vector{this_param}, std::move(body),
+        Generated{},
+        function_name,
+        "",
+        {},
+        {},
+        std::vector{this_param},
+        std::move(body),
     };
 }
 
@@ -931,6 +940,21 @@ auto C_API::_translate_qtype(QType const& qt) -> C_QType {
     BBL_THROW("unreachable variant");
 }
 
+void replace_all(std::string& str, std::string const& from,
+                 std::string const& to) {
+    size_t start_pos = 0;
+    while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
+        str.replace(start_pos, from.length(), to);
+        start_pos +=
+            to.length(); // Handles case where 'to' is a substring of 'from'
+    }
+}
+
+std::string format_comment(std::string comment) {
+    replace_all(comment, "\n", "\n * ");
+    return fmt::format("/**\n * {}\n */", comment);
+}
+
 std::string C_API::get_header() const {
     std::string result = R"(#ifndef SOMEHEADERGUARD_H
 #define SOMEHEADERGUARD_H
@@ -950,6 +974,10 @@ extern "C" {
 )";
     result = fmt::format("{}/** enums */\n\n", result);
     for (auto const& [c_enum_id, c_enum] : _enums) {
+        if (!c_enum.comment.empty()) {
+            result =
+                fmt::format("{}{}\n", result, format_comment(c_enum.comment));
+        }
         result = fmt::format("{}enum {} {{\n", result, c_enum.name);
 
         for (auto const& [var_name, var_value] : c_enum.variants) {
@@ -958,11 +986,17 @@ extern "C" {
         }
 
         result = fmt::format("{}}};\n", result);
+        result = fmt::format("{}\n", result);
     }
     result = fmt::format("{}\n", result);
 
     result = fmt::format("{}/** structs */\n\n", result);
     for (auto const& [c_struct_id, c_struct] : _structs) {
+
+        if (!c_struct.comment.empty()) {
+            result =
+                fmt::format("{}{}\n", result, format_comment(c_struct.comment));
+        }
 
         if (c_struct.cls.bind_kind == BindKind::OpaquePtr) {
             result = fmt::format("{}struct {};\n", result, c_struct.name);
@@ -994,8 +1028,15 @@ extern "C" {
 
     result = fmt::format("{}\n\n/** functions */\n\n", result);
     for (auto const& [function_id, c_fun] : _functions) {
+        if (!c_fun.comment.empty()) {
+            result =
+                fmt::format("{}{}\n", result, format_comment(c_fun.comment));
+        }
+
         result =
             fmt::format("{}{};\n", result, _get_function_declaration(c_fun));
+
+        result = fmt::format("{}\n", result);
     }
     result = fmt::format("{}\n", result);
 

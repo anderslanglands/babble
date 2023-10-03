@@ -2,8 +2,10 @@
 #include "astutil.hpp"
 #include "bbl.hpp"
 #include "clang/AST/DeclTemplate.h"
+#include "clang/AST/RawCommentList.h"
 #include "clang/AST/Type.h"
 
+#include <list>
 #include <spdlog/spdlog.h>
 
 #include <clang/AST/ASTContext.h>
@@ -524,10 +526,12 @@ void ExtractMethodBindings::run(
                             cls->methods.push_back(method_id);
                         }
                     } else {
+                        std::string comment =
+                            get_comment_from_decl(cmd, ast_context);
                         try {
                             bbl::Method method =
                                 _bbl_ctx->extract_method_binding(
-                                    cmd, rename_str, template_call,
+                                    cmd, rename_str, template_call, comment,
                                     mangle_context.get());
                             _bbl_ctx->insert_method_binding(method_id,
                                                             std::move(method));
@@ -617,9 +621,12 @@ void ExtractMethodBindings::run(
                       target_class_id);
         }
 
+        std::string comment = get_comment_from_decl(fd, ast_context);
+
         cls->fields.emplace_back(Field{
             std::move(qt_field),
             fd->getNameAsString(),
+            comment,
         });
     }
 
@@ -709,9 +716,12 @@ void ExtractMethodBindings::run(
                 }
             }
 
+            std::string comment = get_comment_from_decl(fd, ast_context);
+
             // Now extract the function
             Function function = _bbl_ctx->extract_function_binding(
-                fd, rename_str, spelling, template_call, mangle_context.get());
+                fd, rename_str, spelling, template_call, comment,
+                mangle_context.get());
             std::string id = get_mangled_name(fd, mangle_context.get());
 
             std::string mod_id;
@@ -837,11 +847,14 @@ void ExtractMethodBindings::run(
         std::string target_class_id =
             get_mangled_name(crd_target, mangle_context.get());
 
+        std::string comment = get_comment_from_decl(ccd, ast_context);
+
         if (bbl::Class* cls = _bbl_ctx->get_class(target_class_id)) {
             std::string ctor_id = get_mangled_name(ccd, mangle_context.get());
             _bbl_ctx->insert_constructor_binding(ctor_id,
                                                  Constructor{
                                                      rename_str,
+                                                     comment,
                                                      std::move(parameters),
                                                      is_noexcept,
                                                  });
@@ -1003,6 +1016,10 @@ void ExtractClassBindings::run(
             rename_str = rename_literal->getString().str();
         }
 
+        // Get any doc comment on the class
+        std::string comment =
+            get_comment_from_decl(type_record_decl, ast_context);
+
         // and extract the class
         if (type_record_decl->getNameAsString() == "function" &&
             is_in_std_namespace(type_record_decl) &&
@@ -1013,7 +1030,7 @@ void ExtractClassBindings::run(
                 StdFunction fun = _bbl_ctx->extract_stdfunction_binding(
                     dyn_cast<clang::ClassTemplateSpecializationDecl>(
                         type_record_decl),
-                    class_spelling, rename_str, mangle_context.get());
+                    class_spelling, rename_str, comment, mangle_context.get());
                 std::string id =
                     get_mangled_name(type_record_decl, mangle_context.get());
 
@@ -1034,7 +1051,8 @@ void ExtractClassBindings::run(
 
         } else {
             Class cls = _bbl_ctx->extract_class_binding(
-                type_record_decl, class_spelling, rename_str, layout, bind_kind,
+                type_record_decl, class_spelling, rename_str, comment, layout,
+                bind_kind,
                 RuleOfSeven{
                     is_copy_constructible,
                     is_nothrow_copy_constructible,
@@ -1094,8 +1112,11 @@ void ExtractClassBindings::run(
             rename_str = rename_literal->getString().str();
         }
 
-        Enum enm = _bbl_ctx->extract_enum_binding(
-            enum_decl, class_spelling, rename_str, mangle_context.get());
+        std::string comment = get_comment_from_decl(enum_decl, ast_context);
+
+        Enum enm = _bbl_ctx->extract_enum_binding(enum_decl, class_spelling,
+                                                  rename_str, comment,
+                                                  mangle_context.get());
         std::string id = get_mangled_name(enum_decl, mangle_context.get());
 
         std::string mod_id;

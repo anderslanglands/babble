@@ -131,6 +131,7 @@ struct Function {
     std::string rename;
     std::string spelling;
     std::string template_call;
+    std::string comment;
 
     QType return_type;
     std::vector<Param> params;
@@ -153,6 +154,7 @@ using MethodMap = MapType<std::string, Method>;
 /// A Constructor, basically a more-limited Method
 struct Constructor {
     std::string rename;
+    std::string comment;
     std::vector<Param> params;
     bool is_noexcept;
 };
@@ -200,6 +202,7 @@ struct RuleOfSeven {
 struct Field {
     QType type;
     std::string name;
+    std::string comment;
 };
 
 /// A struct, class or class template specialization, bound by and detected from
@@ -210,6 +213,7 @@ struct Class {
     std::string spelling;
     std::string name;
     std::string rename;
+    std::string comment;
     std::vector<TemplateArg> template_args;
     std::vector<std::string> methods;
     std::vector<std::string> constructors;
@@ -227,6 +231,7 @@ struct Class {
 /// We have separate bindings for these because they require special handling
 struct StdFunction {
     std::string spelling;
+    std::string comment;
     QType return_type;
     std::vector<QType> params;
 };
@@ -241,6 +246,7 @@ struct Enum {
     std::string spelling;
     /// The name to give the enum in the C API
     std::string rename;
+    std::string comment;
     /// List of variants in the enum
     std::vector<EnumVariant> variants;
     /// The type that this enum is represented as (e.g. `int` in most cases)
@@ -340,10 +346,10 @@ public:
     [[nodiscard("returned binding must be inserted")]] auto
     extract_class_binding(clang::CXXRecordDecl const* crd,
                           std::string const& spelling,
-                          std::string const& rename, Layout layout,
-                          BindKind bind_kind, RuleOfSeven const& rule_of_seven,
-                          bool is_abstract, clang::MangleContext* mangle_ctx)
-        -> Class;
+                          std::string const& rename, std::string const& comment,
+                          Layout layout, BindKind bind_kind,
+                          RuleOfSeven const& rule_of_seven, bool is_abstract,
+                          clang::MangleContext* mangle_ctx) -> Class;
 
     /// Insert the class `cls` with ID `id` into Module `mod_id`
     auto insert_class_binding(std::string const& mod_id, std::string const& id,
@@ -353,7 +359,8 @@ public:
     extract_stdfunction_binding(
         clang::ClassTemplateSpecializationDecl const* ctsd,
         std::string const& spelling, std::string const& rename,
-        clang::MangleContext* mangle_ctx) -> StdFunction;
+        std::string const& comment, clang::MangleContext* mangle_ctx)
+        -> StdFunction;
     auto insert_stdfunction_binding(std::string const& mod_id,
                                     std::string const& id, StdFunction&& fun)
         -> void;
@@ -367,7 +374,7 @@ public:
 
     [[nodiscard("returned binding must be inserted")]] auto
     extract_enum_binding(clang::EnumDecl const* ed, std::string const& spelling,
-                         std::string const& rename,
+                         std::string const& rename, std::string const& comment,
                          clang::MangleContext* mangle_ctx) -> Enum;
     auto insert_enum_binding(std::string const& mod_id, std::string const& id,
                              Enum&& fun) -> void;
@@ -383,6 +390,7 @@ public:
     extract_method_binding(clang::CXXMethodDecl const* cmd,
                            std::string const& rename,
                            std::string const& template_call,
+                           std::string const& comment,
                            clang::MangleContext* mangle_ctx) -> Method;
 
     auto has_method(std::string const& method_id) const -> bool;
@@ -403,6 +411,7 @@ public:
                              std::string const& rename,
                              std::string const& spelling,
                              std::string const& template_call,
+                             std::string const& comment,
                              clang::MangleContext* mangle_ctx) -> Function;
 
     /// Insert the Function `fun` with given `id` in the Module with ID `mod_id`

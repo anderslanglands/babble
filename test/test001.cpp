@@ -2,8 +2,16 @@
 
 namespace qux {
 
+/// A doc comment on the Foo class - brief
+///
+/// More detailed description here
+/// ```
+///     example code
+/// ```
+/// and some more detail
 class Foo {
 public:
+    /// Comment on the method
     int bar(float a);
 };
 

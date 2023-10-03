@@ -182,8 +182,8 @@ inline auto walk_to_module(clang::DynTypedNode const& node,
 }
 
 inline auto walk_to_module_decl(clang::DynTypedNode const& node,
-                           clang::ASTContext& ctx)
-                           -> clang::FunctionDecl const* {
+                                clang::ASTContext& ctx)
+    -> clang::FunctionDecl const* {
     if (auto const* fd = node.get<clang::FunctionDecl>()) {
         if (fd->getNameAsString().starts_with("bbl_bind_")) {
             return fd;
@@ -216,7 +216,8 @@ inline auto find_containing_module(clang::Stmt const* stmt,
 }
 
 inline auto find_containing_module_decl(clang::Stmt const* stmt,
-                                        clang::ASTContext* ctx) -> clang::FunctionDecl const* {
+                                        clang::ASTContext* ctx)
+    -> clang::FunctionDecl const* {
     for (auto const& parent : ctx->getParents(*stmt)) {
         if (clang::FunctionDecl const* fd = walk_to_module_decl(parent, *ctx)) {
             return fd;
@@ -309,3 +310,17 @@ auto find_named_child_of_type(clang::DeclContext const* decl, char const* name)
 }
 
 auto is_in_std_namespace(clang::DeclContext const* dc) -> bool;
+
+inline auto get_comment_from_decl(clang::Decl const* decl,
+                                  clang::ASTContext* ast_context)
+    -> std::string {
+    std::string result;
+    clang::RawComment* raw_comment =
+        ast_context->getRawCommentForDeclNoCache(decl);
+    if (raw_comment) {
+        result = raw_comment->getFormattedText(
+            ast_context->getSourceManager(), ast_context->getDiagnostics());
+    }
+
+    return result;
+}

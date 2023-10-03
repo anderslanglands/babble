@@ -12,6 +12,8 @@ public:
     static void bum() noexcept(true);
 };
 
+// a normal comment
+/// function foo
 auto foo(Bar&& bar) noexcept -> size_t;
 
 }

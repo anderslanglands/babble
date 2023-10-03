@@ -26,6 +26,7 @@
 #include <exception>
 #include <fstream>
 #include <stdexcept>
+#include <string>
 #include <utility>
 #include <variant>
 
@@ -369,13 +370,11 @@ auto evaluate_field_expression_bool(clang::RecordDecl const* rd,
     return result;
 }
 
-auto Context::extract_class_binding(clang::CXXRecordDecl const* crd,
-                                    std::string const& spelling,
-                                    std::string const& rename, Layout layout,
-                                    BindKind bind_kind,
-                                    RuleOfSeven const& rule_of_seven,
-                                    bool is_abstract,
-                                    clang::MangleContext* mangle_ctx) -> Class {
+auto Context::extract_class_binding(
+    clang::CXXRecordDecl const* crd, std::string const& spelling,
+    std::string const& rename, std::string const& comment, Layout layout,
+    BindKind bind_kind, RuleOfSeven const& rule_of_seven, bool is_abstract,
+    clang::MangleContext* mangle_ctx) -> Class {
     std::string id = get_mangled_name(crd, mangle_ctx);
     if (_decl_maps.class_map.contains(id)) {
         BBL_THROW("class binding for id {} already exists", id);
@@ -396,6 +395,7 @@ auto Context::extract_class_binding(clang::CXXRecordDecl const* crd,
                  spelling,
                  name,
                  rename,
+                 comment,
                  std::move(template_args),
                  std::vector<std::string>(),
                  std::vector<std::string>(),
@@ -437,11 +437,12 @@ auto Context::insert_class_binding(std::string const& mod_id,
 auto Context::extract_method_binding(clang::CXXMethodDecl const* cmd,
                                      std::string const& rename,
                                      std::string const& template_call,
+                                     std::string const& comment,
                                      clang::MangleContext* mangle_ctx)
     -> Method {
     return Method{
         extract_function_binding(cmd, rename, cmd->getNameAsString(),
-                                 template_call, mangle_ctx),
+                                 template_call, comment, mangle_ctx),
         cmd->isConst(),
         cmd->isStatic(),
         cmd->isVirtual(),
@@ -449,12 +450,10 @@ auto Context::extract_method_binding(clang::CXXMethodDecl const* cmd,
     };
 }
 
-auto Context::extract_function_binding(clang::FunctionDecl const* fd,
-                                       std::string const& rename,
-                                       std::string const& spelling,
-                                       std::string const& template_call,
-                                       clang::MangleContext* mangle_ctx)
-    -> Function {
+auto Context::extract_function_binding(
+    clang::FunctionDecl const* fd, std::string const& rename,
+    std::string const& spelling, std::string const& template_call,
+    std::string const& comment, clang::MangleContext* mangle_ctx) -> Function {
     std::string qualified_name = fd->getQualifiedNameAsString();
     std::string name = fd->getNameAsString();
 
@@ -497,6 +496,7 @@ auto Context::extract_function_binding(clang::FunctionDecl const* fd,
                     rename,
                     spelling,
                     std::move(template_call),
+                    comment,
                     std::move(return_type),
                     std::move(params),
                     no_except};
@@ -591,7 +591,8 @@ auto Context::get_enum(std::string const& id) const noexcept -> Enum const* {
 auto Context::extract_stdfunction_binding(
     clang::ClassTemplateSpecializationDecl const* ctsd,
     std::string const& spelling, std::string const& rename,
-    clang::MangleContext* mangle_ctx) -> StdFunction {
+    std::string const& comment, clang::MangleContext* mangle_ctx)
+    -> StdFunction {
 
     clang::TemplateArgumentList const& args = ctsd->getTemplateArgs();
     assert(args.size());
@@ -606,7 +607,7 @@ auto Context::extract_stdfunction_binding(
 
         std::string id = get_mangled_name(ctsd, mangle_ctx);
         _decl_maps.typename_map[id] = spelling;
-        return StdFunction{spelling, std::move(return_type),
+        return StdFunction{spelling, comment, std::move(return_type),
                            std::move(parameters)};
     } else {
         BBL_THROW("got std::function CTSD {} but template "
@@ -646,6 +647,7 @@ auto Context::insert_stdfunction_binding(std::string const& mod_id,
 auto Context::extract_enum_binding(clang::EnumDecl const* ed,
                                    std::string const& spelling,
                                    std::string const& rename,
+                                   std::string const& comment,
                                    clang::MangleContext* mangle_ctx) -> Enum {
     std::vector<clang::EnumConstantDecl const*> constants =
         find_all_children_of_type<clang::EnumConstantDecl>(ed);
@@ -659,7 +661,7 @@ auto Context::extract_enum_binding(clang::EnumDecl const* ed,
         variants.emplace_back(std::make_pair(name, ss.str()));
     }
 
-    return Enum{spelling, rename, std::move(variants),
+    return Enum{spelling, rename, comment, std::move(variants),
                 extract_qualtype(ed->getIntegerType(), mangle_ctx)};
 }
 

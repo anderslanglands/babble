@@ -280,6 +280,7 @@ bbl_result_t bbl_class_get_qualified_name(bbl_class_t cls, char const** ptr, siz
 bbl_result_t bbl_class_get_spelling(bbl_class_t cls, char const** ptr, size_t* len);
 bbl_result_t bbl_class_get_name(bbl_class_t cls, char const** ptr, size_t* len);
 bbl_result_t bbl_class_get_rename(bbl_class_t cls, char const** ptr, size_t* len);
+bbl_result_t bbl_class_get_comment(bbl_class_t cls, char const** ptr, size_t* len);
 bbl_result_t bbl_class_get_layout(bbl_class_t cls, bbl_layout_t* layout);
 bbl_result_t bbl_class_get_bind_kind(bbl_class_t cls, bbl_bind_kind_t* bind_kind);
 bbl_result_t bbl_class_num_methods(bbl_class_t cls, size_t* num_methods);
@@ -301,6 +302,8 @@ bbl_result_t bbl_class_is_abstract(bbl_class_t cls, bool* is_abstract);
 bbl_result_t bbl_method_get_qualified_name(bbl_method_t method, char const** ptr, size_t* len);
 bbl_result_t bbl_method_get_name(bbl_method_t method, char const** ptr, size_t* len);
 bbl_result_t bbl_method_get_rename(bbl_method_t method, char const** ptr, size_t* len);
+bbl_result_t bbl_method_get_template_call(bbl_method_t method, char const** ptr, size_t* len);
+bbl_result_t bbl_method_get_comment(bbl_method_t method, char const** ptr, size_t* len);
 bbl_result_t bbl_method_get_is_noexcept(bbl_method_t method, bool* is_noexcept);
 bbl_result_t bbl_method_get_return_type(bbl_method_t method, bbl_qtype_t* return_type);
 bbl_result_t bbl_method_num_params(bbl_method_t method, size_t* num_params);
@@ -312,6 +315,7 @@ bbl_result_t bbl_method_get_is_virtual(bbl_method_t method, bool* is_virtual);
 bbl_result_t bbl_method_get_is_pure(bbl_method_t method, bool* is_pure);
 
 bbl_result_t bbl_constructor_get_rename(bbl_constructor_t constructor, char const** ptr, size_t* len);
+bbl_result_t bbl_constructor_get_comment(bbl_constructor_t constructor, char const** ptr, size_t* len);
 bbl_result_t bbl_constructor_get_is_noexcept(bbl_constructor_t constructor, bool* is_noexcept);
 bbl_result_t bbl_constructor_num_params(bbl_constructor_t constructor, size_t* num_params);
 bbl_result_t bbl_constructor_get_param(bbl_constructor_t constructor, size_t index, bbl_param_t* param);
@@ -319,18 +323,22 @@ bbl_result_t bbl_constructor_get_param(bbl_constructor_t constructor, size_t ind
 bbl_result_t bbl_function_get_qualified_name(bbl_function_t function, char const** ptr, size_t* len);
 bbl_result_t bbl_function_get_name(bbl_function_t function, char const** ptr, size_t* len);
 bbl_result_t bbl_function_get_rename(bbl_function_t function, char const** ptr, size_t* len);
+bbl_result_t bbl_function_get_comment(bbl_function_t function, char const** ptr, size_t* len);
+bbl_result_t bbl_function_get_template_call(bbl_function_t function, char const** ptr, size_t* len);
 bbl_result_t bbl_function_get_is_noexcept(bbl_function_t function, bool* is_noexcept);
 bbl_result_t bbl_function_get_return_type(bbl_function_t function, bbl_qtype_t* return_type);
 bbl_result_t bbl_function_num_params(bbl_function_t function, size_t* num_params);
 bbl_result_t bbl_function_get_param(bbl_function_t function, size_t index, bbl_param_t* param);
 
 bbl_result_t bbl_stdfunction_get_spelling(bbl_stdfunction_t function, char const** ptr, size_t* len);
+bbl_result_t bbl_stdfunction_get_comment(bbl_stdfunction_t function, char const** ptr, size_t* len);
 bbl_result_t bbl_stdfunction_get_return_type(bbl_stdfunction_t function, bbl_qtype_t* return_type);
 bbl_result_t bbl_stdfunction_num_params(bbl_stdfunction_t function, size_t* num_params);
 bbl_result_t bbl_stdfunction_get_param(bbl_stdfunction_t function, size_t index, bbl_qtype_t* param);
 
 bbl_result_t bbl_enum_get_spelling(bbl_enum_t enm, char const** ptr, size_t* len);
 bbl_result_t bbl_enum_get_rename(bbl_enum_t enm, char const** ptr, size_t* len);
+bbl_result_t bbl_enum_get_comment(bbl_enum_t enm, char const** ptr, size_t* len);
 bbl_result_t bbl_enum_num_variants(bbl_enum_t enm, size_t* num_variants);
 bbl_result_t bbl_enum_get_variant(bbl_enum_t enm, size_t index, char const** name_ptr, size_t* name_len, char const** value_ptr, size_t* value_len);
 bbl_result_t bbl_enum_get_type(bbl_enum_t enm, bbl_qtype_t* type);

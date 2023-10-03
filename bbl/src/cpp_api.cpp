@@ -329,6 +329,19 @@ bbl_result_t bbl_class_get_rename(bbl_class_t cls, char const** ptr,
     return BBL_RESULT_Success;
 }
 
+bbl_result_t bbl_class_get_comment(bbl_class_t cls, char const** ptr,
+                                  size_t* len) {
+    if (cls == nullptr) {
+        *ptr = nullptr;
+        *len = 0;
+        return BBL_RESULT_ArgumentIsNull;
+    }
+
+    *ptr = cls->comment.c_str();
+    *len = cls->comment.size();
+    return BBL_RESULT_Success;
+}
+
 bbl_result_t bbl_class_get_layout(bbl_class_t cls, bbl_layout_t* layout) {
     if (cls == nullptr) {
         return BBL_RESULT_ArgumentIsNull;
@@ -547,6 +560,19 @@ bbl_result_t bbl_constructor_get_rename(bbl_constructor_t constructor, char cons
     return BBL_RESULT_Success;
 }
 
+bbl_result_t bbl_constructor_get_comment(bbl_constructor_t constructor, char const** ptr,
+                                     size_t* len) {
+    if (constructor == nullptr) {
+        *ptr = nullptr;
+        *len = 0;
+        return BBL_RESULT_ArgumentIsNull;
+    }
+
+    *ptr = constructor->comment.c_str();
+    *len = constructor->comment.size();
+    return BBL_RESULT_Success;
+}
+
 bbl_result_t bbl_constructor_num_params(bbl_constructor_t constructor,
                                      size_t* num_params) {
     if (constructor == nullptr) {
@@ -619,6 +645,19 @@ bbl_result_t bbl_function_get_rename(bbl_function_t function, char const** ptr,
 
     *ptr = function->rename.c_str();
     *len = function->rename.size();
+    return BBL_RESULT_Success;
+}
+
+bbl_result_t bbl_function_get_comment(bbl_function_t function, char const** ptr,
+                                     size_t* len) {
+    if (function == nullptr) {
+        *ptr = nullptr;
+        *len = 0;
+        return BBL_RESULT_ArgumentIsNull;
+    }
+
+    *ptr = function->comment.c_str();
+    *len = function->comment.size();
     return BBL_RESULT_Success;
 }
 
@@ -737,6 +776,16 @@ bbl_result_t bbl_method_get_rename(bbl_method_t method, char const** ptr,
     return bbl_function_get_rename(&method->function, ptr, len);
 }
 
+bbl_result_t bbl_method_get_comment(bbl_method_t method, char const** ptr,
+                                   size_t* len) {
+    if (method == nullptr) {
+        *ptr = nullptr;
+        *len = 0;
+        return BBL_RESULT_ArgumentIsNull;
+    }
+    return bbl_function_get_comment(&method->function, ptr, len);
+}
+
 bbl_result_t bbl_method_get_is_noexcept(bbl_method_t method,
                                         bool* is_noexcept) {
     if (method == nullptr) {
@@ -837,6 +886,19 @@ bbl_result_t bbl_enum_get_rename(bbl_enum_t enm, char const** ptr,
 
     *ptr = enm->rename.c_str();
     *len = enm->rename.size();
+    return BBL_RESULT_Success;
+}
+
+bbl_result_t bbl_enum_get_comment(bbl_enum_t enm, char const** ptr,
+                                 size_t* len) {
+    if (enm == nullptr) {
+        *ptr = nullptr;
+        *len = 0;
+        return BBL_RESULT_ArgumentIsNull;
+    }
+
+    *ptr = enm->comment.c_str();
+    *len = enm->comment.size();
     return BBL_RESULT_Success;
 }
 

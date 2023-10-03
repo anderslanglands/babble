@@ -56,22 +56,26 @@ struct C_Param {
 struct C_Field {
     C_QType type;
     std::string name;
+    std::string comment;
 };
 
 struct C_Struct {
     Class const& cls;
     std::string name;
+    std::string comment;
     std::vector<C_Field> fields;
 };
 
 struct C_Enum {
     std::string name;
+    std::string comment;
     std::vector<EnumVariant> variants;
     bbl_builtin_t integer_type;
 };
 
 struct C_StdFunction {
     C_QType return_type;
+    std::string comment;
     std::vector<C_QType> params;
 };
 
@@ -83,6 +87,7 @@ using FunctionSource =
 struct C_Function {
     FunctionSource method_or_function;
     std::string name;
+    std::string comment;
     std::optional<C_Param> result;
     std::optional<C_Param> receiver;
     std::vector<C_Param> params;
