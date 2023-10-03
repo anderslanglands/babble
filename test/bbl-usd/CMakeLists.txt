@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 project(bbl-usd VERSION 0.1)
 
-find_package(pxr REQUIRED)
-
 # The bindfile contains all our binding definitions
 set(bindfiles 
     bind/usd/usd.cpp 

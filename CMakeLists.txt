@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION  3.15)
 project(babble VERSION 0.1 LANGUAGES C CXX)
 
+option(BUILD_USD_EXAMPLE "Builds an example OpenUSD binding")
+
 include(GNUInstallDirs)
 
 # Allow find_package to use <package>_ROOT variables when finding packages.
@@ -27,4 +29,12 @@ add_subdirectory(ext/tiny-process-library)
 
 add_subdirectory(bbl)
 
-add_subdirectory(test/bbl-usd)
+if(${BUILD_USD_EXAMPLE})
+    find_package(pxr)
+
+    if (${pxr_FOUND})
+        add_subdirectory(test/bbl-usd)
+    else()
+        message(SEND_ERROR, "Option BUILD_USD_EXAMPLE is enabled, but package pxr was not found. Skipping USD example.")
+    endif()
+endif()
