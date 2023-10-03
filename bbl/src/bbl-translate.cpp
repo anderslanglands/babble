@@ -1,19 +1,21 @@
+#include "bbl-c.h"
 #include "bbl.h"
 #include "bbl_detail.h"
-#include "bbl-c.h"
 
+
+#include <algorithm>
+#include <filesystem>
 #include <iostream>
 #include <spdlog/spdlog.h>
 
 #include <exception>
+#include <fstream>
 #include <memory>
 #include <stdexcept>
 #include <stdint.h>
 #include <string.h>
 #include <string>
 #include <variant>
-#include <fstream>
-
 
 std::string builtin_to_string(bbl_builtin_t builtin) {
 #define FMT_BUILTIN(VAR, STR)                                                  \
@@ -284,7 +286,8 @@ std::string class_to_string(bbl_context_t ctx, bbl_class_t cls) {
         result = std::format("{} copy", result);
 
         bool is_nothrow_copy_constructible = false;
-        bbl_class_is_nothrow_copy_constructible(cls, &is_nothrow_copy_constructible);
+        bbl_class_is_nothrow_copy_constructible(cls,
+                                                &is_nothrow_copy_constructible);
         if (is_nothrow_copy_constructible) {
             result = std::format("{}(nothrow)", result);
         }
@@ -296,7 +299,8 @@ std::string class_to_string(bbl_context_t ctx, bbl_class_t cls) {
         result = std::format("{} move", result);
 
         bool is_nothrow_move_constructible = false;
-        bbl_class_is_nothrow_move_constructible(cls, &is_nothrow_move_constructible);
+        bbl_class_is_nothrow_move_constructible(cls,
+                                                &is_nothrow_move_constructible);
         if (is_nothrow_move_constructible) {
             result = std::format("{}(nothrow)", result);
         }
@@ -447,9 +451,11 @@ int main(int argc, char const** argv) {
     bbl_context_t ctx;
     bbl_context_create(&ctx);
 
-    // next, compile and run the extraction on the source files passed in as arguments.
+    // next, compile and run the extraction on the source files passed in as
+    // arguments.
     // XXX: Should replace this with a dedicated options struct
-    if (bbl_context_compile_and_extract(ctx, clang_arg_count, argv) != BBL_RESULT_Success) {
+    if (bbl_context_compile_and_extract(ctx, clang_arg_count, argv) !=
+        BBL_RESULT_Success) {
         SPDLOG_ERROR("bbl compile and extract failed");
         return 1;
     }
@@ -558,8 +564,23 @@ int main(int argc, char const** argv) {
         return 3;
     }
 
+    // generate header guard
+    std::filesystem::path fs_out_h(path_out_h);
+    std::string header_guard = fs_out_h.filename().string();
+    std::transform(header_guard.begin(), header_guard.end(),
+                   header_guard.begin(), [](unsigned char c) {
+                       if (c == '.' || c == '-') {
+                           return '_';
+                       } else {
+                           return (char)toupper(c);
+                       }
+                   });
+    header_guard = fmt::format("__{}__", header_guard);
+    std::string header_str = fmt::format(
+        "#ifndef {0}\n#define {0}\n{1}\n\n#endif\n", header_guard, header);
+
     if (path_out_cpp.empty() || path_out_h.empty()) {
-        fmt::print("--- HEADER ---\n{}--- END HEADER ---\n\n", header);
+        fmt::print("--- HEADER ---\n{}--- END HEADER ---\n\n", header_str);
         fmt::print("--- SOURCE ---\n{}--- END SOURCE ---\n", source);
     } else {
         std::ofstream os_cpp;
@@ -577,7 +598,7 @@ int main(int argc, char const** argv) {
         }
 
         os_cpp << source;
-        os_h << header;
+        os_h << header_str;
     }
 
     // finally, be a good little boy and clean up

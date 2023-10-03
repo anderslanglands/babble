@@ -956,9 +956,7 @@ std::string format_comment(std::string comment) {
 }
 
 std::string C_API::get_header() const {
-    std::string result = R"(#ifndef SOMEHEADERGUARD_H
-#define SOMEHEADERGUARD_H
-
+    std::string result = R"(
 #if defined(__GNUC__) || defined(__clang__)
 #  define BBL_ALIGN(x) __attribute__ ((aligned(x)))
 #elif defined(_MSC_VER)
@@ -1046,8 +1044,6 @@ extern "C" {
 #endif
 
 #undef BBL_ALIGN
-
-#endif
 )";
 
     return result;
