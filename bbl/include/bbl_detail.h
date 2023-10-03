@@ -65,5 +65,21 @@ enum bbl_type_kind_t {
     BBL_TYPEKIND_Array,
 };
 
+enum bbl_capi_type_kind_t {
+    bbl_capi_typekind_Builtin,
+    bbl_capi_typekind_Struct,
+    bbl_capi_typekind_Enum,
+    bbl_capi_typekind_StdFunction,
+    bbl_capi_typekind_Pointer,
+    bbl_capi_typekind_Array,
+};
+
+
+enum bbl_function_source_t {
+    bbl_function_source_Method,
+    bbl_function_source_Constructor,
+    bbl_function_source_Function,
+    bbl_function_source_Generated,
+};
 
 #endif
