@@ -343,7 +343,7 @@ public:
                           clang::MangleContext* mangle_ctx) -> QType;
 
     /// Extract the class (or class template specialization) `crd`.
-    [[nodiscard("returned binding must be inserted")]] auto
+    [[nodiscard]] auto
     extract_class_binding(clang::CXXRecordDecl const* crd,
                           std::string const& spelling,
                           std::string const& rename, std::string const& comment,
@@ -355,7 +355,7 @@ public:
     auto insert_class_binding(std::string const& mod_id, std::string const& id,
                               Class&& cls) -> void;
 
-    [[nodiscard("returned binding must be inserted")]] auto
+    [[nodiscard]] auto
     extract_stdfunction_binding(
         clang::ClassTemplateSpecializationDecl const* ctsd,
         std::string const& spelling, std::string const& rename,
@@ -372,7 +372,7 @@ public:
     auto stdfunctions() const noexcept
         -> StdFunctionMap::value_container_type const&;
 
-    [[nodiscard("returned binding must be inserted")]] auto
+    [[nodiscard]] auto
     extract_enum_binding(clang::EnumDecl const* ed, std::string const& spelling,
                          std::string const& rename, std::string const& comment,
                          clang::MangleContext* mangle_ctx) -> Enum;
@@ -386,7 +386,7 @@ public:
 
     /// Extracts type information from CXXMethodDecl `cmd` and converts it to a
     /// bbl::Method
-    [[nodiscard("returned binding must be inserted")]] auto
+    [[nodiscard]] auto
     extract_method_binding(clang::CXXMethodDecl const* cmd,
                            std::string const& rename,
                            std::string const& template_call,
@@ -406,7 +406,7 @@ public:
 
     /// Extracts type information from FunctionDecl `fd` and converts it to a
     /// bbl::Function
-    [[nodiscard("returned binding must be inserted")]] auto
+    [[nodiscard]] auto
     extract_function_binding(clang::FunctionDecl const* fd,
                              std::string const& rename,
                              std::string const& spelling,

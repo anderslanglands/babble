@@ -1,9 +1,9 @@
-#include <pxr/usd/usd/primTypeInfo.h>
 #if defined(__clang__)
 
 #include "babble"
 #include "babble-std"
 
+#include <pxr/usd/usd/primTypeInfo.h>
 #include <pxr/usd/sdf/proxyTypes.h>
 #include <pxr/usd/sdf/reference.h>
 #include <pxr/usd/usd/prim.h>

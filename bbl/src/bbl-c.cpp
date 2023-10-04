@@ -47,7 +47,7 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
 
         for (auto const& cpp_class_id : cpp_mod.classes) {
             auto const* cpp_cls = _cpp_ctx.get_class(cpp_class_id);
-            assert(cls);
+            assert(cpp_cls);
 
             // Construct the struct name from the name of the module, and the
             // spelling or rename string
@@ -965,6 +965,8 @@ std::string C_API::get_header() const {
 #  error "Unknown compiler; can't define ALIGN"
 #endif
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -1113,6 +1115,8 @@ std::string C_API::get_source() const {
 #else
 #  error "Unknown compiler; can't define ALIGN"
 #endif
+
+#include <stddef.h>
 
 )");
 

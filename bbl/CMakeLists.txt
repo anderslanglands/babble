@@ -3,16 +3,11 @@ project(bbl VERSION 0.1 LANGUAGES C CXX)
 
 find_package(Clang 16.0 REQUIRED)
 
-set(CMAKE_CXX_STANDARD 20 CACHE STRING "")
+set(CMAKE_CXX_STANDARD 17 CACHE STRING "")
 # Generate info for LSP
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Simplify installation messages
 set(CMAKE_INSTALL_MESSAGE LAZY)
-
-# LLVM is normally built without RTTI. Be consistent with that.
-if(LINUX AND NOT LLVM_ENABLE_RTTI)
-  add_compile_options(-fno-rtti)
-endif()
 
 add_library(bbl STATIC 
   src/bbl.cpp
@@ -25,7 +20,8 @@ add_library(bbl STATIC
 
 target_link_libraries(
   bbl
-    PRIVATE
+    PUBLIC
+      clangAST
       clangTooling 
       clangBasic 
       clangASTMatchers 
@@ -49,6 +45,11 @@ target_link_libraries(bbl-translate
   bbl
   spdlog::spdlog 
 )
+
+# LLVM is normally built without RTTI. Be consistent with that.
+if(UNIX AND NOT LLVM_ENABLE_RTTI)
+  target_compile_options(bbl PUBLIC -fno-rtti)
+endif()
 
 install(
   TARGETS 

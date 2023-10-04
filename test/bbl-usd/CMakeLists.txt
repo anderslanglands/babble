@@ -22,7 +22,7 @@ set(HEADER usd-c.h)
 # Create the C API library
 add_library(usd-c STATIC ${SOURCE})
 target_link_libraries(usd-c PUBLIC usd)
-add_compile_definitions(usd-c PRIVATE NOMINMAX BOOST_ALL_NO_LIB __TBB_show_deprecation_message_task_H)
+target_compile_definitions(usd-c PRIVATE NOMINMAX BOOST_ALL_NO_LIB __TBB_show_deprecation_message_task_H)
 
 function(BBL_TRANSLATE_BINDING TARGET_NAME)
     # God, I hate CMake so much...
@@ -48,6 +48,10 @@ function(BBL_TRANSLATE_BINDING TARGET_NAME)
         list(APPEND bindfile_abs_args ${_abs})
     endforeach()
 
+    # get clang args
+    execute_process(COMMAND clang -print-resource-dir OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE clang_resource_dir)
+    message("clang resource dir: '${clang_resource_dir}'")
+
     add_custom_command(
         OUTPUT ${BBL_TRANSLATED_SOURCE}
         DEPENDS ${arg_BINDFILES}
@@ -56,6 +60,7 @@ function(BBL_TRANSLATE_BINDING TARGET_NAME)
                 ${bindfile_abs_args} 
                 -- 
                 -std=c++17
+                -I${clang_resource_dir}/include
                 "-I$<JOIN:$<TARGET_PROPERTY:babble::bbl,INCLUDE_DIRECTORIES>,;-I>" 
                 "-I$<JOIN:$<TARGET_PROPERTY:${TARGET_NAME},INCLUDE_DIRECTORIES>,;-I>" 
                 ${arg_COMPILE_ARGS}

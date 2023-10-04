@@ -3,6 +3,8 @@ project(babble VERSION 0.1 LANGUAGES C CXX)
 
 option(BUILD_USD_EXAMPLE "Builds an example OpenUSD binding")
 
+set(CMAKE_CXX_STANDARD 17)
+
 include(GNUInstallDirs)
 
 # Allow find_package to use <package>_ROOT variables when finding packages.

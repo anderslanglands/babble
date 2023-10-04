@@ -12,6 +12,8 @@
 #pragma warning(pop)
 #endif
 
+using llvm::dyn_cast;
+
 std::string get_source_text_raw(clang::SourceRange range,
                                 const clang::SourceManager& sm) {
     return clang::Lexer::getSourceText(

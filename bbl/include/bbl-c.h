@@ -3,7 +3,6 @@
 
 #include "bbl.h"
 #include "bbl_detail.h"
-#include <vcruntime.h>
 
 #ifdef __cplusplus
 extern "C" {

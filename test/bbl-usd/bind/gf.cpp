@@ -1,9 +1,9 @@
-#include <pxr/base/gf/interval.h>
 #if defined(__clang__)
 
 #include "babble"
 #include "babble-std"
 
+#include <pxr/base/gf/interval.h>
 #include <pxr/base/gf/vec2f.h>
 #include <pxr/base/gf/vec3f.h>
 #include <pxr/base/gf/vec4f.h>

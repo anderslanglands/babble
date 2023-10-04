@@ -1,12 +1,12 @@
 #pragma once
 
-#include "clang/AST/Decl.h"
 #if defined(WIN32)
 #pragma warning(push)
 #pragma warning(disable : 4624)
 #pragma warning(disable : 4291)
 #endif
 
+#include <clang/AST/Decl.h>
 #include <clang/AST/ASTContext.h>
 #include <clang/AST/ParentMapContext.h>
 #include <clang/AST/Stmt.h>
@@ -87,7 +87,7 @@ auto find_all_descendents_of_type(clang::Stmt const* stmt,
         return;
     }
 
-    if (T const* ptr = dyn_cast<T>(stmt); ptr != nullptr) {
+    if (T const* ptr = llvm::dyn_cast<T>(stmt); ptr != nullptr) {
         result.push_back(ptr);
     }
 
@@ -166,7 +166,7 @@ inline auto walk_to_module(clang::DynTypedNode const& node,
                            clang::ASTContext& ctx, clang::MangleContext* mctx,
                            std::string& id) -> bool {
     if (auto const* fd = node.get<clang::FunctionDecl>()) {
-        if (fd->getNameAsString().starts_with("bbl_bind_")) {
+        if (fd->getNameAsString().find("bbl_bind_") == 0) {
             id = get_mangled_name(fd, mctx);
             return true;
         }
@@ -185,7 +185,7 @@ inline auto walk_to_module_decl(clang::DynTypedNode const& node,
                                 clang::ASTContext& ctx)
     -> clang::FunctionDecl const* {
     if (auto const* fd = node.get<clang::FunctionDecl>()) {
-        if (fd->getNameAsString().starts_with("bbl_bind_")) {
+        if (fd->getNameAsString().find("bbl_bind_") == 0) {
             return fd;
         }
     }
@@ -230,7 +230,7 @@ inline auto find_containing_module_decl(clang::Stmt const* stmt,
 inline auto walk_to_vardecl(clang::DynTypedNode const& node,
                             clang::ASTContext& ctx) -> clang::VarDecl const* {
     if (auto const* fd = node.get<clang::FunctionDecl>()) {
-        if (fd->getNameAsString().starts_with("bbl_bind_")) {
+        if (fd->getNameAsString().find("bbl_bind_") == 0) {
             return nullptr;
         }
     }
@@ -245,7 +245,19 @@ inline auto walk_to_vardecl(clang::DynTypedNode const& node,
 }
 
 template <typename U>
-auto get_parent_as(auto const* decl_or_stmt, clang::ASTContext& ctx)
+auto get_parent_as(clang::Decl const* decl_or_stmt, clang::ASTContext& ctx)
+    -> U const* {
+    for (auto const& node : ctx.getParents(*decl_or_stmt)) {
+        if (U const* p = node.get<U>()) {
+            return p;
+        }
+    }
+
+    return nullptr;
+}
+
+template <typename U>
+auto get_parent_as(clang::Stmt const* decl_or_stmt, clang::ASTContext& ctx)
     -> U const* {
     for (auto const& node : ctx.getParents(*decl_or_stmt)) {
         if (U const* p = node.get<U>()) {
@@ -274,7 +286,7 @@ inline auto find_containing_vardecl(clang::Stmt const* stmt,
 template <typename T>
 auto find_first_child_of_type(clang::Stmt const* stmt) -> T const* {
     for (auto const* child : stmt->children()) {
-        if (auto const* child_result = dyn_cast<T>(child)) {
+        if (auto const* child_result = llvm::dyn_cast<T>(child)) {
             return child_result;
         }
     }
@@ -288,7 +300,7 @@ auto find_all_children_of_type(clang::DeclContext const* decl)
     std::vector<T const*> result;
     for (auto const* child : decl->decls()) {
         if (llvm::isa<T>(child)) {
-            result.push_back(dyn_cast<T>(child));
+            result.push_back(llvm::dyn_cast<T>(child));
         }
     }
 
@@ -299,7 +311,7 @@ template <typename T>
 auto find_named_child_of_type(clang::DeclContext const* decl, char const* name)
     -> T const* {
     for (auto const* child : decl->decls()) {
-        if (T const* tchild = dyn_cast<T>(child)) {
+        if (T const* tchild = llvm::dyn_cast<T>(child)) {
             if (tchild->getNameAsString() == name) {
                 return tchild;
             }

@@ -30,6 +30,8 @@
 #include <utility>
 #include <variant>
 
+using llvm::dyn_cast;
+
 namespace bbl {
 
 std::string to_string(bbl::Type const& ty, char const* s_const,

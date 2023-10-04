@@ -1,9 +1,9 @@
-#include <pxr/usd/pcp/node.h>
 #if defined(__clang__)
 
 #include "babble"
 #include "babble-std"
 
+#include <pxr/usd/pcp/node.h>
 #include <pxr/usd/pcp/primIndex.h>
 #include <pxr/usd/pcp/mapFunction.h>
 #include <pxr/usd/pcp/types.h>

@@ -1,5 +1,3 @@
-#include <pxr/usd/sdf/path.h>
-#include <pxr/usd/usd/stageLoadRules.h>
 #if defined(__clang__)
 
 #include "babble"
@@ -36,6 +34,8 @@
 #include <pxr/usd/usd/stagePopulationMask.h>
 #include <pxr/usd/usd/timeCode.h>
 #include <pxr/usd/usd/variantSets.h>
+#include <pxr/usd/sdf/path.h>
+#include <pxr/usd/usd/stageLoadRules.h>
 
 
 #include <pxr/base/tf/token.h>

@@ -1,6 +1,8 @@
 #ifndef BBL_DETAIL_H
 #define BBL_DETAIL_H
 
+#include <stddef.h>
+
 /**
  * @brief Indicates the success or failure of the funtion that returns it
  * 

@@ -2,6 +2,7 @@
 #define BBL_HPP
 
 #include <type_traits>
+#include <cstddef>
 
 #define BBL_MODULE(name) static void bbl_bind_##name()
 

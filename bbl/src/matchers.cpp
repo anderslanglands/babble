@@ -26,6 +26,9 @@
 #include <memory>
 #include <variant>
 
+using llvm::dyn_cast;
+using llvm::dyn_cast_or_null;
+
 namespace bbl {
 
 clang::TranslationUnitDecl const*
@@ -43,11 +46,10 @@ find_translation_unit(clang::DeclContext const* dc) {
 
 auto create_mangle_context(clang::ASTContext& ast_context)
     -> std::unique_ptr<clang::MangleContext> {
-    // Just get the mangle context from the ASTContext
-    /// XXX: would be nice if we could force Itanium ABI here so that Windows
-    /// and Linux produced the same IDs
+    // Use the microsoft mangling always for consistency
     return std::unique_ptr<clang::MangleContext>(
-        ast_context.createMangleContext());
+        clang::MicrosoftMangleContext::create(ast_context,
+                                              ast_context.getDiagnostics()));
 }
 
 void ExtractModules::run(
@@ -148,8 +150,6 @@ get_record_to_extract_from_construct_expr(clang::CXXConstructExpr const* cce) {
 
     // then check that it's definitely bbl::Class before we go any
     // further in case user has written something very weird...
-    // XXX: Do we really need to do this? It's an abundance of caution that's
-    // costing us an extra tool run...
     if (crd->getQualifiedNameAsString() != "bbl::Class") {
         BBL_THROW("got class binding but underlying record {} - {} "
                   "does not match bbl::Class",
@@ -850,7 +850,9 @@ void ExtractMethodBindings::run(
         std::string comment = get_comment_from_decl(ccd, ast_context);
 
         if (bbl::Class* cls = _bbl_ctx->get_class(target_class_id)) {
-            std::string ctor_id = get_mangled_name(ccd, mangle_context.get());
+            // We're not actually pointing to the constructor here, so we need to create a made-up id
+            // XXX: figure a way to get to the actual constructor decl. Perhaps type-matching the parameters?
+            std::string ctor_id = fmt::format("{}/ctor/{}", rename_str, target_class_id);
             _bbl_ctx->insert_constructor_binding(ctor_id,
                                                  Constructor{
                                                      rename_str,

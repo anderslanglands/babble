@@ -2,7 +2,6 @@
 #define BBL_BBL_H
 
 #include "bbl_detail.h"
-#include <vcruntime.h>
 
 #ifdef __cplusplus
 extern "C" {

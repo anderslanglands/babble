@@ -283,50 +283,50 @@ std::string class_to_string(bbl_context_t ctx, bbl_class_t cls) {
     bool is_copy_constructible = false;
     bbl_class_is_copy_constructible(cls, &is_copy_constructible);
     if (is_copy_constructible) {
-        result = std::format("{} copy", result);
+        result = fmt::format("{} copy", result);
 
         bool is_nothrow_copy_constructible = false;
         bbl_class_is_nothrow_copy_constructible(cls,
                                                 &is_nothrow_copy_constructible);
         if (is_nothrow_copy_constructible) {
-            result = std::format("{}(nothrow)", result);
+            result = fmt::format("{}(nothrow)", result);
         }
     }
 
     bool is_move_constructible = false;
     bbl_class_is_move_constructible(cls, &is_move_constructible);
     if (is_move_constructible) {
-        result = std::format("{} move", result);
+        result = fmt::format("{} move", result);
 
         bool is_nothrow_move_constructible = false;
         bbl_class_is_nothrow_move_constructible(cls,
                                                 &is_nothrow_move_constructible);
         if (is_nothrow_move_constructible) {
-            result = std::format("{}(nothrow)", result);
+            result = fmt::format("{}(nothrow)", result);
         }
     }
 
     bool is_copy_assignable = false;
     bbl_class_is_copy_assignable(cls, &is_copy_assignable);
     if (is_copy_assignable) {
-        result = std::format("{} copyass", result);
+        result = fmt::format("{} copyass", result);
 
         bool is_nothrow_copy_assignable = false;
         bbl_class_is_nothrow_copy_assignable(cls, &is_nothrow_copy_assignable);
         if (is_nothrow_copy_assignable) {
-            result = std::format("{}(nothrow)", result);
+            result = fmt::format("{}(nothrow)", result);
         }
     }
 
     bool is_move_assignable = false;
     bbl_class_is_move_assignable(cls, &is_move_assignable);
     if (is_move_assignable) {
-        result = std::format("{} moveass", result);
+        result = fmt::format("{} moveass", result);
 
         bool is_nothrow_move_assignable = false;
         bbl_class_is_nothrow_move_assignable(cls, &is_nothrow_move_assignable);
         if (is_nothrow_move_assignable) {
-            result = std::format("{}(nothrow)", result);
+            result = fmt::format("{}(nothrow)", result);
         }
     }
 

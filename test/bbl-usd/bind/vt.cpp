@@ -1,9 +1,9 @@
-#include <pxr/base/vt/dictionary.h>
 #if defined(__clang__)
 
 #include "babble"
 #include "babble-std"
 
+#include <pxr/base/vt/dictionary.h>
 #include <pxr/base/vt/value.h>
 
 #include <pxr/base/gf/vec2f.h>
