@@ -9,5 +9,5 @@ BBL_MODULE(test_std_vector) {
         // Note that we wrap the type in `()` here because it contains commas
         BBL_STD_VECTOR_METHODS((std::pair<int, float>));
 
-    // bbl::Class<std::pair<int, float>>("StdPairIntFloat");
+    bbl::Class<std::pair<int, float>>("StdPairIntFloat");
 }
