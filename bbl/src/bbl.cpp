@@ -5,23 +5,22 @@
 
 #include "bbl-c.hpp"
 
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/ASTTypeTraits.h"
-#include "clang/AST/Decl.h"
-#include "clang/AST/TemplateBase.h"
-#include "clang/AST/Type.h"
-#include "clang/ASTMatchers/ASTMatchers.h"
-#include "clang/Basic/ExceptionSpecificationType.h"
-#include "clang/Frontend/ASTUnit.h"
-#include "llvm/Support/raw_ostream.h"
+#include <clang/AST/ASTContext.h>
+#include <clang/AST/ASTTypeTraits.h>
+#include <clang/AST/Decl.h>
+#include <clang/AST/TemplateBase.h>
+#include <clang/AST/Type.h>
+#include <clang/ASTMatchers/ASTMatchers.h>
+#include <clang/Basic/ExceptionSpecificationType.h>
+#include <clang/Frontend/ASTUnit.h>
+#include <clang/Tooling/CommonOptionsParser.h>
+#include <clang/Tooling/Tooling.h>
+#include <llvm/Support/raw_ostream.h>
 
 #include <filesystem>
 #include <memory>
 #include <regex>
 #include <spdlog/spdlog.h>
-
-#include <clang/Tooling/CommonOptionsParser.h>
-#include <clang/Tooling/Tooling.h>
 
 #include <exception>
 #include <fstream>
@@ -1006,9 +1005,6 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
 
     // extract the modules itself
     SPDLOG_INFO("running module finder");
-    //  find_module(this);
-    // result =
-    // tool.run(newFrontendActionFactory(&find_module).get());
     ExtractModules module_extractor(this);
     MatchFinder module_finder;
 

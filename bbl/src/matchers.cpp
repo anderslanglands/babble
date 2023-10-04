@@ -418,6 +418,128 @@ static auto get_target_record_decl_from_member_call_expr(
     }
 }
 
+auto extract_method_from_decl_ref_expr(clang::DeclRefExpr const* dre,
+                                       bbl::Context* bbl_ctx,
+                                       clang::ASTContext* ast_context,
+                                       clang::SourceManager& sm,
+                                       clang::MangleContext* mangle_context)
+    -> void {
+    auto const* cmd = llvm::dyn_cast<clang::CXXMethodDecl>(dre->getDecl());
+    if (!cmd) {
+        BBL_THROW("got decl ref expr but decl is not CXXMethodDecl");
+    }
+    clang::CXXRecordDecl const* crd_parent = cmd->getParent();
+
+    // Handle templated calls. These are calls that require spelling one
+    // or more template arguments in the call to be resolved, for
+    // instance anything where the template argument appears only in the
+    // return type.
+    std::string template_call;
+    if (cmd->isFunctionTemplateSpecialization()) {
+        std::string dre_text = get_source_text(dre->getSourceRange(), sm);
+        if (dre_text.back() == '>') {
+            // this is a templated call, loop back through the string
+            // and find the opening angle bracket
+            int bracket_count = 1;
+            int template_start_pos = 0;
+            for (int i = dre_text.size() - 2; i >= 0; --i) {
+                if (dre_text[i] == '>') {
+                    bracket_count++;
+                } else if (dre_text[i] == '<') {
+                    bracket_count--;
+                }
+
+                if (bracket_count == 0) {
+                    template_start_pos = i;
+                    break;
+                }
+            }
+
+            template_call = dre_text.substr(
+                template_start_pos, dre_text.size() - template_start_pos);
+        }
+    }
+
+    clang::CXXMemberCallExpr const* mce =
+        find_first_ancestor_of_type<clang::CXXMemberCallExpr>(dre, ast_context);
+    if (!mce) {
+        SPDLOG_WARN("Could not get CXXMemberCallExpr from DeclRefExpr "
+                    "{}",
+                    get_source_text(dre->getSourceRange(),
+                                    ast_context->getSourceManager()));
+    }
+    // If there's a StringLiteral inside an ImplicitCastExpr,
+    // that will be our rename string
+    std::string rename_str;
+    if (auto const* ice =
+            find_first_child_of_type<clang::ImplicitCastExpr>(mce)) {
+        if (auto const* sl =
+                find_first_child_of_type<clang::StringLiteral>(ice)) {
+            rename_str = sl->getString().str();
+        }
+    }
+
+    clang::CXXRecordDecl const* crd_target =
+        get_target_record_decl_from_member_call_expr(mce);
+
+    // Check that if there's a mismatch between the parent class of
+    // this method and the target class we are binding to, that the
+    // target class is derived from the binding class this is
+    // because in the AST methods always have their parent as the
+    // class on which they were declared, not the derived class
+    std::string target_class_id = get_mangled_name(crd_target, mangle_context);
+    std::string parent_id = get_mangled_name(crd_parent, mangle_context);
+    if (target_class_id != parent_id &&
+        !crd_target->isDerivedFrom(crd_parent)) {
+        BBL_THROW("method {} is bound to class {} but {} is "
+                  "not derived from {}",
+                  cmd->getQualifiedNameAsString(),
+                  crd_target->getQualifiedNameAsString(),
+                  crd_target->getQualifiedNameAsString(),
+                  crd_parent->getQualifiedNameAsString());
+    }
+
+    bbl::Class* cls = bbl_ctx->get_class(target_class_id);
+    if (!cls) {
+        BBL_THROW("method {} is targeting class {} but this class "
+                  "is not extracted",
+                  cmd->getQualifiedNameAsString(),
+                  crd_target->getQualifiedNameAsString());
+    }
+    // extract and add the method to the corresponding class
+    std::string method_id = get_mangled_name(cmd, mangle_context);
+
+    if (bbl_ctx->has_method(method_id)) {
+
+        // methods mangled names are based on the class in which
+        // they're first declared, which means we'll get
+        // "duplicate" entries for inherited methods.
+
+        if (std::find(cls->methods.begin(), cls->methods.end(), method_id) !=
+            cls->methods.end()) {
+            // class already has method insert, warn
+            /// XXX: report loction of binding
+            SPDLOG_WARN("method {} is already bound on class "
+                        "{}, ignoring "
+                        "second binding",
+                        cmd->getQualifiedNameAsString(), cls->qualified_name);
+        } else {
+            cls->methods.push_back(method_id);
+        }
+    } else {
+        std::string comment = get_comment_from_decl(cmd, ast_context);
+        try {
+            bbl::Method method = bbl_ctx->extract_method_binding(
+                cmd, rename_str, template_call, comment, mangle_context);
+            bbl_ctx->insert_method_binding(method_id, std::move(method));
+            cls->methods.emplace_back(std::move(method_id));
+        } catch (std::exception& e) {
+            BBL_RETHROW(e, "could not bind method {}",
+                        cmd->getQualifiedNameAsString());
+        }
+    }
+}
+
 void ExtractMethodBindings::run(
     clang::ast_matchers::MatchFinder::MatchResult const& result) {
     clang::ASTContext* ast_context = result.Context;
@@ -427,136 +549,8 @@ void ExtractMethodBindings::run(
 
     if (clang::DeclRefExpr const* dre =
             result.Nodes.getNodeAs<clang::DeclRefExpr>("DeclRefExpr(m)")) {
-        if (auto const* cmd =
-                llvm::dyn_cast<clang::CXXMethodDecl>(dre->getDecl())) {
-            clang::CXXRecordDecl const* crd_parent = cmd->getParent();
-
-            // Handle templated calls. These are calls that require spelling one
-            // or more template arguments in the call to be resolved, for
-            // instance anything where the template argument appears only in the
-            // return type.
-            std::string template_call;
-            if (cmd->isFunctionTemplateSpecialization()) {
-                std::string dre_text =
-                    get_source_text(dre->getSourceRange(), sm);
-                if (dre_text.back() == '>') {
-                    // this is a templated call, loop back through the string
-                    // and find the opening angle bracket
-                    int bracket_count = 1;
-                    int template_start_pos = 0;
-                    for (int i = dre_text.size() - 2; i >= 0; --i) {
-                        if (dre_text[i] == '>') {
-                            bracket_count++;
-                        } else if (dre_text[i] == '<') {
-                            bracket_count--;
-                        }
-
-                        if (bracket_count == 0) {
-                            template_start_pos = i;
-                            break;
-                        }
-                    }
-
-                    template_call =
-                        dre_text.substr(template_start_pos,
-                                        dre_text.size() - template_start_pos);
-                }
-            }
-
-            clang::CXXMemberCallExpr const* mce =
-                find_first_ancestor_of_type<clang::CXXMemberCallExpr>(
-                    dre, ast_context);
-            if (mce) {
-                // If there's a StringLiteral inside an ImplicitCastExpr,
-                // that will be our rename string
-                std::string rename_str;
-                if (auto const* ice =
-                        find_first_child_of_type<clang::ImplicitCastExpr>(
-                            mce)) {
-                    if (auto const* sl =
-                            find_first_child_of_type<clang::StringLiteral>(
-                                ice)) {
-                        rename_str = sl->getString().str();
-                    }
-                }
-
-                clang::CXXRecordDecl const* crd_target =
-                    get_target_record_decl_from_member_call_expr(mce);
-
-                // Check that if there's a mismatch between the parent class of
-                // this method and the target class we are binding to, that the
-                // target class is derived from the binding class this is
-                // because in the AST methods always have their parent as the
-                // class on which they were declared, not the derived class
-                std::string target_class_id =
-                    get_mangled_name(crd_target, mangle_context.get());
-                std::string parent_id =
-                    get_mangled_name(crd_parent, mangle_context.get());
-                if (target_class_id != parent_id &&
-                    !crd_target->isDerivedFrom(crd_parent)) {
-                    BBL_THROW("method {} is bound to class {} but {} is "
-                              "not derived from {}",
-                              cmd->getQualifiedNameAsString(),
-                              crd_target->getQualifiedNameAsString(),
-                              crd_target->getQualifiedNameAsString(),
-                              crd_parent->getQualifiedNameAsString());
-                }
-
-                if (bbl::Class* cls = _bbl_ctx->get_class(target_class_id)) {
-                    // extract and add the method to the corresponding class
-                    std::string method_id =
-                        get_mangled_name(cmd, mangle_context.get());
-
-                    if (_bbl_ctx->has_method(method_id)) {
-
-                        // methods mangled names are based on the class in which
-                        // they're first declared, which means we'll get
-                        // "duplicate" entries for inherited methods.
-
-                        if (std::find(cls->methods.begin(), cls->methods.end(),
-                                      method_id) != cls->methods.end()) {
-                            // class already has method insert, warn
-                            /// XXX: report loction of binding
-                            SPDLOG_WARN("method {} is already bound on class "
-                                        "{}, ignoring "
-                                        "second binding",
-                                        cmd->getQualifiedNameAsString(),
-                                        cls->qualified_name);
-                        } else {
-                            cls->methods.push_back(method_id);
-                        }
-                    } else {
-                        std::string comment =
-                            get_comment_from_decl(cmd, ast_context);
-                        try {
-                            bbl::Method method =
-                                _bbl_ctx->extract_method_binding(
-                                    cmd, rename_str, template_call, comment,
-                                    mangle_context.get());
-                            _bbl_ctx->insert_method_binding(method_id,
-                                                            std::move(method));
-                            cls->methods.emplace_back(std::move(method_id));
-                        } catch (std::exception& e) {
-                            BBL_RETHROW(e, "could not bind method {}",
-                                        cmd->getQualifiedNameAsString());
-                        }
-                    }
-
-                } else {
-                    BBL_THROW("method {} is targeting class {} but this class "
-                              "is not extracted",
-                              cmd->getQualifiedNameAsString(),
-                              crd_target->getQualifiedNameAsString());
-                }
-            } else {
-                SPDLOG_WARN("Could not get CXXMemberCallExpr from DeclRefExpr "
-                            "{}",
-                            get_source_text(dre->getSourceRange(),
-                                            ast_context->getSourceManager()));
-            }
-        } else {
-            BBL_THROW("got decl ref expr but decl is not CXXMethodDecl");
-        }
+        extract_method_from_decl_ref_expr(dre, _bbl_ctx, ast_context, sm,
+                                          mangle_context.get());
     }
 
     if (clang::DeclRefExpr const* dre =
@@ -850,9 +844,12 @@ void ExtractMethodBindings::run(
         std::string comment = get_comment_from_decl(ccd, ast_context);
 
         if (bbl::Class* cls = _bbl_ctx->get_class(target_class_id)) {
-            // We're not actually pointing to the constructor here, so we need to create a made-up id
-            // XXX: figure a way to get to the actual constructor decl. Perhaps type-matching the parameters?
-            std::string ctor_id = fmt::format("{}/ctor/{}", rename_str, target_class_id);
+            // We're not actually pointing to the constructor here, so we need
+            // to create a made-up id
+            // XXX: figure a way to get to the actual constructor decl. Perhaps
+            // type-matching the parameters?
+            std::string ctor_id =
+                fmt::format("{}/ctor/{}", rename_str, target_class_id);
             _bbl_ctx->insert_constructor_binding(ctor_id,
                                                  Constructor{
                                                      rename_str,
