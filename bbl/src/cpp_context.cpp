@@ -45,13 +45,13 @@ public:
     Timer() : _start(std::chrono::steady_clock::now()) {}
 
     double elapsed_seconds() {
-        time_point end = std::chrono::high_resolution_clock::now();
+        time_point end = std::chrono::steady_clock::now();
         auto dur = end - _start;
         return std::chrono::duration<double, std::milli>(dur).count() / 1000.0;
     }
 
     double elapsed_milliseconds() {
-        time_point end = std::chrono::high_resolution_clock::now();
+        time_point end = std::chrono::steady_clock::now();
         auto dur = end - _start;
         return std::chrono::duration<double, std::milli>(dur).count();
     }
