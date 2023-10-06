@@ -28,8 +28,8 @@ std::string get_source_text(clang::SourceRange range,
 
     // NOTE: sm.getSpellingLoc() used in case the range corresponds to a
     // macro/preprocessed source.
-    auto start_loc = sm.getSpellingLoc(range.getBegin());
-    auto last_token_loc = sm.getSpellingLoc(range.getEnd());
+    auto start_loc = sm.getExpansionLoc(range.getBegin());
+    auto last_token_loc = sm.getExpansionLoc(range.getEnd());
     auto end_loc = clang::Lexer::getLocForEndOfToken(last_token_loc, 0, sm, lo);
     auto printable_range = clang::SourceRange{start_loc, end_loc};
     return get_source_text_raw(printable_range, sm);

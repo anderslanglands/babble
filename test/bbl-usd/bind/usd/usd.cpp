@@ -159,6 +159,7 @@ BBL_MODULE(usd) {
         .m(&CLS::GetNamespaceDelimiter) \
         .m(&CLS::GetDescription) \
 
+
     bbl::Class<PXR_NS::UsdAttribute>("Attribute")
         .opaque_ptr()
         .ctor(bbl::Ctor<Attribute>(), "default")
@@ -262,6 +263,14 @@ BBL_MODULE(usd) {
 
     bbl::Class<PXR_NS::UsdObject>("Object")
         .ctor(bbl::Ctor<Object>(), "default")
+        .m(&PXR_NS::UsdObject::Is<PXR_NS::UsdAttribute>, "Is_Attribute")
+        .m(&PXR_NS::UsdObject::Is<PXR_NS::UsdRelationship>, "Is_Relationship")
+        .m(&PXR_NS::UsdObject::Is<PXR_NS::UsdProperty>, "Is_Property")
+        .m(&PXR_NS::UsdObject::Is<PXR_NS::UsdPrim>, "Is_Prim")
+        .m(&PXR_NS::UsdObject::As<PXR_NS::UsdAttribute>, "As_Attribute")
+        .m(&PXR_NS::UsdObject::As<PXR_NS::UsdRelationship>, "As_Relationship")
+        .m(&PXR_NS::UsdObject::As<PXR_NS::UsdProperty>, "As_Property")
+        .m(&PXR_NS::UsdObject::As<PXR_NS::UsdPrim>, "As_Prim")
         OBJECT_METHODS(Object)
         ;
 
@@ -290,6 +299,14 @@ BBL_MODULE(usd) {
 
     bbl::Class<PXR_NS::UsdProperty>("Property")
         .ctor(bbl::Ctor<Property>(), "default")
+        .m(&PXR_NS::UsdProperty::Is<PXR_NS::UsdAttribute>, "Is_Attribute")
+        .m(&PXR_NS::UsdProperty::Is<PXR_NS::UsdRelationship>, "Is_Relationship")
+        .m(&PXR_NS::UsdProperty::Is<PXR_NS::UsdProperty>, "Is_Property")
+        .m(&PXR_NS::UsdProperty::Is<PXR_NS::UsdPrim>, "Is_Prim")
+        .m(&PXR_NS::UsdProperty::As<PXR_NS::UsdAttribute>, "As_Attribute")
+        .m(&PXR_NS::UsdProperty::As<PXR_NS::UsdRelationship>, "As_Relationship")
+        .m(&PXR_NS::UsdProperty::As<PXR_NS::UsdProperty>, "As_Property")
+        .m(&PXR_NS::UsdProperty::As<PXR_NS::UsdPrim>, "As_Prim")
         PROPERTY_METHODS(Property)
         OBJECT_METHODS(Property)
         ;

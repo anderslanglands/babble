@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(bbl-usd VERSION 0.1)
+project(bbl-usd VERSION 0.1 LANGUAGES C CXX)
 
 # The bindfile contains all our binding definitions
 set(bindfiles 
@@ -85,9 +85,10 @@ bbl_translate_binding(
 )
 
 # Compile a simple test program to exercise the generated library
-add_executable(usd-c-test01 usd-c-test01.cpp)
+add_executable(usd-c-test01 usd-c-test01.c)
 target_link_libraries(usd-c-test01 PUBLIC usd-c)
 target_include_directories(usd-c-test01 PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+set_property(TARGET usd-c-test01 PROPERTY C_STANDARD 99)
 
 # This is just here to trigger generation of compile commands for the bind file so we get LSP functionality in the bind file
 add_library(bind-dummy ${bindfiles})

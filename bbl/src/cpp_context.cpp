@@ -2,6 +2,7 @@
 #include "astutil.hpp"
 #include "bbl_detail.h"
 #include "bblfmt.hpp"
+#include "clang/Basic/SourceLocation.h"
 
 #include <clang/AST/ASTContext.h>
 #include <clang/AST/ASTTypeTraits.h>
@@ -2233,10 +2234,11 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
         FunctionVisitor visitor(this, &ast_ctx);
         visitor.TraverseAST(ast_ctx);
     }
-    // SPDLOG_INFO("function finder took {}s", timer_function.elapsed_seconds());
+    // SPDLOG_INFO("function finder took {}s",
+    // timer_function.elapsed_seconds());
 
     // SPDLOG_INFO("building {} ASTs took {}s", ast_units.size(),
-                // timer_ast.elapsed_seconds());
+    // timer_ast.elapsed_seconds());
 }
 
 } // namespace bbl

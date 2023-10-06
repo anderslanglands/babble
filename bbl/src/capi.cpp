@@ -969,6 +969,7 @@ std::string C_API::get_header() const {
 #endif
 
 #include <stddef.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -1002,19 +1003,19 @@ extern "C" {
         }
 
         if (c_struct.cls.bind_kind == BindKind::OpaquePtr) {
-            result = fmt::format("{}struct {};\n", result, c_struct.name);
+            result = fmt::format("{0}typedef struct {1} {1};\n", result, c_struct.name);
         } else if (c_struct.cls.bind_kind == BindKind::OpaqueBytes) {
             result =
-                fmt::format("{}struct BBL_ALIGN({}) {} {{\n", result,
+                fmt::format("{}typedef struct BBL_ALIGN({}) {} {{\n", result,
                             c_struct.cls.layout.align_bytes, c_struct.name);
 
             result = fmt::format("{}    char _bbl_opaque[{}];\n", result,
                                  c_struct.cls.layout.size_bytes);
-            result = fmt::format("{}}};\n", result);
+            result = fmt::format("{}}} {};\n", result, c_struct.name);
             result = fmt::format("{}\n", result);
         } else {
             result =
-                fmt::format("{}struct BBL_ALIGN({}) {} {{\n", result,
+                fmt::format("{}typedef struct BBL_ALIGN({}) {} {{\n", result,
                             c_struct.cls.layout.align_bytes, c_struct.name);
 
             for (C_Field const& field : c_struct.fields) {
@@ -1023,7 +1024,7 @@ extern "C" {
                                 _get_c_qtype_as_string(field.type, field.name));
             }
 
-            result = fmt::format("{}}};\n", result);
+            result = fmt::format("{}}} {};\n", result, c_struct.name);
             result = fmt::format("{}\n", result);
         }
     }
