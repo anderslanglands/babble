@@ -9,7 +9,9 @@
 BBL_MODULE(std) {
 
     bbl::Class<std::string>("String").ctor(
-        bbl::Ctor<std::string, char const*>(), "from_char_ptr");
+        bbl::Ctor<std::string, char const*>(), "from_char_ptr")
+        .m(&std::string::c_str)
+        ;
 
     // We provide macros for automating the binding of common types' methods
     bbl::Class<std::vector<std::string>>("StringVector")

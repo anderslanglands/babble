@@ -35,6 +35,19 @@ std::string get_source_text(clang::SourceRange range,
     return get_source_text_raw(printable_range, sm);
 }
 
+std::string get_spelling_text(clang::SourceRange range,
+                            const clang::SourceManager& sm) {
+    clang::LangOptions lo;
+
+    // NOTE: sm.getSpellingLoc() used in case the range corresponds to a
+    // macro/preprocessed source.
+    auto start_loc = sm.getExpansionLoc(range.getBegin());
+    auto last_token_loc = sm.getExpansionLoc(range.getEnd());
+    auto end_loc = clang::Lexer::getLocForEndOfToken(last_token_loc, 0, sm, lo);
+    auto printable_range = clang::SourceRange{start_loc, end_loc};
+    return get_source_text_raw(printable_range, sm);
+}
+
 auto is_in_std_namespace(clang::DeclContext const* dc) -> bool {
     if (dc == nullptr) {
         return false;

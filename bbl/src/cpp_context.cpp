@@ -1540,6 +1540,10 @@ static auto extract_method_from_decl_ref_expr(
     std::string template_call;
     if (cmd->isFunctionTemplateSpecialization()) {
         std::string dre_text = get_source_text(dre->getSourceRange(), sm);
+        // XXX: need to figure this out
+        // std::string spell_text = get_spelling_text(dre->getSourceRange(), sm);
+        // SPDLOG_INFO("source: {}", dre_text);
+        // SPDLOG_INFO("spell: {}", spell_text);
         if (dre_text.back() == '>') {
             // this is a templated call, loop back through the string
             // and find the opening angle bracket

@@ -20,8 +20,26 @@
 #include <pxr/usd/sdf/timeCode.h>
 #include <pxr/usd/sdf/types.h>
 
+namespace bblext {
+
+char const* AssetPath_GetAssetPath(PXR_NS::SdfAssetPath const& path) {
+    return path.GetAssetPath().c_str();
+}
+
+char const* AssetPath_GetResolvedPath(PXR_NS::SdfAssetPath const& path) {
+    return path.GetResolvedPath().c_str();
+}
+
+}
+
 BBL_MODULE(sdf) {
-    bbl::Class<PXR_NS::SdfAssetPath>("AssetPath");
+    bbl::Class<PXR_NS::SdfAssetPath>("AssetPath")
+        .ctor(bbl::Ctor<PXR_NS::SdfAssetPath>(), "new")
+        ;
+
+    // we bind specific wrapper functions for these as there's no point generating an intermediary string&
+    bbl::fn(&bblext::AssetPath_GetAssetPath);
+    bbl::fn(&bblext::AssetPath_GetResolvedPath);
 
     bbl::Class<PXR_NS::VtArray<PXR_NS::SdfAssetPath>>("AssetPathArray");
 

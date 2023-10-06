@@ -6,13 +6,14 @@
 #pragma warning(disable : 4291)
 #endif
 
-#include <clang/AST/Decl.h>
 #include <clang/AST/ASTContext.h>
+#include <clang/AST/Decl.h>
 #include <clang/AST/ParentMapContext.h>
 #include <clang/AST/Stmt.h>
 #include <clang/Basic/SourceLocation.h>
 #include <clang/Basic/SourceManager.h>
 #include <clang/Lex/Preprocessor.h>
+
 
 #if defined(WIN32)
 #pragma warning(pop)
@@ -47,6 +48,8 @@ std::string get_source_text_raw(clang::SourceRange range,
 std::string get_source_text(clang::SourceRange range,
                             const clang::SourceManager& sm);
 
+std::string get_spelling_text(clang::SourceRange range,
+                              const clang::SourceManager& sm);
 namespace clang {
 class MangleContext;
 }
@@ -334,7 +337,8 @@ auto find_named_child_of_type(clang::DeclContext const* decl, char const* name)
 }
 
 auto is_in_std_namespace(clang::DeclContext const* dc) -> bool;
-auto is_in_namespace(clang::DeclContext const* dc, std::string const& name) -> bool;
+auto is_in_namespace(clang::DeclContext const* dc, std::string const& name)
+    -> bool;
 
 inline auto get_comment_from_decl(clang::Decl const* decl,
                                   clang::ASTContext* ast_context)
@@ -343,8 +347,8 @@ inline auto get_comment_from_decl(clang::Decl const* decl,
     clang::RawComment* raw_comment =
         ast_context->getRawCommentForDeclNoCache(decl);
     if (raw_comment) {
-        result = raw_comment->getFormattedText(
-            ast_context->getSourceManager(), ast_context->getDiagnostics());
+        result = raw_comment->getFormattedText(ast_context->getSourceManager(),
+                                               ast_context->getDiagnostics());
     }
 
     return result;
