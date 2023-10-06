@@ -165,7 +165,7 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
             auto const* cpp_fun = _cpp_ctx.get_function(cpp_fun_id);
 
             try {
-                C_Function c_fun = _translate_function(cpp_fun, "");
+                C_Function c_fun = _translate_function(cpp_fun, cpp_mod.name);
                 _functions.emplace(cpp_fun_id, std::move(c_fun));
                 mod_functions.push_back(cpp_fun_id);
 
@@ -198,6 +198,9 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
             mod_inclusions,
             std::move(mod_structs),
             std::move(mod_functions),
+            {}, // stdfunctions
+            std::move(mod_enums),
+            cpp_mod.function_impls
         });
     }
 
@@ -1119,6 +1122,18 @@ std::string C_API::get_source() const {
 #include <stddef.h>
 
 )");
+
+    // next do functon impls
+    bool did_any_impl = false;
+    for (auto const& mod: _modules) {
+        for (std::string const& impl: mod.function_impls) {
+            result = fmt::format("{}{}\n", result, impl);
+            did_any_impl = true;
+        }
+    }
+    if (did_any_impl) {
+        result = fmt::format("{}\n", result);
+    }
 
     result = fmt::format("{}extern \"C\" {{\n", result);
 

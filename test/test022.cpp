@@ -16,7 +16,7 @@ public:
 
 namespace bblext {
 
-float custom_foo(Foo const& foo) {
+static float custom_foo(Foo const& foo) {
     return foo.get<float>();
 }
 

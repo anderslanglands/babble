@@ -334,6 +334,7 @@ auto find_named_child_of_type(clang::DeclContext const* decl, char const* name)
 }
 
 auto is_in_std_namespace(clang::DeclContext const* dc) -> bool;
+auto is_in_namespace(clang::DeclContext const* dc, std::string const& name) -> bool;
 
 inline auto get_comment_from_decl(clang::Decl const* decl,
                                   clang::ASTContext* ast_context)

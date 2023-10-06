@@ -220,6 +220,26 @@ bbl_result_t bbl_module_get_num_source_files(bbl_module_t module, size_t* num_so
 bbl_result_t bbl_module_get_source_file(bbl_module_t module, size_t index, char const** ptr, size_t* len);
 
 /**
+ * @brief Get the number of function impls that this module contains
+ * 
+ * @param module 
+ * @param num_function_impls 
+ * @return bbl_result_t 
+ */
+bbl_result_t bbl_module_get_num_function_impls(bbl_module_t module, size_t* num_function_impls);
+
+/**
+ * @brief Get the index'th function impl for this module
+ * 
+ * @param module 
+ * @param index 
+ * @param ptr 
+ * @param len 
+ * @return bbl_result_t 
+ */
+bbl_result_t bbl_module_get_function_impl(bbl_module_t module, size_t index, char const** ptr, size_t* len);
+
+/**
  * @brief Get the name of this module, i.e. "X" in BBL_MODULE(X)
  * 
  * @param module 

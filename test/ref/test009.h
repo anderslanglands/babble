@@ -28,13 +28,13 @@ struct test_std_pair_StdPairIntFloat_t;
 
 int test_std_pair_StdPairIntFloat_dtor(test_std_pair_StdPairIntFloat_t* _this);
 
-int StdPairIntFloat_get0(test_std_pair_StdPairIntFloat_t* _Pr, int* _result);
+int test_std_pair_StdPairIntFloat_get0(test_std_pair_StdPairIntFloat_t* _Pr, int* _result);
 
-int StdPairIntFloat_get0_const(test_std_pair_StdPairIntFloat_t const* _Pr, int* _result);
+int test_std_pair_StdPairIntFloat_get0_const(test_std_pair_StdPairIntFloat_t const* _Pr, int* _result);
 
-int StdPairIntFloat_get1(test_std_pair_StdPairIntFloat_t* _Pr, float* _result);
+int test_std_pair_StdPairIntFloat_get1(test_std_pair_StdPairIntFloat_t* _Pr, float* _result);
 
-int StdPairIntFloat_get1_const(test_std_pair_StdPairIntFloat_t const* _Pr, float* _result);
+int test_std_pair_StdPairIntFloat_get1_const(test_std_pair_StdPairIntFloat_t const* _Pr, float* _result);
 
 
 

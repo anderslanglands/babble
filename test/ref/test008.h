@@ -51,6 +51,10 @@ int test_std_vector_StdVectorInt_resize(test_std_vector_StdVectorInt_t* _this, s
 
 int test_std_vector_StdVectorInt_resize_with(test_std_vector_StdVectorInt_t* _this, size_t const _Newsize, test_std_vector_StdPairIntFloat_t const* _Val);
 
+int test_std_vector_StdVectorInt_op_index(test_std_vector_StdVectorInt_t const* _this, size_t const _Pos, test_std_vector_StdPairIntFloat_t const** _result);
+
+int test_std_vector_StdVectorInt_default(test_std_vector_StdVectorInt_t** _result);
+
 int test_std_vector_StdVectorInt_dtor(test_std_vector_StdVectorInt_t* _this);
 
 int test_std_vector_StdPairIntFloat_dtor(test_std_vector_StdPairIntFloat_t* _this);

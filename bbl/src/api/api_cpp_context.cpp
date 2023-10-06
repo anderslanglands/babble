@@ -153,6 +153,35 @@ bbl_result_t bbl_module_get_source_file(bbl_module_t module, size_t index, char 
     return BBL_RESULT_Success;
 }
 
+bbl_result_t bbl_module_get_num_function_impls(bbl_module_t module, size_t* num_function_impls) {
+    if (module == nullptr) {
+        *num_function_impls = 0;
+        return BBL_RESULT_ArgumentIsNull;
+    }
+
+    *num_function_impls = module->function_impls.size();
+    return BBL_RESULT_Success;
+}
+
+bbl_result_t bbl_module_get_function_impl(bbl_module_t module, size_t index, char const** ptr,
+                                        size_t* len) {
+    if (module == nullptr) {
+        *ptr = nullptr;
+        *len = 0;
+        return BBL_RESULT_ArgumentIsNull;
+    }
+
+    if (index >= module->function_impls.size()) {
+        *ptr = nullptr;
+        *len = 0;
+        return BBL_RESULT_ArgumentOutOfRange;
+    }
+
+    *ptr = module->function_impls[index].c_str();
+    *len = module->function_impls[index].size();
+    return BBL_RESULT_Success;
+}
+
 bbl_result_t bbl_module_get_name(bbl_module_t module, char const** ptr,
                                  size_t* len) {
     if (module == nullptr) {

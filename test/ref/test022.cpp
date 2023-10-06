@@ -10,6 +10,10 @@
 
 #include <stddef.h>
 
+static float custom_foo(Foo const& foo) {
+    return foo.get<float>();
+}
+
 extern "C" {
 
 using test0022_Foo_t = Foo;
@@ -19,7 +23,7 @@ int test0022_Foo_dtor(test0022_Foo_t* _this) {
     return 0;
 }
 
-int custom_foo(test0022_Foo_t const* foo, float* _result) {
+int test0022_custom_foo(test0022_Foo_t const* foo, float* _result) {
     *_result = custom_foo(*foo);
     return 0;
 }

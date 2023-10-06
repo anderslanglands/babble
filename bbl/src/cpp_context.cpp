@@ -16,7 +16,6 @@
 #include <clang/Tooling/Tooling.h>
 #include <llvm/Support/raw_ostream.h>
 
-
 #include <filesystem>
 #include <memory>
 #include <optional>
@@ -990,6 +989,16 @@ auto Context::extract_inclusions(std::string const& source_file)
     return result;
 }
 
+auto Context::insert_function_impl(std::string const& mod_id,
+                                   std::string const& impl) -> void {
+    if (Module* mod = get_module(mod_id)) {
+        mod->function_impls.push_back(impl);
+    } else {
+        BBL_THROW("tried to insert function impl to non-existent module {}",
+                  mod_id);
+    }
+}
+
 static auto create_mangle_context(clang::ASTContext& ast_context)
     -> std::unique_ptr<clang::MangleContext> {
     // Use the microsoft mangling always for consistency
@@ -1737,6 +1746,13 @@ static auto extract_function_from_decl_ref_expr(
     }
 
     bbl_ctx->insert_function_binding(mod_id, id, std::move(function));
+
+    // If the function decl is in the bblext namespace, extract the function
+    // implementation as well
+    if (is_in_namespace(fd, "bblext")) {
+        std::string function_source = get_source_text(fd->getSourceRange(), sm);
+        bbl_ctx->insert_function_impl(mod_id, function_source);
+    }
 }
 
 static auto extract_field_from_decl_ref_expr(
@@ -2188,39 +2204,39 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
                            });
     }
     std::vector<std::unique_ptr<clang::ASTUnit>> ast_units;
-    SPDLOG_INFO("building asts");
+    // SPDLOG_INFO("building asts");
     Timer timer_ast;
     tool.buildASTs(ast_units);
 
-    SPDLOG_INFO("finding modules");
+    // SPDLOG_INFO("finding modules");
     Timer timer_mf;
     for (auto const& unit : ast_units) {
         clang::ASTContext& ast_ctx = unit->getASTContext();
         ModuleVisitor visitor(this, &ast_ctx);
         visitor.TraverseAST(ast_ctx);
     }
-    SPDLOG_INFO("module finder took {}s", timer_mf.elapsed_seconds());
+    // SPDLOG_INFO("module finder took {}s", timer_mf.elapsed_seconds());
 
-    SPDLOG_INFO("finding classes");
+    // SPDLOG_INFO("finding classes");
     Timer timer_class;
     for (auto const& unit : ast_units) {
         clang::ASTContext& ast_ctx = unit->getASTContext();
         ClassVisitor visitor(this, &ast_ctx);
         visitor.TraverseAST(ast_ctx);
     }
-    SPDLOG_INFO("class finder took {}s", timer_class.elapsed_seconds());
+    // SPDLOG_INFO("class finder took {}s", timer_class.elapsed_seconds());
 
-    SPDLOG_INFO("finding functions");
+    // SPDLOG_INFO("finding functions");
     Timer timer_function;
     for (auto const& unit : ast_units) {
         clang::ASTContext& ast_ctx = unit->getASTContext();
         FunctionVisitor visitor(this, &ast_ctx);
         visitor.TraverseAST(ast_ctx);
     }
-    SPDLOG_INFO("function finder took {}s", timer_function.elapsed_seconds());
+    // SPDLOG_INFO("function finder took {}s", timer_function.elapsed_seconds());
 
-    SPDLOG_INFO("building {} ASTs took {}s", ast_units.size(),
-                timer_ast.elapsed_seconds());
+    // SPDLOG_INFO("building {} ASTs took {}s", ast_units.size(),
+                // timer_ast.elapsed_seconds());
 }
 
 } // namespace bbl

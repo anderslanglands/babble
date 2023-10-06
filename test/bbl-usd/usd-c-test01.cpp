@@ -26,6 +26,7 @@ int main(int argc, char** argv) {
     usd_Prim_new(&pseudo_root);
     usd_Stage_GetPseudoRoot(stage, pseudo_root);
 
+    // Constructing a prim range and its iterators is a bit of a long-winded dance
     usd_PrimRange_t* prim_range;
     usd_PrimRange_from_prim(pseudo_root, &prim_range);
 
@@ -46,17 +47,43 @@ int main(int argc, char** argv) {
     while (!done) {
         usd_PrimRangeIterator_deref(current, prim);
 
+        // print out the prim's name
         tf_Token_t const* tok_name;
         usd_Prim_GetName(prim, &tok_name);
         char const* name_str = nullptr;
         tf_Token_GetText(tok_name, &name_str);
-
         printf("%s\n", name_str);
 
+        // Get all the properties and print out their names
+        usd_PropertyVector_t* properties;
+        usd_PropertyVector_default(&properties);
+        usd_Prim_GetProperties(prim, properties);
+
+        size_t num_props = 0;
+        usd_PropertyVector_size(properties, &num_props);
+
+        for (int i = 0; i < num_props; ++i) {
+            usd_Property_t const* prop;
+            usd_PropertyVector_op_index(properties, i, &prop);
+
+            tf_Token_t const* tok_prop_name;
+            usd_Property_GetName(prop, &tok_prop_name);
+
+            char const* prop_name_str = nullptr;
+            tf_Token_GetText(tok_prop_name, &prop_name_str);
+            printf("  %s\n", prop_name_str);
+
+        }
+
+        // cleanup
+        usd_PropertyVector_dtor(properties);
+
+        // advance iterator
         usd_PrimRangeIterator_op_inc(current, &dummy);
         usd_PrimRangeIterator_op_eq(current, end, &done);
     }
 
+    // cleanup
     usd_Prim_dtor(prim);
 
     usd_PrimRangeIterator_dtor(end);

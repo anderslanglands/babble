@@ -39,7 +39,7 @@ int test007_qux::Bar_bum();
 /**
  * function foo
  */
-int myfoo(test007_qux::Bar_t* bar, size_t* _result);
+int test007_myfoo(test007_qux::Bar_t* bar, size_t* _result);
 
 
 

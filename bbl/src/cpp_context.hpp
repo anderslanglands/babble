@@ -267,6 +267,8 @@ struct Module {
     std::vector<std::string> stdfunctions;
     /// List of Enums bound in this module
     std::vector<std::string> enums;
+    /// Function implementations to be pasted into the module
+    std::vector<std::string> function_impls;
     /// Namespace string to replace
     std::string namespace_from;
     /// Namespace string to replace with
@@ -453,6 +455,8 @@ public:
     /// identifier
     auto insert_source_file(const std::string& filename,
                             SourceFile&& source_file) -> void;
+
+    auto insert_function_impl(std::string const& mod_id, std::string const& impl) -> void;
 
     /// Compile the sources in the given command line to AST and run the
     /// extraction.

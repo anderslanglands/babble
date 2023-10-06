@@ -14,27 +14,29 @@ template <typename T, typename U> struct argument_type<T(U)> {
 } // namespace bbl
 
 // Bind std::vector<TY>
-#define BBL_STD_VECTOR_METHODS(TY)                                             \
-    /*bbl::Class<std::vector<__VA_ARGS__>>(RENAME)*/                           \
-    .m((bbl::detail::argument_type<void(TY)>::type * (std::vector<bbl::detail::argument_type<void(TY)>::type>::*)()) &                       \
-       std::vector<bbl::detail::argument_type<void(TY)>::type>::data)                                         \
-        .m((bbl::detail::argument_type<void(TY)>::type const* (std::vector<bbl::detail::argument_type<void(TY)>::type>::*)() const) &        \
-               std::vector<bbl::detail::argument_type<void(TY)>::type>::data,                                 \
-           "data_const")                                                       \
-        .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::empty)                                   \
-        .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::size)                                    \
-        .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::max_size)                                \
-        .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::reserve)                                 \
-        .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::capacity)                                \
-        .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::clear)                                   \
-        .m((void(std::vector<bbl::detail::argument_type<void(TY)>::type>::*)(bbl::detail::argument_type<void(TY)>::type const&)) &           \
-           std::vector<bbl::detail::argument_type<void(TY)>::type>::push_back)                                \
-        .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::pop_back)                                \
-        .m((void(std::vector<bbl::detail::argument_type<void(TY)>::type>::*)(size_t)) &                       \
-           std::vector<bbl::detail::argument_type<void(TY)>::type>::resize)                                   \
-        .m((void(std::vector<bbl::detail::argument_type<void(TY)>::type>::*)(size_t, bbl::detail::argument_type<void(TY)>::type const&)) &   \
-               std::vector<bbl::detail::argument_type<void(TY)>::type>::resize,                               \
-           "resize_with");
+#define BBL_STD_VECTOR_METHODS(TY)                                                                                                          \
+    .ctor(bbl::Ctor<std::vector<bbl::detail::argument_type<void(TY)>::type>>(), "default")                                                  \
+    .m((bbl::detail::argument_type<void(TY)>::type * (std::vector<bbl::detail::argument_type<void(TY)>::type>::*)()) &                      \
+       std::vector<bbl::detail::argument_type<void(TY)>::type>::data)                                                                       \
+    .m((bbl::detail::argument_type<void(TY)>::type const* (std::vector<bbl::detail::argument_type<void(TY)>::type>::*)() const) &           \
+            std::vector<bbl::detail::argument_type<void(TY)>::type>::data,                                                                  \
+        "data_const")                                                                                                                       \
+    .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::empty)                                                                     \
+    .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::size)                                                                      \
+    .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::max_size)                                                                  \
+    .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::reserve)                                                                   \
+    .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::capacity)                                                                  \
+    .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::clear)                                                                     \
+    .m((void(std::vector<bbl::detail::argument_type<void(TY)>::type>::*)(bbl::detail::argument_type<void(TY)>::type const&)) &              \
+        std::vector<bbl::detail::argument_type<void(TY)>::type>::push_back)                                                                 \
+    .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::pop_back)                                                                  \
+    .m((void(std::vector<bbl::detail::argument_type<void(TY)>::type>::*)(size_t)) &                                                         \
+        std::vector<bbl::detail::argument_type<void(TY)>::type>::resize)                                                                    \
+    .m((void(std::vector<bbl::detail::argument_type<void(TY)>::type>::*)(size_t, bbl::detail::argument_type<void(TY)>::type const&))        \
+        &std::vector<bbl::detail::argument_type<void(TY)>::type>::resize, "resize_with")                                                    \
+    .m((bbl::detail::argument_type<void(TY)>::type const& (std::vector<bbl::detail::argument_type<void(TY)>::type>::*)(size_t) const)       \
+        &std::vector<bbl::detail::argument_type<void(TY)>::type>::operator[], "op_index")                                                               \
+    ;
 
 /// XXX: Need to expand the macros here...
 #define BBL_STD_PAIR_FUNCTIONS(TY0, TY1, RENAME)                               \

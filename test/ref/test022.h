@@ -28,7 +28,7 @@ struct test0022_Foo_t;
 
 int test0022_Foo_dtor(test0022_Foo_t* _this);
 
-int custom_foo(test0022_Foo_t const* foo, float* _result);
+int test0022_custom_foo(test0022_Foo_t const* foo, float* _result);
 
 
 

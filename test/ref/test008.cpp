@@ -76,6 +76,16 @@ int test_std_vector_StdVectorInt_resize_with(test_std_vector_StdVectorInt_t* _th
     return 0;
 }
 
+int test_std_vector_StdVectorInt_op_index(test_std_vector_StdVectorInt_t const* _this, size_t const _Pos, test_std_vector_StdPairIntFloat_t const** _result) {
+    *_result = &_this->operator[](_Pos);
+    return 0;
+}
+
+int test_std_vector_StdVectorInt_default(test_std_vector_StdVectorInt_t** _result) {
+    *_result = new std::vector<std::pair<int, float>>();
+    return 0;
+}
+
 int test_std_vector_StdVectorInt_dtor(test_std_vector_StdVectorInt_t* _this) {
     delete _this;
     return 0;

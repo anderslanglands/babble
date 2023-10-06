@@ -49,6 +49,20 @@ auto is_in_std_namespace(clang::DeclContext const* dc) -> bool {
     return is_in_std_namespace(dc->getParent());
 }
 
+auto is_in_namespace(clang::DeclContext const* dc, std::string const& name) -> bool {
+    if (dc == nullptr) {
+        return false;
+    }
+
+    if (auto const* nsd = dyn_cast<clang::NamespaceDecl>(dc)) {
+        if (nsd->getNameAsString() == name) {
+            return true;
+        }
+    }
+
+    return is_in_namespace(dc->getParent(), name);
+}
+
 std::string get_mangled_name(clang::NamedDecl const* nd, clang::MangleContext* ctx) {
     if (ctx->shouldMangleDeclName(nd)) {
         std::string mangled_name;

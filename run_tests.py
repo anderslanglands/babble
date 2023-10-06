@@ -34,6 +34,7 @@ TEST_REF_PATH = os.path.join("test", "ref")
 os.makedirs(TEST_OUTPUT_PATH, exist_ok=True)
 
 for test in TESTS:
+    print(test)
     bindfile = f"{test}.cpp"
     bindfile_path = os.path.join("test", bindfile)
     exe_path = os.path.join(".", "build", "bbl", "bbl-translate")

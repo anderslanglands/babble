@@ -1,3 +1,4 @@
+#include <pxr/usd/usd/property.h>
 #if defined(__clang__)
 
 #include "babble"
@@ -13,6 +14,14 @@
 #include <pxr/usd/usd/schemaRegistry.h>
 
 #include <vector>
+
+namespace bblext {
+
+auto UsdPrim_GetProperties(PXR_NS::UsdPrim prim) -> std::vector<PXR_NS::UsdProperty> {
+    return prim.GetProperties();
+}
+
+}
 
 BBL_MODULE(usd) {
     using Prim = PXR_NS::UsdPrim;
@@ -270,6 +279,9 @@ BBL_MODULE(usd) {
         .m(&Prim::MakeResolveTargetStrongerThanEditTarget);
 
     // end Prim
+
+    // we'll inject a function to get around the lack of std::function support
+    bbl::fn(&bblext::UsdPrim_GetProperties, "Prim_GetProperties");
 
     bbl::Class<PXR_NS::UsdPrimCompositionQuery>("PrimCompositionQuery")
         .ctor(bbl::Ctor<PXR_NS::UsdPrimCompositionQuery, PXR_NS::UsdPrim const&,

@@ -107,6 +107,7 @@ struct C_Module {
     std::vector<std::string> functions;
     std::vector<std::string> stdfunctions;
     std::vector<std::string> enums;
+    std::vector<std::string> function_impls;
 };
 
 class C_API {

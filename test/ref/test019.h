@@ -43,13 +43,13 @@ int bar_Foo_ctor(int a, float b, bar_Foo_t** _result);
 
 int bar_Foo_dtor(bar_Foo_t* _this);
 
-int bar_fn(bar_Foo_t const* a, int b);
+int bar_bar_fn(bar_Foo_t const* a, int b);
 
 int baz_Foo_ctor(int a, float b, baz_Foo_t** _result);
 
 int baz_Foo_dtor(baz_Foo_t* _this);
 
-int baz_fn(baz_Foo_t const* a, int b);
+int baz_baz_fn(baz_Foo_t const* a, int b);
 
 
 
