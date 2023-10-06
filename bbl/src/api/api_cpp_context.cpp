@@ -1,6 +1,6 @@
 #include "bbl_detail.h"
 
-#include "bbl.hpp"
+#include "../cpp_context.hpp"
 
 #include <spdlog/spdlog.h>
 #include <variant>

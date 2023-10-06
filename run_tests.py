@@ -77,6 +77,11 @@ for test in TESTS:
     ref_c_f.close()
     ref_h_f.close()
 
-print(f"{len(failed_tests)} failed tests out of {len(TESTS)}")
-for ft in failed_tests:
-    print(f"    {test}")
+print()
+if len(failed_tests) == 0:
+    print("PASS")
+else:
+    print("FAIL")
+    print(f"{len(failed_tests)} failed tests out of {len(TESTS)}")
+    for ft in failed_tests:
+        print(f"    {ft}")

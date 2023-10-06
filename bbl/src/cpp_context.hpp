@@ -1,12 +1,8 @@
 #pragma once
 
-#include "matchers.hpp"
-
 #include "bbl_detail.h"
 
 #include "unordered_dense.h"
-#include "clang/AST/Mangle.h"
-#include "clang/AST/TemplateBase.h"
 
 #include <spdlog/spdlog.h>
 
@@ -16,6 +12,7 @@
 #pragma warning(disable : 4291)
 #endif
 
+#include <llvm/Support/CommandLine.h>
 #include <clang/AST/ASTContext.h>
 #include <clang/AST/Decl.h>
 #include <clang/AST/DeclCXX.h>
@@ -34,6 +31,8 @@
 #include <variant>
 
 namespace bbl {
+
+class Context;
 
 #define BBL_THROW(...)                                                         \
     throw std::runtime_error(                                                  \

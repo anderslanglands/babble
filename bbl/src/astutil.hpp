@@ -227,6 +227,18 @@ inline auto find_containing_module_decl(clang::Stmt const* stmt,
     return nullptr;
 }
 
+inline auto find_containing_module_decl(clang::Decl const* decl,
+                                        clang::ASTContext* ctx)
+    -> clang::FunctionDecl const* {
+    for (auto const& parent : ctx->getParents(*decl)) {
+        if (clang::FunctionDecl const* fd = walk_to_module_decl(parent, *ctx)) {
+            return fd;
+        }
+    }
+
+    return nullptr;
+}
+
 inline auto walk_to_vardecl(clang::DynTypedNode const& node,
                             clang::ASTContext& ctx) -> clang::VarDecl const* {
     if (auto const* fd = node.get<clang::FunctionDecl>()) {

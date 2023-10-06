@@ -1,7 +1,7 @@
 #pragma once
 
-#include "bbl.hpp"
 #include "bbl_detail.h"
+#include "cpp_context.hpp"
 #include "expr.hpp"
 
 #include <memory>
@@ -122,7 +122,8 @@ class C_API {
                                    std::vector<C_Param>& c_params,
                                    std::vector<ExprPtr>& expr_params) -> void;
 
-    auto _translate_return_type(QType const& cpp_return_type) -> std::optional<C_Param>;
+    auto _translate_return_type(QType const& cpp_return_type)
+        -> std::optional<C_Param>;
 
     auto _translate_method(Method const* method,
                            std::string const& function_prefix,
@@ -140,7 +141,8 @@ class C_API {
 
     auto _translate_qtype(QType const& qt) -> C_QType;
 
-    auto _get_c_qtype_as_string(C_QType const& qt, std::string const& name) const -> std::string;
+    auto _get_c_qtype_as_string(C_QType const& qt,
+                                std::string const& name) const -> std::string;
     auto _get_function_declaration(C_Function const& c_fun) const
         -> std::string;
 

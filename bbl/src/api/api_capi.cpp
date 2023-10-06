@@ -1,4 +1,4 @@
-#include "bbl-c.hpp"
+#include "../capi.hpp"
 #include "bbl_detail.h"
 #include "spdlog/spdlog.h"
 #include <exception>

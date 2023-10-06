@@ -60,6 +60,8 @@ function(BBL_TRANSLATE_BINDING TARGET_NAME)
                 ${bindfile_abs_args} 
                 -- 
                 -std=c++17
+                -fsyntax-only
+                -fno-spell-checking
                 -I${clang_resource_dir}/include
                 "-I$<JOIN:$<TARGET_PROPERTY:babble::bbl,INCLUDE_DIRECTORIES>,;-I>" 
                 "-I$<JOIN:$<TARGET_PROPERTY:${TARGET_NAME},INCLUDE_DIRECTORIES>,;-I>" 

@@ -10,12 +10,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_INSTALL_MESSAGE LAZY)
 
 add_library(bbl STATIC 
-  src/bbl.cpp
-  src/bbl-c.cpp
+  src/cpp_context.cpp
+  src/capi.cpp
   src/astutil.cpp
-  src/matchers.cpp
-  src/cpp_api.cpp
-  src/c_api.cpp
+  src/api/api_cpp_context.cpp
+  src/api/api_capi.cpp
 )
 
 target_link_libraries(
