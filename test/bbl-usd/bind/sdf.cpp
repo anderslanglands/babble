@@ -1,4 +1,3 @@
-#include <pxr/usd/sdf/layerOffset.h>
 #if defined(__clang__)
 
 #include "babble"
@@ -8,6 +7,7 @@
 #include <pxr/base/js/value.h>
 #include <pxr/base/tf/token.h>
 #include <pxr/base/vt/array.h>
+#include <pxr/base/vt/dictionary.h>
 #include <pxr/base/vt/value.h>
 #include <pxr/usd/sdf/allowed.h>
 #include <pxr/usd/sdf/assetPath.h>
@@ -15,7 +15,9 @@
 #include <pxr/usd/sdf/changeBlock.h>
 #include <pxr/usd/sdf/changeList.h>
 #include <pxr/usd/sdf/declareHandles.h>
+#include <pxr/usd/sdf/fileFormat.h>
 #include <pxr/usd/sdf/layer.h>
+#include <pxr/usd/sdf/layerOffset.h>
 #include <pxr/usd/sdf/layerTree.h>
 #include <pxr/usd/sdf/listEditorProxy.h>
 #include <pxr/usd/sdf/namespaceEdit.h>
@@ -30,9 +32,13 @@
 #include <pxr/usd/sdf/relationshipSpec.h>
 #include <pxr/usd/sdf/schema.h>
 #include <pxr/usd/sdf/spec.h>
+#include <pxr/usd/sdf/textFileFormat.h>
 #include <pxr/usd/sdf/timeCode.h>
 #include <pxr/usd/sdf/types.h>
 #include <pxr/usd/sdf/valueTypeName.h>
+#include <pxr/usd/sdf/variableExpression.h>
+#include <pxr/usd/sdf/variantSetSpec.h>
+#include <pxr/usd/sdf/variantSpec.h>
 
 namespace bblext {
 
@@ -74,8 +80,8 @@ NamespaceEditDetail_get_reason(PXR_NS::SdfNamespaceEditDetail const& detail) {
     return detail.reason.c_str();
 }
 
-PXR_NS::SdfPathExpression* PathExpression_from_string(char const* expr,
-                                                     char const* parseContext) {
+PXR_NS::SdfPathExpression*
+PathExpression_from_string(char const* expr, char const* parseContext) {
     return new PXR_NS::SdfPathExpression(expr, parseContext);
 }
 
@@ -83,12 +89,59 @@ PXR_NS::SdfPayload* Payload_from_asset_path(char const* assetPath) {
     return new PXR_NS::SdfPayload(assetPath);
 }
 
-PXR_NS::SdfPayload* Payload_from_asset_path_and_prim_path(char const* assetPath, PXR_NS::SdfPath const& primPath) {
+PXR_NS::SdfPayload*
+Payload_from_asset_path_and_prim_path(char const* assetPath,
+                                      PXR_NS::SdfPath const& primPath) {
     return new PXR_NS::SdfPayload(assetPath, primPath);
 }
 
-PXR_NS::SdfPayload* Payload_from_asset_path_and_prim_path_and_layer_offset(char const* assetPath, PXR_NS::SdfPath const& primPath, PXR_NS::SdfLayerOffset const& layerOffset) {
+PXR_NS::SdfPayload* Payload_from_asset_path_and_prim_path_and_layer_offset(
+    char const* assetPath, PXR_NS::SdfPath const& primPath,
+    PXR_NS::SdfLayerOffset const& layerOffset) {
     return new PXR_NS::SdfPayload(assetPath, primPath, layerOffset);
+}
+
+PXR_NS::SdfReference* Reference_from_asset_path(char const* assetPath) {
+    return new PXR_NS::SdfReference(assetPath);
+}
+
+PXR_NS::SdfReference*
+Reference_from_asset_path_and_prim_path(char const* assetPath,
+                                        PXR_NS::SdfPath const& primPath) {
+    return new PXR_NS::SdfReference(assetPath, primPath);
+}
+
+PXR_NS::SdfReference* Reference_from_asset_path_and_prim_path_and_layer_offset(
+    char const* assetPath, PXR_NS::SdfPath const& primPath,
+    PXR_NS::SdfLayerOffset const& layerOffset) {
+    return new PXR_NS::SdfReference(assetPath, primPath, layerOffset);
+}
+
+PXR_NS::SdfReference*
+Reference_from_asset_path_and_prim_path_and_layer_offset_and_custom_data(
+    char const* assetPath, PXR_NS::SdfPath const& primPath,
+    PXR_NS::SdfLayerOffset const& layerOffset,
+    PXR_NS::VtDictionary const& customData) {
+    return new PXR_NS::SdfReference(assetPath, primPath, layerOffset,
+                                    customData);
+}
+
+char const* ValueTypeName_GetCPPTypeName(PXR_NS::SdfValueTypeName const& vtn) {
+    return vtn.GetCPPTypeName().c_str();
+}
+
+PXR_NS::SdfVariableExpression* VariableExpression_from_string(char const* str) {
+    return new PXR_NS::SdfVariableExpression(str);
+}
+
+char const*
+VariableExpression_GetString(PXR_NS::SdfVariableExpression const& ve) {
+    return ve.GetString().c_str();
+}
+
+PXR_NS::VtValue const& VariableExpressionResult_value(
+    PXR_NS::SdfVariableExpression::Result const& ver) {
+    return ver.value;
 }
 
 } // namespace bblext
@@ -283,6 +336,42 @@ BBL_MODULE(sdf) {
     ;
 
     bbl::Class<PXR_NS::SdfDictionaryProxy>("DictionaryProxy");
+
+    #define FILEFORMAT_METHODS(CLS) \
+        .m(&CLS::GetSchema) \
+        .m(&CLS::GetFormatId) \
+        .m(&CLS::GetTarget) \
+        .m(&CLS::GetFileCookie) \
+        .m(&CLS::GetVersionString) \
+        .m(&CLS::IsPrimaryFormatForExtensions) \
+        .m(&CLS::GetFileExtensions) \
+        .m(&CLS::GetPrimaryFileExtension) \
+        .m(&CLS::IsSupportedExtension) \
+        .m(&CLS::IsPackage) \
+        .m(&CLS::GetPackageRootLayerPath) \
+        .m(&CLS::ShouldSkipAnonymousReload) \
+        .m(&CLS::ShouldReadAnonymousLayers) \
+        .m(&CLS::ReadDetached) \
+        .m(&CLS::GetExternalAssetDependencies) \
+        .m(&CLS::SupportsReading) \
+        .m(&CLS::SupportsWriting) \
+        .m(&CLS::SupportsEditing) \
+        .m(&CLS::GetFileExtension) \
+        .m(&CLS::FindAllFileFormatExtensions) \
+        .m(&CLS::FindAllDerivedFileFormatExtensions) \
+        .m(&CLS::FormatSupportsReading) \
+        .m(&CLS::FormatSupportsWriting) \
+        .m(&CLS::FormatSupportsEditing) \
+        .m(&CLS::CanRead) \
+        .m(&CLS::Read) \
+        .m(&CLS::WriteToFile) \
+        .m(&CLS::ReadFromString) \
+        .m(&CLS::WriteToString) \
+
+
+    bbl::Class<PXR_NS::SdfFileFormat>("FileFormat")
+        FILEFORMAT_METHODS(PXR_NS::SdfFileFormat)
+    ;
 
     bbl::Class<PXR_NS::SdfInheritsProxy>("InheritsProxy");
 
@@ -815,7 +904,8 @@ BBL_MODULE(sdf) {
 
     bbl::Class<PXR_NS::SdfPropertySpec>("PropertySpec")
         PROPERTYSPEC_METHODS(PXR_NS::SdfPropertySpec)
-            SPEC_METHODS(PXR_NS::SdfPropertySpec);
+        SPEC_METHODS(PXR_NS::SdfPropertySpec)
+        ;
 
     bbl::Class<PXR_NS::SdfPropertySpecHandle>("PropertySpecHandle")
         HANDLE_METHODS(PXR_NS::SdfPropertySpecHandle)
@@ -833,7 +923,28 @@ BBL_MODULE(sdf) {
 
     bbl::Class<PXR_NS::SdfPropertySpecView>("PropertySpecView");
 
-    bbl::Class<PXR_NS::SdfReference>("Reference");
+    bbl::Class<PXR_NS::SdfReference>("Reference")
+        .m(&PXR_NS::SdfReference::GetAssetPath)
+        .m(&PXR_NS::SdfReference::SetAssetPath)
+        .m(&PXR_NS::SdfReference::GetPrimPath)
+        .m(&PXR_NS::SdfReference::SetPrimPath)
+        .m(&PXR_NS::SdfReference::GetLayerOffset)
+        .m(&PXR_NS::SdfReference::SetLayerOffset)
+        .m(&PXR_NS::SdfReference::GetCustomData)
+        .m((void (PXR_NS::SdfReference::*)(PXR_NS::VtDictionary const&))
+            &PXR_NS::SdfReference::SetCustomData)
+        .m((void (PXR_NS::SdfReference::*)(std::string const& name, PXR_NS::VtValue const&))
+            &PXR_NS::SdfReference::SetCustomData, "SetCustomData_value")
+        .m(&PXR_NS::SdfReference::SwapCustomData)
+        .m(&PXR_NS::SdfReference::IsInternal)
+        .m(&PXR_NS::SdfReference::operator==, "op_eq")
+        .m(&PXR_NS::SdfReference::operator<, "op_lt")
+        ;
+
+    bbl::fn(&bblext::Reference_from_asset_path);
+    bbl::fn(&bblext::Reference_from_asset_path_and_prim_path);
+    bbl::fn(&bblext::Reference_from_asset_path_and_prim_path_and_layer_offset);
+    bbl::fn(&bblext::Reference_from_asset_path_and_prim_path_and_layer_offset_and_custom_data);
 
     bbl::Class<PXR_NS::SdfReferenceEditorProxy>("ReferenceEditorProxy");
 
@@ -960,22 +1071,93 @@ BBL_MODULE(sdf) {
     bbl::Class<PXR_NS::SdfSubLayerProxy>("SubLayerProxy")
     ;
 
+    bbl::Class<PXR_NS::SdfTextFileFormat>("TextFileFormat")
+        FILEFORMAT_METHODS(PXR_NS::SdfTextFileFormat)
+        ;
+
     bbl::Class<PXR_NS::SdfTimeCode>("TimeCode")
         .ctor(bbl::Ctor<PXR_NS::SdfTimeCode, double>(), "from_time")
         .m(&PXR_NS::SdfTimeCode::GetValue);
 
     bbl::Class<PXR_NS::SdfTimeSampleMap>("TimeSampleMap");
 
-    bbl::Class<PXR_NS::SdfValueTypeName>("ValueTypeName").opaque_bytes();
+    bbl::Class<PXR_NS::SdfTupleDimensions>("TupleDimensions")
+        .value_type()
+        .f(&PXR_NS::SdfTupleDimensions::d)
+        .f(&PXR_NS::SdfTupleDimensions::size)
+        ;
+
+    bbl::Class<PXR_NS::SdfValueBlock>("ValueBlock")
+        .ctor(bbl::Ctor<PXR_NS::SdfValueBlock>(), "new")
+    ;
+
+    bbl::Class<PXR_NS::SdfValueTypeName>("ValueTypeName")
+        .ctor(bbl::Ctor<PXR_NS::SdfValueTypeName>(), "new")
+        .m(&PXR_NS::SdfValueTypeName::GetAsToken)
+        .m(&PXR_NS::SdfValueTypeName::GetType)
+        .m(&PXR_NS::SdfValueTypeName::GetRole)
+        .m(&PXR_NS::SdfValueTypeName::GetDefaultValue)
+        .m(&PXR_NS::SdfValueTypeName::GetDefaultUnit)
+        .m(&PXR_NS::SdfValueTypeName::GetScalarType)
+        .m(&PXR_NS::SdfValueTypeName::GetArrayType)
+        .m(&PXR_NS::SdfValueTypeName::IsScalar)
+        .m(&PXR_NS::SdfValueTypeName::IsArray)
+        .m(&PXR_NS::SdfValueTypeName::GetDimensions)
+        .m(&PXR_NS::SdfValueTypeName::GetAliasesAsTokens)
+        ;
+
+    bbl::fn(&bblext::ValueTypeName_GetCPPTypeName);
+
 
     bbl::Class<std::vector<PXR_NS::SdfValueTypeName>>("ValueTypeNameVector")
         BBL_STD_VECTOR_METHODS(PXR_NS::SdfValueTypeName);
 
     bbl::Enum<PXR_NS::SdfVariability>("Variability");
 
+    bbl::Class<PXR_NS::SdfVariableExpression>("VariableExpression")
+        .ctor(bbl::Ctor<PXR_NS::SdfVariableExpression>(), "new")
+        .m(&PXR_NS::SdfVariableExpression::GetErrors)
+        .m(&PXR_NS::SdfVariableExpression::Evaluate)
+        ;
+
+    bbl::Class<PXR_NS::SdfVariableExpression::Result>("VariableExpressionResult");
+
     bbl::Class<PXR_NS::SdfVariantSelectionProxy>("VariantSelectionProxy");
     // bbl::Class<PXR_NS::SdfVariantSetNamesProxy>("VariantSetNamesProxy");
     // bbl::Class<PXR_NS::SdfVariantSetsProxy>("VariantSetsProxy");
+
+    bbl::Class<PXR_NS::SdfVariantSetSpec>("VariantSetSpec")
+        .m(&PXR_NS::SdfVariantSetSpec::GetName)
+        .m(&PXR_NS::SdfVariantSetSpec::GetNameToken)
+        .m(&PXR_NS::SdfVariantSetSpec::GetOwner)
+        .m(&PXR_NS::SdfVariantSetSpec::GetVariants)
+        .m(&PXR_NS::SdfVariantSetSpec::GetVariantList)
+        .m(&PXR_NS::SdfVariantSetSpec::RemoveVariant)
+        SPEC_METHODS(PXR_NS::SdfVariantSetSpec)
+        ;
+
+    bbl::Class<PXR_NS::SdfVariantSetsProxy>("VariantSetsProxy");
+
+    bbl::Class<PXR_NS::SdfVariantSpec>("VariantSpec")
+        .m(&PXR_NS::SdfVariantSpec::GetName)
+        .m(&PXR_NS::SdfVariantSpec::GetNameToken)
+        .m(&PXR_NS::SdfVariantSpec::GetOwner)
+        .m(&PXR_NS::SdfVariantSpec::GetPrimSpec)
+        .m(&PXR_NS::SdfVariantSpec::GetVariantSets)
+        .m(&PXR_NS::SdfVariantSpec::GetVariantNames)
+        SPEC_METHODS(PXR_NS::SdfVariantSpec)
+        ;
+    
+    bbl::Class<PXR_NS::SdfVariantSetSpecHandle>("VariantSetSpecHandle");
+
+    bbl::Class<PXR_NS::SdfVariantSpecHandle>("VariantSpecHandle");
+
+    bbl::Class<PXR_NS::SdfVariantSpecHandleVector>("VariantSpecHandleVector")
+        BBL_STD_VECTOR_METHODS(PXR_NS::SdfVariantSpecHandle)
+        ;
+
+    
+    bbl::Class<PXR_NS::SdfVariantView>("VariantView");
 }
 
 #endif
