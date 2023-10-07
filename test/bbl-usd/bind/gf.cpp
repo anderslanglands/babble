@@ -381,7 +381,6 @@ BBL_MODULE(gf) {
     ;
 
     bbl::Class<PXR_NS::GfInterval>("Interval")
-        .opaque_bytes()
         .ctor(bbl::Ctor<PXR_NS::GfInterval>(), "default")
         .m(&PXR_NS::GfInterval::GetMin)
         .m(&PXR_NS::GfInterval::GetMax)

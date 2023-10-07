@@ -1183,7 +1183,9 @@ static BindKind search_for_bind_kind_calls(clang::Stmt const* stmt,
         if (me->getMemberDecl()->getNameAsString() == "value_type") {
             return BindKind::ValueType;
         } else if (me->getMemberDecl()->getNameAsString() == "opaque_bytes") {
-            return BindKind::OpaqueBytes;
+            // XXX: investigate this more. Getting stack corruption on linux (WSL) even though size and alignment is
+            // correct.
+            return BindKind::OpaquePtr;
         } else if (me->getMemberDecl()->getNameAsString() == "opaque_ptr") {
             return BindKind::OpaquePtr;
         }

@@ -40,6 +40,10 @@
 
 #include <pxr/base/tf/token.h>
 
+struct TimeCode {
+    double time;
+};
+
 // We define modules that just act as a way to group binding declarations
 // together. These would then likely be turned into real modules in languages
 // that support them like Rust or Python
@@ -658,7 +662,6 @@ BBL_MODULE(usd) {
         ;
 
     bbl::Class<PXR_NS::UsdStageCache::Id>("StageCacheId")
-        .opaque_bytes()
         .m(&PXR_NS::UsdStageCache::Id::ToLongInt)
         .m(&PXR_NS::UsdStageCache::Id::ToString)
         .m(&PXR_NS::UsdStageCache::Id::IsValid)
@@ -710,7 +713,7 @@ BBL_MODULE(usd) {
         .m(&PXR_NS::UsdStageWeakPtr::operator->, "get");
 
     bbl::Class<PXR_NS::UsdTimeCode>("TimeCode")
-        .opaque_bytes()
+        .replace_with<TimeCode>()
         .ctor(bbl::Ctor<PXR_NS::UsdTimeCode, double>(), "from_time")
         .ctor(bbl::Ctor<PXR_NS::UsdTimeCode, PXR_NS::SdfTimeCode>(), "from_sdf_timecode")
         .m(&PXR_NS::UsdTimeCode::IsEarliestTime)

@@ -64,8 +64,9 @@ int main(int argc, char** argv) {
         usd_PropertyVector_size(properties, &num_props);
 
         // time code to get attrs at
-        usd_TimeCode_t tc;
-        usd_TimeCode_Default(&tc);
+        usd_TimeCode_t tc = {
+            .time =-1e9
+        };
 
         for (int i = 0; i < num_props; ++i) {
             usd_Property_t const* prop;
@@ -93,6 +94,7 @@ int main(int argc, char** argv) {
                 vt_Value_new(&val);
 
                 bool result = false;
+                printf("align of tc is %lu\n", __alignof__(usd_TimeCode_t));
                 usd_Attribute_Get(attr, val, tc, &result);
 
                 vt_Value_IsHolding_bool(val, &result);
@@ -101,6 +103,9 @@ int main(int argc, char** argv) {
                     vt_Value_Get_bool(val, &v);
 
                     printf(" bool %d\n", v);
+
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
@@ -110,6 +115,8 @@ int main(int argc, char** argv) {
                     vt_Value_Get_int(val, &v);
 
                     printf(" int %d\n", v);
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
@@ -118,6 +125,8 @@ int main(int argc, char** argv) {
                     float v;
                     vt_Value_Get_float(val, &v);
                     printf(" float %f\n", v);
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
@@ -126,6 +135,8 @@ int main(int argc, char** argv) {
                     double v;
                     vt_Value_Get_double(val, &v);
                     printf(" double %f\n", v);
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
@@ -136,6 +147,8 @@ int main(int argc, char** argv) {
                     char const* str;
                     tf_Token_GetText(v, &str);
                     printf(" TfToken \"%s\"\n", str);
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
@@ -150,6 +163,8 @@ int main(int argc, char** argv) {
                     }
 
                     printf(" SdfAssetPath @%s@\n", str);
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
@@ -160,6 +175,8 @@ int main(int argc, char** argv) {
                     char const* str = "";
                     std_String_c_str(stdstr, &str);
                     printf(" string\"%s\"\n", str);
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
@@ -168,6 +185,8 @@ int main(int argc, char** argv) {
                     gf_Vec2d_t v;
                     vt_Value_Get_GfVec2d(val, &v);
                     printf(" GfVec2d (%f, %f)\n", v.x, v.y);
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
@@ -176,6 +195,8 @@ int main(int argc, char** argv) {
                     gf_Vec2f_t v;
                     vt_Value_Get_GfVec2f(val, &v);
                     printf(" GfVec2f (%f, %f)\n", v.x, v.y);
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
@@ -185,6 +206,8 @@ int main(int argc, char** argv) {
                     vt_Value_Get_GfVec2h(val, &v);
                     // printf(" GfVec2h (%f, %f)\n", v.x, v.y);
                     printf(" GfVec2h\n");
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
@@ -193,6 +216,8 @@ int main(int argc, char** argv) {
                     gf_Vec2i_t v;
                     vt_Value_Get_GfVec2i(val, &v);
                     printf(" GfVec2i (%d, %d)\n", v.x, v.y);
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
@@ -201,6 +226,8 @@ int main(int argc, char** argv) {
                     gf_Vec3d_t v;
                     vt_Value_Get_GfVec3d(val, &v);
                     printf(" GfVec3d (%f, %f, %f)\n", v.x, v.y, v.z);
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
@@ -209,12 +236,16 @@ int main(int argc, char** argv) {
                     gf_Vec3f_t v;
                     vt_Value_Get_GfVec3f(val, &v);
                     printf(" GfVec3f (%f, %f, %f)\n", v.x, v.y, v.z);
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
                 vt_Value_IsHolding_GfVec3h(val, &result);
                 if (result) {
                     printf(" GfVec3h\n");
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
@@ -223,6 +254,8 @@ int main(int argc, char** argv) {
                     gf_Vec3i_t v;
                     vt_Value_Get_GfVec3i(val, &v);
                     printf(" GfVec3i (%d, %d, %d)\n", v.x, v.y, v.z);
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
@@ -231,6 +264,8 @@ int main(int argc, char** argv) {
                     gf_Vec4d_t v;
                     vt_Value_Get_GfVec4d(val, &v);
                     printf(" GfVec4d (%f, %f, %f, %f)\n", v.x, v.y, v.z, v.w);
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
@@ -239,12 +274,16 @@ int main(int argc, char** argv) {
                     gf_Vec4f_t v;
                     vt_Value_Get_GfVec4f(val, &v);
                     printf(" GfVec4f (%f, %f, %f, %f)\n", v.x, v.y, v.z, v.w);
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
                 vt_Value_IsHolding_GfVec4h(val, &result);
                 if (result) {
                     printf(" GfVec4h\n");
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
@@ -253,6 +292,8 @@ int main(int argc, char** argv) {
                     gf_Vec4i_t v;
                     vt_Value_Get_GfVec4i(val, &v);
                     printf(" GfVec4i (%d, %d, %d, %d)\n", v.x, v.y, v.z, v.w);
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
@@ -261,12 +302,16 @@ int main(int argc, char** argv) {
                     gf_Quatd_t v;
                     vt_Value_Get_GfQuatd(val, &v);
                     printf(" GfQuatd (%f, %f, %f, %f)\n", v.x, v.y, v.z, v.w);
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
                 vt_Value_IsHolding_GfQuath(val, &result);
                 if (result) {
                     printf(" GfQuath\n");
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
@@ -275,6 +320,8 @@ int main(int argc, char** argv) {
                     gf_Quatf_t v;
                     vt_Value_Get_GfQuatf(val, &v);
                     printf(" GfQuatf (%f, %f, %f, %f)\n", v.x, v.y, v.z, v.w);
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
@@ -283,6 +330,8 @@ int main(int argc, char** argv) {
                     gf_Matrix2d_t v;
                     vt_Value_Get_GfMatrix2d(val, &v);
                     printf(" GfMatrix2d [[%f, %f], [%f, %f]]\n", v.m[0], v.m[1], v.m[2], v.m[3]);
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
@@ -291,6 +340,8 @@ int main(int argc, char** argv) {
                     gf_Matrix2f_t v;
                     vt_Value_Get_GfMatrix2f(val, &v);
                     printf(" GfMatrix2f [[%f, %f], [%f, %f]]\n", v.m[0], v.m[1], v.m[2], v.m[3]);
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
@@ -299,6 +350,8 @@ int main(int argc, char** argv) {
                     gf_Matrix3d_t v;
                     vt_Value_Get_GfMatrix3d(val, &v);
                     printf(" GfMatrix3d [[%f, %f, %f], [%f, %f, %f], [%f, %f, %f]]\n", v.m[0], v.m[1], v.m[2], v.m[3], v.m[4], v.m[5], v.m[6], v.m[7], v.m[8]);
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
@@ -307,6 +360,8 @@ int main(int argc, char** argv) {
                     gf_Matrix3f_t v;
                     vt_Value_Get_GfMatrix3f(val, &v);
                     printf(" GfMatrix3f [[%f, %f, %f], [%f, %f, %f], [%f, %f, %f]]\n", v.m[0], v.m[1], v.m[2], v.m[3], v.m[4], v.m[5], v.m[6], v.m[7], v.m[8]);
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
@@ -315,6 +370,8 @@ int main(int argc, char** argv) {
                     gf_Matrix4d_t v;
                     vt_Value_Get_GfMatrix4d(val, &v);
                     printf(" GfMatrix4d [[%f, %f, %f, %f], [%f, %f, %f, %f], [%f, %f, %f, %f], [%f, %f, %f, %f]]\n", v.m[0], v.m[1], v.m[2], v.m[3], v.m[4], v.m[5], v.m[6], v.m[7], v.m[8], v.m[9], v.m[10], v.m[11], v.m[12], v.m[13], v.m[14], v.m[15]);
+                    vt_Value_dtor(val);
+                    usd_Attribute_dtor(attr);
                     continue;
                 }
 
@@ -323,9 +380,12 @@ int main(int argc, char** argv) {
                     gf_Matrix4f_t v;
                     vt_Value_Get_GfMatrix4f(val, &v);
                     printf(" GfMatrix4f [[%f, %f, %f, %f], [%f, %f, %f, %f], [%f, %f, %f, %f], [%f, %f, %f, %f]]\n", v.m[0], v.m[1], v.m[2], v.m[3], v.m[4], v.m[5], v.m[6], v.m[7], v.m[8], v.m[9], v.m[10], v.m[11], v.m[12], v.m[13], v.m[14], v.m[15]);
+                    usd_Attribute_dtor(attr);
+                    vt_Value_dtor(val);
                     continue;
                 }
 
+                vt_Value_dtor(val);
                 usd_Attribute_dtor(attr);
 
             } else if (is_relationship) {

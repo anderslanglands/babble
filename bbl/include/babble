@@ -136,13 +136,15 @@ public:
     /// This kind should be used with great care as objects that are not
     /// memcpy-safe can easily introduce undefined behaviour when bound this
     /// way.
-    Class opaque_bytes() {
-        static_assert(std::is_copy_constructible<C>::value ||
-                          std::is_move_constructible<C>::value,
-                      "type cannot be bound as opaque_bytes if it is not move- "
-                      "or copy-constructible");
-        return *this;
-    }
+
+    /// XXX: removing this for the moment as it works on Windows but getting stack corruption on WSL
+    // Class opaque_bytes() {
+    //     static_assert(std::is_copy_constructible<C>::value ||
+    //                       std::is_move_constructible<C>::value,
+    //                   "type cannot be bound as opaque_bytes if it is not move- "
+    //                   "or copy-constructible");
+    //     return *this;
+    // }
 
     /// Specify that the class being bound should be bound as value type
     /// bind kind.

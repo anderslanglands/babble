@@ -47,7 +47,7 @@ target_link_libraries(bbl-translate
 
 # LLVM is normally built without RTTI. Be consistent with that.
 if(UNIX AND NOT LLVM_ENABLE_RTTI)
-  target_compile_options(bbl PUBLIC -fno-rtti)
+  target_compile_options(bbl PRIVATE -fno-rtti)
 endif()
 
 install(

@@ -80,8 +80,10 @@ BBL_MODULE(pcp) {
         ;
 
     bbl::Class<PXR_NS::PcpNodeRef>("NodeRef")
-        .opaque_bytes()
         ;
+
+    bbl::Class<PXR_NS::PcpMapExpression>("MapExpression")
+    ;
 
     bbl::Class<PXR_NS::PcpMapFunction::PathMap>("MapFunctionPathMap")
     ;
