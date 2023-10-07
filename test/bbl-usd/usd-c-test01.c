@@ -94,7 +94,6 @@ int main(int argc, char** argv) {
                 vt_Value_new(&val);
 
                 bool result = false;
-                printf("align of tc is %lu\n", __alignof__(usd_TimeCode_t));
                 usd_Attribute_Get(attr, val, tc, &result);
 
                 vt_Value_IsHolding_bool(val, &result);
