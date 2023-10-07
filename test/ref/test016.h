@@ -10,6 +10,8 @@
 #endif
 
 #include <stddef.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,7 +28,7 @@ enum test016_qux::Bar {
 
 /** structs */
 
-struct test016_qux::Foo_t;
+typedef struct test016_qux::Foo_t test016_qux::Foo_t;
 
 
 

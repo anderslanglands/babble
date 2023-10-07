@@ -10,6 +10,8 @@
 #endif
 
 #include <stddef.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,11 +22,11 @@ extern "C" {
 
 /** structs */
 
-struct BBL_ALIGN(4) test0023_qux::Foo_t {
+typedef struct BBL_ALIGN(4) test0023_qux::Foo_t {
     float x;
     float y;
     float z;
-};
+} test0023_qux::Foo_t;
 
 
 

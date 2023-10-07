@@ -953,7 +953,7 @@ std::string format_comment(std::string comment) {
     return fmt::format("/**\n * {}\n */", comment);
 #else
     replace_all(comment, "\n", "\n/// ");
-    return fmt::format("/// {}\n", comment);
+    return fmt::format("/// {}", comment);
 #endif
 }
 

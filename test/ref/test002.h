@@ -10,6 +10,8 @@
 #endif
 
 #include <stddef.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,8 +22,8 @@ extern "C" {
 
 /** structs */
 
-struct test002_FooFloat_t;
-struct test002_FooInt_t;
+typedef struct test002_FooFloat_t test002_FooFloat_t;
+typedef struct test002_FooInt_t test002_FooInt_t;
 
 
 

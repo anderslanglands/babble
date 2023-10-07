@@ -25,6 +25,16 @@ int test0021_Foo_get_int(test0021_Foo_t const* _this, int* _result) {
     return 0;
 }
 
+int test0021_Foo_is_float(test0021_Foo_t const* _this, bool* _result) {
+    *_result = _this->is<float>();
+    return 0;
+}
+
+int test0021_Foo_is_int(test0021_Foo_t const* _this, bool* _result) {
+    *_result = _this->is<int>();
+    return 0;
+}
+
 int test0021_Foo_get_bar_short(test0021_Foo_t const* _this, test0021_BarShort_t* _result) {
     *_result = _this->get<Bar<short>>();
     return 0;

@@ -10,6 +10,8 @@
 #endif
 
 #include <stddef.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,8 +22,8 @@ extern "C" {
 
 /** structs */
 
-struct test_std_vector_StdVectorInt_t;
-struct test_std_vector_StdPairIntFloat_t;
+typedef struct test_std_vector_StdVectorInt_t test_std_vector_StdVectorInt_t;
+typedef struct test_std_vector_StdPairIntFloat_t test_std_vector_StdPairIntFloat_t;
 
 
 

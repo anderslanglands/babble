@@ -10,6 +10,8 @@
 #endif
 
 #include <stddef.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,24 +22,20 @@ extern "C" {
 
 /** structs */
 
-/**
- * A doc comment on the Foo class - brief
- * 
- * More detailed description here
- * ```
- *     example code
- * ```
- * and some more detail
- */
-struct test01_Foo_t;
+/// A doc comment on the Foo class - brief
+/// 
+/// More detailed description here
+/// ```
+///     example code
+/// ```
+/// and some more detail
+typedef struct test01_Foo_t test01_Foo_t;
 
 
 
 /** functions */
 
-/**
- * Comment on the method
- */
+/// Comment on the method
 int test01_Foo_bar(test01_Foo_t* _this, float a, int* _result);
 
 int test01_Foo_dtor(test01_Foo_t* _this);
