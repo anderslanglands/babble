@@ -70,145 +70,140 @@ BBL_MODULE(usd) {
     using ResolverContext = PXR_NS::ArResolverContext;
     using StagePopulationMask = PXR_NS::UsdStagePopulationMask;
 
-    #define PROPERTY_METHODS(CLS) \
-        .m(&CLS::GetPropertyStack) \
-        .m(&CLS::GetPropertyStackWithLayerOffsets) \
-        .m(&CLS::GetBaseName) \
-        .m(&CLS::GetNamespace) \
-        .m(&CLS::SplitName) \
-        .m(&CLS::GetDisplayGroup) \
-        .m(&CLS::SetDisplayGroup) \
-        .m(&CLS::ClearDisplayGroup) \
-        .m(&CLS::HasAuthoredDisplayGroup) \
-        .m(&CLS::GetNestedDisplayGroups) \
-        .m(&CLS::SetNestedDisplayGroups) \
-        .m(&CLS::IsCustom) \
-        .m(&CLS::SetCustom) \
-        .m(&CLS::IsDefined) \
-        .m(&CLS::IsAuthored) \
-        .m(&CLS::IsAuthoredAt) \
-        .m((Property (CLS::*)(Prim const&) const) \
-            &CLS::FlattenTo, "FlattenTo_prim" \
-        ) \
-        .m((Property (CLS::*)(Prim const&, Token const&) const) \
-            &CLS::FlattenTo, "FlattenTo_named_property" \
-        ) \
-        .m((Property (CLS::*)(Property const&) const) \
-            &CLS::FlattenTo, "FlattenTo_property" \
-        ) \
+#define PROPERTY_METHODS(CLS)                                                  \
+    .m(&CLS::GetPropertyStack)                                                 \
+        .m(&CLS::GetPropertyStackWithLayerOffsets)                             \
+        .m(&CLS::GetBaseName)                                                  \
+        .m(&CLS::GetNamespace)                                                 \
+        .m(&CLS::SplitName)                                                    \
+        .m(&CLS::GetDisplayGroup)                                              \
+        .m(&CLS::SetDisplayGroup)                                              \
+        .m(&CLS::ClearDisplayGroup)                                            \
+        .m(&CLS::HasAuthoredDisplayGroup)                                      \
+        .m(&CLS::GetNestedDisplayGroups)                                       \
+        .m(&CLS::SetNestedDisplayGroups)                                       \
+        .m(&CLS::IsCustom)                                                     \
+        .m(&CLS::SetCustom)                                                    \
+        .m(&CLS::IsDefined)                                                    \
+        .m(&CLS::IsAuthored)                                                   \
+        .m(&CLS::IsAuthoredAt)                                                 \
+        .m((PXR_NS::UsdProperty (CLS::*)(PXR_NS::UsdPrim const&) const) & CLS::FlattenTo,  \
+           "FlattenTo_prim")                                                   \
+        .m((PXR_NS::UsdProperty(CLS::*)(PXR_NS::UsdPrim const&, PXR_NS::TfToken const&) const) &    \
+               CLS::FlattenTo,                                                 \
+           "FlattenTo_named_property")                                         \
+        .m((PXR_NS::UsdProperty(CLS::*)(PXR_NS::UsdProperty const&) const) & CLS::FlattenTo,         \
+           "FlattenTo_property")
 
-    #define OBJECT_METHODS(CLS) \
-        .m((bool (CLS::*)(Token const&, Value*) const) \
-            &CLS::GetMetadata, "GetMetadata_value" \
-        ) \
-        .m((bool (CLS::*)(Token const&, Value const&) const) \
-            &CLS::SetMetadata, "SetMetadata_value" \
-        ) \
-        .m(&CLS::ClearMetadata) \
-        .m(&CLS::HasMetadata) \
-        .m(&CLS::HasAuthoredMetadata) \
-        .m((bool (CLS::*)(Token const&, Token const&, Value*) const) \
-            &CLS::GetMetadataByDictKey, "GetMetadataByDictKey_value" \
-        ) \
-        .m((bool (CLS::*)(Token const&, Token const&, Value const&) const) \
-            &CLS::SetMetadataByDictKey, "SetMetadataByDictKey_value" \
-        ) \
-        .m(&CLS::ClearMetadataByDictKey) \
-        .m(&CLS::HasMetadataDictKey) \
-        .m(&CLS::HasAuthoredMetadataDictKey) \
-        .m(&CLS::GetAllMetadata) \
-        .m(&CLS::GetAllAuthoredMetadata) \
-        .m(&CLS::IsHidden) \
-        .m(&CLS::SetHidden) \
-        .m(&CLS::ClearHidden) \
-        .m(&CLS::HasAuthoredHidden) \
-        .m(&CLS::GetCustomData) \
-        .m(&CLS::GetCustomDataByKey) \
-        .m(&CLS::SetCustomData) \
-        .m(&CLS::SetCustomDataByKey) \
-        .m(&CLS::ClearCustomData) \
-        .m(&CLS::ClearCustomDataByKey) \
-        .m(&CLS::HasCustomData) \
-        .m(&CLS::HasCustomDataKey) \
-        .m(&CLS::HasAuthoredCustomData) \
-        .m(&CLS::HasAuthoredCustomDataKey) \
-        .m(&CLS::GetAssetInfo) \
-        .m(&CLS::GetAssetInfoByKey) \
-        .m(&CLS::SetAssetInfo) \
-        .m(&CLS::SetAssetInfoByKey) \
-        .m(&CLS::ClearAssetInfo) \
-        .m(&CLS::ClearAssetInfoByKey) \
-        .m(&CLS::HasAssetInfo) \
-        .m(&CLS::HasAssetInfoKey) \
-        .m(&CLS::HasAuthoredAssetInfo) \
-        .m(&CLS::HasAuthoredAssetInfoKey) \
-        .m(&CLS::GetDocumentation) \
-        .m(&CLS::SetDocumentation) \
-        .m(&CLS::ClearDocumentation) \
-        .m(&CLS::HasAuthoredDocumentation) \
-        .m(&CLS::GetDisplayName) \
-        .m(&CLS::SetDisplayName) \
-        .m(&CLS::ClearDisplayName) \
-        .m(&CLS::HasAuthoredDisplayName) \
-        .m(&CLS::IsValid) \
-        .m(&CLS::GetStage) \
-        .m(&CLS::GetPath) \
-        .m(&CLS::GetPrimPath) \
-        .m(&CLS::GetPrim) \
-        .m(&CLS::GetName) \
-        .m(&CLS::GetNamespaceDelimiter) \
-        .m(&CLS::GetDescription) \
+#define OBJECT_METHODS(CLS)                                                    \
+    .m((bool(CLS::*)(PXR_NS::TfToken const&, PXR_NS::VtValue*) const) & CLS::GetMetadata,          \
+       "GetMetadata_value")                                                    \
+        .m((bool(CLS::*)(PXR_NS::TfToken const&, PXR_NS::VtValue const&) const) &                  \
+               CLS::SetMetadata,                                               \
+           "SetMetadata_value")                                                \
+        .m(&CLS::ClearMetadata)                                                \
+        .m(&CLS::HasMetadata)                                                  \
+        .m(&CLS::HasAuthoredMetadata)                                          \
+        .m((bool(CLS::*)(PXR_NS::TfToken const&, PXR_NS::TfToken const&, PXR_NS::VtValue*) const) &          \
+               CLS::GetMetadataByDictKey,                                      \
+           "GetMetadataByDictKey_value")                                       \
+        .m((bool(CLS::*)(PXR_NS::TfToken const&, PXR_NS::TfToken const&, PXR_NS::VtValue const&) const) &    \
+               CLS::SetMetadataByDictKey,                                      \
+           "SetMetadataByDictKey_value")                                       \
+        .m(&CLS::ClearMetadataByDictKey)                                       \
+        .m(&CLS::HasMetadataDictKey)                                           \
+        .m(&CLS::HasAuthoredMetadataDictKey)                                   \
+        .m(&CLS::GetAllMetadata)                                               \
+        .m(&CLS::GetAllAuthoredMetadata)                                       \
+        .m(&CLS::IsHidden)                                                     \
+        .m(&CLS::SetHidden)                                                    \
+        .m(&CLS::ClearHidden)                                                  \
+        .m(&CLS::HasAuthoredHidden)                                            \
+        .m(&CLS::GetCustomData)                                                \
+        .m(&CLS::GetCustomDataByKey)                                           \
+        .m(&CLS::SetCustomData)                                                \
+        .m(&CLS::SetCustomDataByKey)                                           \
+        .m(&CLS::ClearCustomData)                                              \
+        .m(&CLS::ClearCustomDataByKey)                                         \
+        .m(&CLS::HasCustomData)                                                \
+        .m(&CLS::HasCustomDataKey)                                             \
+        .m(&CLS::HasAuthoredCustomData)                                        \
+        .m(&CLS::HasAuthoredCustomDataKey)                                     \
+        .m(&CLS::GetAssetInfo)                                                 \
+        .m(&CLS::GetAssetInfoByKey)                                            \
+        .m(&CLS::SetAssetInfo)                                                 \
+        .m(&CLS::SetAssetInfoByKey)                                            \
+        .m(&CLS::ClearAssetInfo)                                               \
+        .m(&CLS::ClearAssetInfoByKey)                                          \
+        .m(&CLS::HasAssetInfo)                                                 \
+        .m(&CLS::HasAssetInfoKey)                                              \
+        .m(&CLS::HasAuthoredAssetInfo)                                         \
+        .m(&CLS::HasAuthoredAssetInfoKey)                                      \
+        .m(&CLS::GetDocumentation)                                             \
+        .m(&CLS::SetDocumentation)                                             \
+        .m(&CLS::ClearDocumentation)                                           \
+        .m(&CLS::HasAuthoredDocumentation)                                     \
+        .m(&CLS::GetDisplayName)                                               \
+        .m(&CLS::SetDisplayName)                                               \
+        .m(&CLS::ClearDisplayName)                                             \
+        .m(&CLS::HasAuthoredDisplayName)                                       \
+        .m(&CLS::IsValid)                                                      \
+        .m(&CLS::GetStage)                                                     \
+        .m(&CLS::GetPath)                                                      \
+        .m(&CLS::GetPrimPath)                                                  \
+        .m(&CLS::GetPrim)                                                      \
+        .m(&CLS::GetName)                                                      \
+        .m(&CLS::GetNamespaceDelimiter)                                        \
+        .m(&CLS::GetDescription)
 
+#define ATTRIBUTE_METHODS(CLS)                                                 \
+    .m(&CLS::GetVariability)                                                   \
+        .m(&CLS::SetVariability)                                               \
+        .m(&CLS::GetTypeName)                                                  \
+        .m(&CLS::SetTypeName)                                                  \
+        .m(&CLS::GetRoleName)                                                  \
+        .m(&CLS::AddConnection)                                                \
+        .m(&CLS::RemoveConnection)                                             \
+        .m(&CLS::SetConnections)                                               \
+        .m(&CLS::ClearConnections)                                             \
+        .m(&CLS::GetConnections)                                               \
+        .m(&CLS::HasAuthoredConnections)                                       \
+        .m(&CLS::GetColorSpace)                                                \
+        .m(&CLS::SetColorSpace)                                                \
+        .m(&CLS::HasColorSpace)                                                \
+        .m(&CLS::ClearColorSpace)                                              \
+        .m(&CLS::GetTimeSamples)                                               \
+        .m(&CLS::GetTimeSamplesInInterval)                                     \
+        .m(&CLS::GetNumTimeSamples)                                            \
+        .m(&CLS::GetBracketingTimeSamples)                                     \
+        .m(&CLS::HasValue)                                                     \
+        .m(&CLS::HasAuthoredValueOpinion)                                      \
+        .m(&CLS::HasAuthoredValue)                                             \
+        .m(&CLS::HasFallbackValue)                                             \
+        .m(&CLS::ValueMightBeTimeVarying)                                      \
+        .m((bool(PXR_NS::UsdAttribute::*)(PXR_NS::VtValue*,                    \
+                                          PXR_NS::UsdTimeCode) const) &        \
+           PXR_NS::UsdAttribute::Get)                                          \
+        .m((PXR_NS::UsdResolveInfo(PXR_NS::UsdAttribute::*)(                   \
+               PXR_NS::UsdTimeCode) const) &                                   \
+               PXR_NS::UsdAttribute::GetResolveInfo,                           \
+           "GetResolveInfo_at_time")                                           \
+        .m((PXR_NS::UsdResolveInfo(PXR_NS::UsdAttribute::*)() const) &         \
+           PXR_NS::UsdAttribute::GetResolveInfo)                               \
+        .m((bool(PXR_NS::UsdAttribute::*)(PXR_NS::VtValue const&,              \
+                                          PXR_NS::UsdTimeCode) const) &        \
+           PXR_NS::UsdAttribute::Set)                                          \
+        .m(&CLS::Clear)                                                        \
+        .m(&CLS::ClearAtTime)                                                  \
+        .m(&CLS::ClearDefault)                                                 \
+        .m(&CLS::Block)                                                        \
+        .m(&CLS::GetUnionedTimeSamples)                                        \
+        .m(&CLS::GetUnionedTimeSamplesInInterval)
 
     bbl::Class<PXR_NS::UsdAttribute>("Attribute")
-        .opaque_ptr()
         .ctor(bbl::Ctor<Attribute>(), "default")
-        // Core Metadata
-        .m(&Attribute::GetVariability)
-        .m(&Attribute::SetVariability)
-        .m(&Attribute::GetTypeName)
-        .m(&Attribute::SetTypeName)
-        .m(&Attribute::GetRoleName)
 
-        // Querying and Editing Connections
-        .m(&Attribute::AddConnection)
-        .m(&Attribute::RemoveConnection)
-        .m(&Attribute::SetConnections)
-        .m(&Attribute::ClearConnections)
-        .m(&Attribute::GetConnections)
-        .m(&Attribute::HasAuthoredConnections)
-
-        // Colorspace API
-        .m(&Attribute::GetColorSpace)
-        .m(&Attribute::SetColorSpace)
-        .m(&Attribute::HasColorSpace)
-        .m(&Attribute::ClearColorSpace)
-
-        // Value & Time-Sample Accessors
-        .m(&Attribute::GetTimeSamples)
-        .m(&Attribute::GetTimeSamplesInInterval)
-        .m(&Attribute::GetNumTimeSamples)
-        .m(&Attribute::GetBracketingTimeSamples)
-        .m(&Attribute::HasValue)
-        .m(&Attribute::HasAuthoredValueOpinion)
-        .m(&Attribute::HasAuthoredValue)
-        .m(&Attribute::HasFallbackValue)
-        .m(&Attribute::ValueMightBeTimeVarying)
-        .m((bool (Attribute::*)(PXR_NS::VtValue*, PXR_NS::UsdTimeCode) const)
-            &Attribute::Get)
-        .m((PXR_NS::UsdResolveInfo (Attribute::*)(PXR_NS::UsdTimeCode) const)
-            &Attribute::GetResolveInfo, "GetResolveInfo_at_time")
-        .m((PXR_NS::UsdResolveInfo (Attribute::*)() const)
-            &Attribute::GetResolveInfo)
-        .m((bool (Attribute::*)(PXR_NS::VtValue const&, PXR_NS::UsdTimeCode) const)
-            &Attribute::Set)
-        .m(&Attribute::Clear)
-        .m(&Attribute::ClearAtTime)
-        .m(&Attribute::ClearDefault)
-        .m(&Attribute::Block)
-        .m(&Attribute::GetUnionedTimeSamples)
-        .m(&Attribute::GetUnionedTimeSamplesInInterval)
-
+        ATTRIBUTE_METHODS(Attribute)
         PROPERTY_METHODS(Attribute)
         OBJECT_METHODS(Attribute)
     ;
@@ -725,6 +720,10 @@ BBL_MODULE(usd) {
         .m(&PXR_NS::UsdTimeCode::EarliestTime)
         .m(&PXR_NS::UsdTimeCode::Default)
         .m(&PXR_NS::UsdTimeCode::SafeStep)
+        ;
+
+    bbl::Class<std::vector<PXR_NS::UsdTimeCode>>("TimeCodeVector")
+        BBL_STD_VECTOR_METHODS(PXR_NS::UsdTimeCode)
         ;
 
     // bbl::fn((bool (*)(PXR_NS::UsdTimeCode const&, PXR_NS::UsdTimeCode const&))&PXR_NS::operator==, "TimeCode_op_eq")

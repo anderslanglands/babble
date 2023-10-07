@@ -2,17 +2,6 @@
 
 #include "babble"
 
-namespace bbl {
-namespace detail {
-
-template <typename T> struct argument_type;
-template <typename T, typename U> struct argument_type<T(U)> {
-    typedef U type;
-};
-
-} // namespace detail
-} // namespace bbl
-
 // Bind std::vector<TY>
 #define BBL_STD_VECTOR_METHODS(TY)                                                                                                          \
     .ctor(bbl::Ctor<std::vector<bbl::detail::argument_type<void(TY)>::type>>(), "default")                                                  \

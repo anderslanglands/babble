@@ -978,7 +978,8 @@ auto Context::extract_inclusions(std::string const& source_file)
         std::smatch matches;
         if (std::regex_search(line, matches, re_inclusion)) {
             assert(matches.size() == 3);
-            if (matches[2] != "babble" && matches[2] != "babble-std") {
+            // XXX: This is probably brittle...
+            if (matches[2].str().find("babble") == std::string::npos) {
                 result.emplace_back(Inclusion{
                     matches[0],
                     matches[2],

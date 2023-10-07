@@ -10,9 +10,10 @@ set(bindfiles
     bind/sdf.cpp 
     bind/std.cpp
     bind/tf.cpp 
-    bind/usd/usd.cpp 
-    bind/usd/schema.cpp 
+    bind/usd/geom.cpp 
     bind/usd/prim.cpp 
+    bind/usd/schema.cpp 
+    bind/usd/usd.cpp 
     bind/vt.cpp 
 )
 
@@ -22,7 +23,7 @@ set(HEADER usd-c.h)
 
 # Create the C API library
 add_library(usd-c STATIC ${SOURCE})
-target_link_libraries(usd-c PUBLIC usd sdf js)
+target_link_libraries(usd-c PUBLIC usd sdf js usdGeom)
 target_compile_definitions(usd-c PRIVATE NOMINMAX BOOST_ALL_NO_LIB __TBB_show_deprecation_message_task_H)
 
 function(BBL_TRANSLATE_BINDING TARGET_NAME)

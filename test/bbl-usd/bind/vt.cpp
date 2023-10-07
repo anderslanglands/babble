@@ -2,6 +2,7 @@
 
 #include "babble"
 #include "babble-std"
+#include "babble-vt"
 
 #include <pxr/base/vt/dictionary.h>
 #include <pxr/base/vt/value.h>
@@ -281,6 +282,23 @@ BBL_MODULE(vt) {
         ;
 
     bbl::Class<PXR_NS::VtTokenArray>("TokenArray")
+        VTARRAY_METHODS(PXR_NS::TfToken)
+        ;
+
+    bbl::Class<PXR_NS::VtBoolArray>("BoolArray")
+        VTARRAY_METHODS(bool)
+        ;
+
+    bbl::Class<PXR_NS::VtIntArray>("IntArray")
+        VTARRAY_METHODS(int)
+        ;
+
+    bbl::Class<PXR_NS::VtFloatArray>("FloatArray")
+        VTARRAY_METHODS(float)
+        ;
+
+    bbl::Class<PXR_NS::VtDoubleArray>("DoubleArray")
+        VTARRAY_METHODS(double)
         ;
 
     bbl::Class<PXR_NS::VtDictionary>("Dictionary")
