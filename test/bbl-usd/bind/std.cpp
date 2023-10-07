@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <string>
+#include <set>
 
 BBL_MODULE(std) {
 
@@ -17,9 +18,12 @@ BBL_MODULE(std) {
     bbl::Class<std::vector<std::string>>("StringVector")
         BBL_STD_VECTOR_METHODS(std::string);
 
+    bbl::Class<std::set<std::string>>("StringSet");
+
     bbl::Class<std::vector<double>>("DoubleVector")
         BBL_STD_VECTOR_METHODS(double);
 
+    bbl::Class<std::set<double>>("DoubleSet");
     
 }
 

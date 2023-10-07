@@ -35,6 +35,7 @@ bbl_result_t bbl_capi_create(bbl_context_t cpp_context, bbl_capi_t* capi) {
         *capi = new bbl::C_API(*cpp_context);
         return BBL_RESULT_Success;
     } catch (std::exception& e) {
+        SPDLOG_ERROR("{}", e.what());
         *capi = nullptr;
         return BBL_RESULT_UnknownError;
     }

@@ -5,6 +5,8 @@
 
 #include <pxr/base/vt/dictionary.h>
 #include <pxr/base/vt/value.h>
+#include <pxr/base/vt/array.h>
+#include <pxr/base/vt/types.h>
 
 #include <pxr/base/gf/vec2f.h>
 #include <pxr/base/gf/vec3f.h>
@@ -276,6 +278,9 @@ BBL_MODULE(vt) {
             &Value::Get<PXR_NS::GfMatrix4f>, "Get_GfMatrix4f"
         ) 
 
+        ;
+
+    bbl::Class<PXR_NS::VtTokenArray>("TokenArray")
         ;
 
     bbl::Class<PXR_NS::VtDictionary>("Dictionary")

@@ -3,6 +3,7 @@
 #include "bbl_detail.h"
 #include "bblfmt.hpp"
 #include "clang/Basic/SourceLocation.h"
+#include "clang/Basic/SourceManager.h"
 
 #include <clang/AST/ASTContext.h>
 #include <clang/AST/ASTTypeTraits.h>
@@ -1310,38 +1311,44 @@ static auto extract_class_from_construct_expr(
         }
 
     } else {
-        Class cls = bbl_ctx->extract_class_binding(
-            type_record_decl, class_spelling, rename_str, comment, layout,
-            bind_kind,
-            RuleOfSeven{
-                is_copy_constructible,
-                is_nothrow_copy_constructible,
-                is_move_constructible,
-                is_nothrow_move_constructible,
-                is_copy_assignable,
-                is_nothrow_copy_assignable,
-                is_move_assignable,
-                is_nothrow_move_assignable,
-                is_destructible,
-                has_virtual_destructor,
-            },
-            is_abstract, mangle_context);
+        try {
+            Class cls = bbl_ctx->extract_class_binding(
+                type_record_decl, class_spelling, rename_str, comment, layout,
+                bind_kind,
+                RuleOfSeven{
+                    is_copy_constructible,
+                    is_nothrow_copy_constructible,
+                    is_move_constructible,
+                    is_nothrow_move_constructible,
+                    is_copy_assignable,
+                    is_nothrow_copy_assignable,
+                    is_move_assignable,
+                    is_nothrow_move_assignable,
+                    is_destructible,
+                    has_virtual_destructor,
+                },
+                is_abstract, mangle_context);
 
-        std::string id = get_mangled_name(type_record_decl, mangle_context);
+            std::string id = get_mangled_name(type_record_decl, mangle_context);
 
-        std::string mod_id;
-        if (!find_containing_module(construct_expr, ast_context, mangle_context,
-                                    mod_id)) {
-            BBL_THROW("could not find containing module for {}",
-                      get_source_text(construct_expr->getSourceRange(),
-                                      ast_context->getSourceManager()));
+            std::string mod_id;
+            if (!find_containing_module(construct_expr, ast_context,
+                                        mangle_context, mod_id)) {
+                BBL_THROW("could not find containing module for {}",
+                          get_source_text(construct_expr->getSourceRange(),
+                                          ast_context->getSourceManager()));
+            }
+            bbl_ctx->insert_class_binding(mod_id, id, std::move(cls));
+        } catch (std::runtime_error& e) {
+            BBL_RETHROW(e, "failed to extract class binding from\n{}",
+                        get_source_and_location(construct_expr, sm));
         }
-        bbl_ctx->insert_class_binding(mod_id, id, std::move(cls));
     }
 }
 
 static clang::EnumDecl const*
-get_enum_to_extract_from_construct_expr(clang::CXXConstructExpr const* cce) {
+get_enum_to_extract_from_construct_expr(clang::CXXConstructExpr const* cce,
+                                        clang::SourceManager const& sm) {
     clang::CXXConstructorDecl* ctor_decl = cce->getConstructor();
     if (!ctor_decl) {
         BBL_THROW("could not get constructor decl from construct expr");
@@ -1400,7 +1407,8 @@ get_enum_to_extract_from_construct_expr(clang::CXXConstructExpr const* cce) {
     // which will give us the Decl for the record, i.e. the thing we
     // actually want to extract
     if (!type->isEnumeralType()) {
-        BBL_THROW("tried to bind type \"{}\" as an Enum", qt.getAsString());
+        BBL_THROW("tried to bind type \"{}\" as an Enum at\n{}",
+                  qt.getAsString(), get_source_and_location(cce, sm));
     }
 
     clang::EnumDecl const* enum_decl =
@@ -1419,7 +1427,7 @@ static auto extract_enum_from_construct_expr(
     // Find the class decl that we're binding from the bbl::Class<Foo>()
     // constructor
     clang::EnumDecl const* enum_decl =
-        get_enum_to_extract_from_construct_expr(construct_expr);
+        get_enum_to_extract_from_construct_expr(construct_expr, sm);
 
     // Get the source range of the type part of the ctor expr
     // for bbl::Class<Foo<float>>("FooFloat") this will be
@@ -1541,9 +1549,9 @@ static auto extract_method_from_decl_ref_expr(
     if (cmd->isFunctionTemplateSpecialization()) {
         std::string dre_text = get_source_text(dre->getSourceRange(), sm);
         // XXX: need to figure this out
-        // std::string spell_text = get_spelling_text(dre->getSourceRange(), sm);
-        // SPDLOG_INFO("source: {}", dre_text);
-        // SPDLOG_INFO("spell: {}", spell_text);
+        // std::string spell_text = get_spelling_text(dre->getSourceRange(),
+        // sm); SPDLOG_INFO("source: {}", dre_text); SPDLOG_INFO("spell: {}",
+        // spell_text);
         if (dre_text.back() == '>') {
             // this is a templated call, loop back through the string
             // and find the opening angle bracket
@@ -1598,12 +1606,20 @@ static auto extract_method_from_decl_ref_expr(
     std::string parent_id = get_mangled_name(crd_parent, mangle_context);
     if (target_class_id != parent_id &&
         !crd_target->isDerivedFrom(crd_parent)) {
+
+        std::string source_text = get_spelling_text(dre->getSourceRange(), sm);
+        int line = sm.getExpansionLineNumber(dre->getSourceRange().getBegin());
+        int col = sm.getExpansionColumnNumber(dre->getSourceRange().getBegin());
+        std::string filename =
+            sm.getFilename(dre->getSourceRange().getBegin()).str();
+
         BBL_THROW("method {} is bound to class {} but {} is "
-                  "not derived from {}",
+                  "not derived from {} while extracting:\n{}\n at {}:{}:{}",
                   cmd->getQualifiedNameAsString(),
                   crd_target->getQualifiedNameAsString(),
                   crd_target->getQualifiedNameAsString(),
-                  crd_parent->getQualifiedNameAsString());
+                  crd_parent->getQualifiedNameAsString(), source_text, filename,
+                  line, col);
     }
 
     bbl::Class* cls = bbl_ctx->get_class(target_class_id);

@@ -50,6 +50,9 @@ std::string get_source_text(clang::SourceRange range,
 
 std::string get_spelling_text(clang::SourceRange range,
                               const clang::SourceManager& sm);
+
+std::string get_source_and_location(clang::Stmt const* stmt, clang::SourceManager const& sm);
+
 namespace clang {
 class MangleContext;
 }
@@ -353,3 +356,4 @@ inline auto get_comment_from_decl(clang::Decl const* decl,
 
     return result;
 }
+

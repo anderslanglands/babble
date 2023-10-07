@@ -12,6 +12,8 @@
 #pragma warning(pop)
 #endif
 
+#include <spdlog/fmt/fmt.h>
+
 using llvm::dyn_cast;
 
 std::string get_source_text_raw(clang::SourceRange range,
@@ -33,6 +35,15 @@ std::string get_source_text(clang::SourceRange range,
     auto end_loc = clang::Lexer::getLocForEndOfToken(last_token_loc, 0, sm, lo);
     auto printable_range = clang::SourceRange{start_loc, end_loc};
     return get_source_text_raw(printable_range, sm);
+}
+
+std::string get_source_and_location(clang::Stmt const* stmt, clang::SourceManager const& sm) {
+        std::string filename = sm.getFilename(stmt->getSourceRange().getBegin()).str();
+        std::string source_text = get_spelling_text(stmt->getSourceRange(), sm);
+        int line = sm.getExpansionLineNumber(stmt->getSourceRange().getBegin());
+        int col = sm.getExpansionColumnNumber(stmt->getSourceRange().getBegin());
+
+        return fmt::format("{} - {}:{}\n{}", filename, line, col, source_text);
 }
 
 std::string get_spelling_text(clang::SourceRange range,

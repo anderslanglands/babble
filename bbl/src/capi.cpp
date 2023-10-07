@@ -125,7 +125,8 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
             // XXX: what do we do about other kinds? if it's safe to bind a type
             // as opaque bytes or value type then it should be safe to just let
             // them fall off the stack too...
-            if (cpp_cls->bind_kind == BindKind::OpaquePtr) {
+            if (cpp_cls->bind_kind == BindKind::OpaquePtr &&
+                cpp_cls->rule_of_seven.is_destructible) {
                 C_Function c_dtor =
                     _generate_destructor(struct_namespace, cpp_class_id);
                 std::string dtor_id = cpp_class_id + "_dtor";
@@ -192,16 +193,14 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
             }
         }
 
-        _modules.emplace_back(C_Module{
-            cpp_id,
-            cpp_mod.name,
-            mod_inclusions,
-            std::move(mod_structs),
-            std::move(mod_functions),
-            {}, // stdfunctions
-            std::move(mod_enums),
-            cpp_mod.function_impls
-        });
+        _modules.emplace_back(C_Module{cpp_id,
+                                       cpp_mod.name,
+                                       mod_inclusions,
+                                       std::move(mod_structs),
+                                       std::move(mod_functions),
+                                       {}, // stdfunctions
+                                       std::move(mod_enums),
+                                       cpp_mod.function_impls});
     }
 
     // translate all std functions
@@ -838,12 +837,7 @@ auto C_API::_generate_destructor(std::string const& function_prefix,
     body.emplace_back(ExprReturn::create(ExprToken::create("0")));
 
     return C_Function{
-        Generated{},
-        function_name,
-        "",
-        {},
-        {},
-        std::vector{this_param},
+        Generated{},     function_name, "", {}, {}, std::vector{this_param},
         std::move(body),
     };
 }
@@ -954,8 +948,13 @@ void replace_all(std::string& str, std::string const& from,
 }
 
 std::string format_comment(std::string comment) {
+#if 0
     replace_all(comment, "\n", "\n * ");
     return fmt::format("/**\n * {}\n */", comment);
+#else
+    replace_all(comment, "\n", "\n/// ");
+    return fmt::format("/// {}\n", comment);
+#endif
 }
 
 std::string C_API::get_header() const {
@@ -969,6 +968,7 @@ std::string C_API::get_header() const {
 #endif
 
 #include <stddef.h>
+#include <stdint.h>
 #include <stdbool.h>
 
 #ifdef __cplusplus
@@ -1003,7 +1003,8 @@ extern "C" {
         }
 
         if (c_struct.cls.bind_kind == BindKind::OpaquePtr) {
-            result = fmt::format("{0}typedef struct {1} {1};\n", result, c_struct.name);
+            result = fmt::format("{0}typedef struct {1} {1};\n", result,
+                                 c_struct.name);
         } else if (c_struct.cls.bind_kind == BindKind::OpaqueBytes) {
             result =
                 fmt::format("{}typedef struct BBL_ALIGN({}) {} {{\n", result,
@@ -1126,8 +1127,8 @@ std::string C_API::get_source() const {
 
     // next do functon impls
     bool did_any_impl = false;
-    for (auto const& mod: _modules) {
-        for (std::string const& impl: mod.function_impls) {
+    for (auto const& mod : _modules) {
+        for (std::string const& impl : mod.function_impls) {
             result = fmt::format("{}{}\n", result, impl);
             did_any_impl = true;
         }
