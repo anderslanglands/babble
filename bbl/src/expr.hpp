@@ -100,6 +100,20 @@ struct ExprCall : public Expr {
     }
 };
 
+struct ExprParen : public Expr {
+    ExprPtr inner;
+
+    ExprParen(ExprPtr&& inner) : inner(std::move(inner)) {}
+
+    static ExprPtr create(ExprPtr&& inner) {
+        return ExprPtr(new ExprParen(std::move(inner)));
+    }
+
+    virtual std::string to_string(int depth) const override {
+        return iformat(depth, "({})", inner->to_string(0));
+    }
+};
+
 struct ExprDeref : public Expr {
     ExprPtr pointer;
 

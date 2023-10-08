@@ -1,4 +1,3 @@
-#include <pxr/base/tf/enum.h>
 #if defined(__clang__)
 
 #include "babble"
@@ -6,6 +5,7 @@
 
 #include <pxr/base/tf/token.h>
 #include <pxr/base/tf/type.h>
+#include <pxr/base/tf/enum.h>
 
 using Token = PXR_NS::TfToken;
 

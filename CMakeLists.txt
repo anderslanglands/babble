@@ -40,3 +40,5 @@ if(${BUILD_USD_EXAMPLE})
         message(SEND_ERROR, "Option BUILD_USD_EXAMPLE is enabled, but package pxr was not found. Skipping USD example.")
     endif()
 endif()
+
+add_subdirectory(test/smartptr)

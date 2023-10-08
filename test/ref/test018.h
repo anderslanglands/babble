@@ -22,10 +22,7 @@ extern "C" {
 
 /** structs */
 
-typedef struct BBL_ALIGN(4) test018_qux::Foo_t {
-    char _bbl_opaque[8];
-} test018_qux::Foo_t;
-
+typedef struct test018_qux::Foo_t test018_qux::Foo_t;
 
 
 
@@ -33,7 +30,9 @@ typedef struct BBL_ALIGN(4) test018_qux::Foo_t {
 
 int test018_qux::Foo_do_foo(test018_qux::Foo_t const* _this, bool(*)(test018_qux::Foo_t const*)* fun);
 
-int test018_qux::Foo_ctor(int a, float b, test018_qux::Foo_t* _result);
+int test018_qux::Foo_ctor(int a, float b, test018_qux::Foo_t** _result);
+
+int test018_qux::Foo_dtor(test018_qux::Foo_t* _this);
 
 
 

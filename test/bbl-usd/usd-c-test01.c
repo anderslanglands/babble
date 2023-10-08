@@ -9,23 +9,19 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    std_String_t* str_path = NULL;
-    std_String_from_char_ptr(argv[1], &str_path);
-
     usd_StageRefPtr_t* stage_ref = NULL;
     usd_StageRefPtr_ctor(&stage_ref);
-    usd_Stage_Open(str_path, usd_StageInitialLoadSet_LoadAll, stage_ref);
+    usd_Stage_Open(argv[1], usd_StageInitialLoadSet_LoadAll, stage_ref);
 
-    // Note: make sure stage_ref outlives any use of stage
-    usd_Stage_t* stage = NULL;
-    usd_StageRefPtr_get(stage_ref, &stage);
-    if (stage == NULL) {
-        printf("error: could not open stage\n");
+    bool is_invalid = false;
+    usd_StageRefPtr_is_invalid(stage_ref, &is_invalid);
+    if (is_invalid) {
+        printf("failed to open stage \"%s\"\n", argv[1]);
     }
 
     usd_Prim_t* pseudo_root;
     usd_Prim_new(&pseudo_root);
-    usd_Stage_GetPseudoRoot(stage, pseudo_root);
+    usd_StageRefPtr_GetPseudoRoot(stage_ref, pseudo_root);
 
     // Constructing a prim range and its iterators is a bit of a long-winded dance
     usd_PrimRange_t* prim_range;
@@ -48,12 +44,14 @@ int main(int argc, char** argv) {
     while (!done) {
         usd_PrimRangeIterator_deref(current, prim);
 
-        // print out the prim's name
-        tf_Token_t const* tok_name;
-        usd_Prim_GetName(prim, &tok_name);
-        char const* name_str = NULL;
-        tf_Token_GetText(tok_name, &name_str);
-        printf("%s\n", name_str);
+        // print out the prim's path
+        sdf_Path_t* path;
+        sdf_Path_new(&path);
+        usd_Prim_GetPath(prim, path);
+        char const* str_path = "";
+        sdf_Path_GetText(path, &str_path);
+        printf("%s\n", str_path);
+        sdf_Path_dtor(path);
 
         // Get all the properties and print out their names
         usd_PropertyVector_t* properties;
@@ -438,7 +436,6 @@ int main(int argc, char** argv) {
     usd_Prim_dtor(pseudo_root);
 
     usd_StageRefPtr_dtor(stage_ref);
-    std_String_dtor(str_path);
 
     return 0;
 }

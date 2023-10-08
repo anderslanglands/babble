@@ -21,9 +21,6 @@ static_assert(sizeof(test017_qux::Vec3f_t_bbl_size_check) == sizeof(qux::Vec3f),
 static_assert(alignof(test017_qux::Vec3f_t_bbl_size_check) == alignof(qux::Vec3f), "align of value type does not match");
 
 using test017_qux::Foo_t = qux::Foo;
-static_assert(sizeof(qux::Foo) == 8, "size of qux::Foo and test017_qux::Foo_t do not match");
-static_assert(alignof(qux::Foo) == 4, "align of qux::Foo and test017_qux::Foo_t do not match");
-
 using test017_qux::Bar_t = qux::Bar;
 
 int test017_qux::Vec3f_length(test017_qux::Vec3f_t const* _this, float* _result) {
@@ -51,8 +48,13 @@ int test017_qux::Foo_do_foo2(test017_qux::Foo_t* _this, test017_qux::Foo_t* othe
     return 0;
 }
 
-int test017_qux::Foo_ctor(int a, float b, test017_qux::Foo_t* _result) {
-    new (_result) qux::Foo(a, b);
+int test017_qux::Foo_ctor(int a, float b, test017_qux::Foo_t** _result) {
+    *_result = new qux::Foo(a, b);
+    return 0;
+}
+
+int test017_qux::Foo_dtor(test017_qux::Foo_t* _this) {
+    delete _this;
     return 0;
 }
 

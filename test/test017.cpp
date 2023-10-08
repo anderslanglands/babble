@@ -47,7 +47,6 @@ BBL_MODULE(test017) {
         .ctor(bbl::Ctor<qux::Foo, int, float>("a", "b"))
         .m(&qux::Foo::do_foo)
         .m(&qux::Foo::do_foo2)
-        .opaque_bytes()
         ;
 
     bbl::Class<qux::Bar>()

@@ -28,10 +28,7 @@ typedef struct BBL_ALIGN(4) test017_qux::Vec3f_t {
     float z;
 } test017_qux::Vec3f_t;
 
-typedef struct BBL_ALIGN(4) test017_qux::Foo_t {
-    char _bbl_opaque[8];
-} test017_qux::Foo_t;
-
+typedef struct test017_qux::Foo_t test017_qux::Foo_t;
 typedef struct test017_qux::Bar_t test017_qux::Bar_t;
 
 
@@ -48,7 +45,9 @@ int test017_qux::Foo_do_foo(test017_qux::Foo_t const* _this, test017_qux::Foo_t 
 
 int test017_qux::Foo_do_foo2(test017_qux::Foo_t* _this, test017_qux::Foo_t* other);
 
-int test017_qux::Foo_ctor(int a, float b, test017_qux::Foo_t* _result);
+int test017_qux::Foo_ctor(int a, float b, test017_qux::Foo_t** _result);
+
+int test017_qux::Foo_dtor(test017_qux::Foo_t* _this);
 
 int test017_qux::Bar_ctor(int a, float b, test017_qux::Bar_t** _result);
 

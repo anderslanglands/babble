@@ -12,9 +12,6 @@
 extern "C" {
 
 using test003_FooFloat_t = Foo<float>;
-static_assert(sizeof(Foo<float>) == 4, "size of Foo<float> and test003_FooFloat_t do not match");
-static_assert(alignof(Foo<float>) == 4, "align of Foo<float> and test003_FooFloat_t do not match");
-
 using test003_FooInt_t = FooInt;
 struct BBL_ALIGN(4) test003_FooInt_t_bbl_size_check {
 };
@@ -30,6 +27,11 @@ int test003_FooFloat_bar(test003_FooFloat_t* _this, float const* a, float* _resu
 
 int test003_FooFloat_baz(test003_FooFloat_t* _this, test003_Baz_t* b) {
     _this->baz(b);
+    return 0;
+}
+
+int test003_FooFloat_dtor(test003_FooFloat_t* _this) {
+    delete _this;
     return 0;
 }
 

@@ -7,6 +7,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace bbl {
@@ -81,15 +82,21 @@ struct C_StdFunction {
 
 struct Generated {};
 
+
 using FunctionSource =
     std::variant<Method const*, Constructor const*, Function const*, Generated>;
 
+struct C_SmartPtr {
+    C_Param smartptr;
+};
+
+struct IsStatic {}; 
 struct C_Function {
     FunctionSource method_or_function;
     std::string name;
     std::string comment;
     std::optional<C_Param> result;
-    std::optional<C_Param> receiver;
+    std::variant<IsStatic, C_Param, C_SmartPtr> receiver;
     std::vector<C_Param> params;
     ExprCompound body;
 };

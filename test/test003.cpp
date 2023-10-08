@@ -19,7 +19,6 @@ BBL_MODULE(test003) {
     using namespace qux;
 
     bbl::Class<Foo<float>>("FooFloat")
-        .opaque_bytes()
         .m(&Foo<float>::bar)
         .m(&Foo<float>::baz);
 

@@ -2,6 +2,7 @@
 
 #include "babble"
 #include "babble-std"
+#include "babble-usd"
 
 #include <pxr/base/vt/array.h>
 #include <pxr/base/vt/value.h>
@@ -36,6 +37,7 @@
 #include <pxr/usd/usd/variantSets.h>
 #include <pxr/usd/sdf/path.h>
 #include <pxr/usd/usd/stageLoadRules.h>
+#include <pxr/usd/usd/stage.h>
 
 
 #include <pxr/base/tf/token.h>
@@ -43,6 +45,16 @@
 struct TimeCode {
     double time;
 };
+
+// we can define extension functions in namespace bblext
+namespace bblext {
+
+// make Stage_Open just take a char const* rather than having to build a std::string
+PXR_NS::UsdStageRefPtr Stage_Open(char const* filename, PXR_NS::UsdStage::InitialLoadSet loadSet) {
+    return PXR_NS::UsdStage::Open(filename, loadSet);
+}
+
+}
 
 // We define modules that just act as a way to group binding declarations
 // together. These would then likely be turned into real modules in languages
@@ -99,66 +111,6 @@ BBL_MODULE(usd) {
         .m((PXR_NS::UsdProperty(CLS::*)(PXR_NS::UsdProperty const&) const) & CLS::FlattenTo,         \
            "FlattenTo_property")
 
-#define OBJECT_METHODS(CLS)                                                    \
-    .m((bool(CLS::*)(PXR_NS::TfToken const&, PXR_NS::VtValue*) const) & CLS::GetMetadata,          \
-       "GetMetadata_value")                                                    \
-        .m((bool(CLS::*)(PXR_NS::TfToken const&, PXR_NS::VtValue const&) const) &                  \
-               CLS::SetMetadata,                                               \
-           "SetMetadata_value")                                                \
-        .m(&CLS::ClearMetadata)                                                \
-        .m(&CLS::HasMetadata)                                                  \
-        .m(&CLS::HasAuthoredMetadata)                                          \
-        .m((bool(CLS::*)(PXR_NS::TfToken const&, PXR_NS::TfToken const&, PXR_NS::VtValue*) const) &          \
-               CLS::GetMetadataByDictKey,                                      \
-           "GetMetadataByDictKey_value")                                       \
-        .m((bool(CLS::*)(PXR_NS::TfToken const&, PXR_NS::TfToken const&, PXR_NS::VtValue const&) const) &    \
-               CLS::SetMetadataByDictKey,                                      \
-           "SetMetadataByDictKey_value")                                       \
-        .m(&CLS::ClearMetadataByDictKey)                                       \
-        .m(&CLS::HasMetadataDictKey)                                           \
-        .m(&CLS::HasAuthoredMetadataDictKey)                                   \
-        .m(&CLS::GetAllMetadata)                                               \
-        .m(&CLS::GetAllAuthoredMetadata)                                       \
-        .m(&CLS::IsHidden)                                                     \
-        .m(&CLS::SetHidden)                                                    \
-        .m(&CLS::ClearHidden)                                                  \
-        .m(&CLS::HasAuthoredHidden)                                            \
-        .m(&CLS::GetCustomData)                                                \
-        .m(&CLS::GetCustomDataByKey)                                           \
-        .m(&CLS::SetCustomData)                                                \
-        .m(&CLS::SetCustomDataByKey)                                           \
-        .m(&CLS::ClearCustomData)                                              \
-        .m(&CLS::ClearCustomDataByKey)                                         \
-        .m(&CLS::HasCustomData)                                                \
-        .m(&CLS::HasCustomDataKey)                                             \
-        .m(&CLS::HasAuthoredCustomData)                                        \
-        .m(&CLS::HasAuthoredCustomDataKey)                                     \
-        .m(&CLS::GetAssetInfo)                                                 \
-        .m(&CLS::GetAssetInfoByKey)                                            \
-        .m(&CLS::SetAssetInfo)                                                 \
-        .m(&CLS::SetAssetInfoByKey)                                            \
-        .m(&CLS::ClearAssetInfo)                                               \
-        .m(&CLS::ClearAssetInfoByKey)                                          \
-        .m(&CLS::HasAssetInfo)                                                 \
-        .m(&CLS::HasAssetInfoKey)                                              \
-        .m(&CLS::HasAuthoredAssetInfo)                                         \
-        .m(&CLS::HasAuthoredAssetInfoKey)                                      \
-        .m(&CLS::GetDocumentation)                                             \
-        .m(&CLS::SetDocumentation)                                             \
-        .m(&CLS::ClearDocumentation)                                           \
-        .m(&CLS::HasAuthoredDocumentation)                                     \
-        .m(&CLS::GetDisplayName)                                               \
-        .m(&CLS::SetDisplayName)                                               \
-        .m(&CLS::ClearDisplayName)                                             \
-        .m(&CLS::HasAuthoredDisplayName)                                       \
-        .m(&CLS::IsValid)                                                      \
-        .m(&CLS::GetStage)                                                     \
-        .m(&CLS::GetPath)                                                      \
-        .m(&CLS::GetPrimPath)                                                  \
-        .m(&CLS::GetPrim)                                                      \
-        .m(&CLS::GetName)                                                      \
-        .m(&CLS::GetNamespaceDelimiter)                                        \
-        .m(&CLS::GetDescription)
 
 #define ATTRIBUTE_METHODS(CLS)                                                 \
     .m(&CLS::GetVariability)                                                   \
@@ -535,9 +487,10 @@ BBL_MODULE(usd) {
         .m((StageRefPtr(*)(std::string const&, LayerHandle const&, ResolverContext const&, StageInitialLoadSet))
             &Stage::CreateInMemory, "CreateInMemory_with_session_layer_and_resolver_context"
         )
-        .m((StageRefPtr(*)(std::string const&, Stage::InitialLoadSet))
-            &Stage::Open
-        )
+        // we'll override this to take a char* instead
+        // .m((StageRefPtr(*)(std::string const&, Stage::InitialLoadSet))
+        //     &Stage::Open
+        // )
         .m((StageRefPtr(*)(std::string const&, ResolverContext const&, Stage::InitialLoadSet))
             &Stage::Open, "Open_with_resolver_context"
         )
@@ -600,6 +553,8 @@ BBL_MODULE(usd) {
         .m(&Stage::CreateClassPrim)
         .m(&Stage::RemovePrim)
         ;
+
+    bbl::fn(&bblext::Stage_Open);
 
     bbl::Enum<PXR_NS::UsdStage::InitialLoadSet>("StageInitialLoadSet");
 
@@ -701,7 +656,9 @@ BBL_MODULE(usd) {
 
     bbl::Class<PXR_NS::UsdStageRefPtr>("StageRefPtr")
         .ctor(bbl::Ctor<StageRefPtr>(), "ctor")
+        .smartptr_to<PXR_NS::UsdStage>()
         .m(&StageRefPtr::operator->, "get")
+        .m(&StageRefPtr::operator!, "is_invalid")
         ;
 
     bbl::Class<PXR_NS::UsdStageRefPtrVector>("StageRefPtrVector")

@@ -176,6 +176,11 @@ public:
         return *this;
     }
 
+    template <typename Pointee>
+    Class smartptr_to() {
+        return *this;
+    }
+
     /// Size of the bound type
     size_t type_size = sizeof(C);
 

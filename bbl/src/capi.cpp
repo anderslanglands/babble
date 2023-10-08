@@ -5,6 +5,7 @@
 
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <variant>
 
 namespace bbl {
@@ -70,13 +71,15 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
             } catch (MissingTypeBindingException& e) {
                 SPDLOG_ERROR("could not translate a field of {}. Class will be "
                              "ignored.\n{}",
-                             cpp_cls->spelling, e.what());
+                             cpp_cls->spelling,
+                             e.what());
                 continue;
             }
 
             // Push the struct into the main list and the module list
-            _structs.emplace(cpp_class_id, C_Struct{*cpp_cls, struct_name,
-                                                    cpp_cls->comment, fields});
+            _structs.emplace(
+                cpp_class_id,
+                C_Struct{*cpp_cls, struct_name, cpp_cls->comment, fields});
             mod_structs.push_back(cpp_class_id);
 
             // Translate all methods to functions
@@ -99,7 +102,8 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
                 } catch (MissingTypeBindingException& e) {
                     SPDLOG_ERROR("could not translate method {} of class {}. "
                                  "Method will be ignored.\n{}",
-                                 method->function.name, cpp_cls->spelling,
+                                 method->function.name,
+                                 cpp_cls->spelling,
                                  e.what());
                 }
             }
@@ -117,7 +121,8 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
                 } catch (MissingTypeBindingException& e) {
                     SPDLOG_ERROR("could not translate constructor of class {}. "
                                  "Constructor will be ignored.\n{}",
-                                 cpp_cls->spelling, e.what());
+                                 cpp_cls->spelling,
+                                 e.what());
                 }
             }
 
@@ -132,6 +137,52 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
                 std::string dtor_id = cpp_class_id + "_dtor";
                 _functions.emplace(dtor_id, std::move(c_dtor));
                 mod_functions.push_back(dtor_id);
+            }
+
+            // If this class is a smart pointer to another class, then add the
+            // pointee's non-static methods to it
+            if (cpp_cls->smartptr_to.has_value()) {
+                std::string pointee_class_id = *cpp_cls->smartptr_to;
+                std::string const& smartptr_class_id = cpp_class_id;
+                Class const* pointee_cls = cpp_ctx.get_class(pointee_class_id);
+                assert(pointee_cls);
+
+                for (auto const& method_id : pointee_cls->methods) {
+                    Method const* method = _cpp_ctx.get_method(method_id);
+                    assert(method);
+
+                    if (method->is_static) {
+                        continue;
+                    }
+
+                    try {
+                        C_Function c_fun = _translate_method(
+                            method, struct_namespace, smartptr_class_id);
+
+                        // we can have multiple instances of the "same" method
+                        // through inheritance, so make a new function id
+                        // including the class id
+                        std::string function_id =
+                            fmt::format("{}/{}", method_id, smartptr_class_id);
+
+                        _functions.emplace(function_id, std::move(c_fun));
+                        mod_functions.push_back(function_id);
+                    } catch (MissingTypeBindingException& e) {
+                        SPDLOG_ERROR(
+                            "could not translate method {} of class {}. "
+                            "Method will be ignored.\n{}",
+                            method->function.name,
+                            pointee_cls->spelling,
+                            e.what());
+                    } catch (std::runtime_error& e) {
+                        BBL_RETHROW(e,
+                                    "could not translate method {} of smartptr "
+                                    "{} to {}",
+                                    method->function.qualified_name,
+                                    smartptr_class_id,
+                                    pointee_class_id);
+                    }
+                }
             }
         }
 
@@ -152,12 +203,13 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
                     fmt::format("{}_{}", enum_name, var.first), var.second);
             }
 
-            _enums.emplace(cpp_enum_id, C_Enum{
-                                            enum_name,
-                                            cpp_enum->comment,
-                                            std::move(c_variants),
-                                            integer_type,
-                                        });
+            _enums.emplace(cpp_enum_id,
+                           C_Enum{
+                               enum_name,
+                               cpp_enum->comment,
+                               std::move(c_variants),
+                               integer_type,
+                           });
             mod_enums.push_back(cpp_enum_id);
         }
 
@@ -173,7 +225,8 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
             } catch (MissingTypeBindingException& e) {
                 SPDLOG_ERROR("could not translate function {}. "
                              "Function will be ignored.\n{}",
-                             cpp_fun->spelling, e.what());
+                             cpp_fun->spelling,
+                             e.what());
             }
         }
 
@@ -212,11 +265,12 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
             c_params.emplace_back(_translate_qtype(param));
         }
 
-        _stdfunctions.emplace(cpp_stdfun_id, C_StdFunction{
-                                                 result_type,
-                                                 cpp_stdfun.comment,
-                                                 std::move(c_params),
-                                             });
+        _stdfunctions.emplace(cpp_stdfun_id,
+                              C_StdFunction{
+                                  result_type,
+                                  cpp_stdfun.comment,
+                                  std::move(c_params),
+                              });
     }
 }
 
@@ -237,8 +291,8 @@ auto C_API::_get_c_qtype_as_string(C_QType const& qt,
         } else if (std::holds_alternative<C_StructId>(c_type.kind)) {
             C_StructId struct_id = std::get<C_StructId>(c_type.kind);
             C_Struct const& c_struct = _structs.at(struct_id.id);
-            return fmt::format("{}{}{}", c_struct.name, s_const,
-                               name_with_space);
+            return fmt::format(
+                "{}{}{}", c_struct.name, s_const, name_with_space);
         } else if (std::holds_alternative<C_EnumId>(c_type.kind)) {
             C_EnumId enum_id = std::get<C_EnumId>(c_type.kind);
             C_Enum const& c_enum = _enums.at(enum_id.id);
@@ -257,8 +311,8 @@ auto C_API::_get_c_qtype_as_string(C_QType const& qt,
                     result = fmt::format("{}, ", result);
                 }
 
-                result = fmt::format("{}{}", result,
-                                     _get_c_qtype_as_string(param, ""));
+                result = fmt::format(
+                    "{}{}", result, _get_c_qtype_as_string(param, ""));
             }
             return fmt::format("{})", result);
         } else {
@@ -269,12 +323,15 @@ auto C_API::_get_c_qtype_as_string(C_QType const& qt,
         C_Pointer const& c_pointer = std::get<C_Pointer>(qt.type);
         return fmt::format("{}*{}{}",
                            _get_c_qtype_as_string(*c_pointer.pointee, ""),
-                           s_const, name_with_space);
+                           s_const,
+                           name_with_space);
     } else if (std::holds_alternative<C_Array>(qt.type)) {
         C_Array const& c_array = std::get<C_Array>(qt.type);
         return fmt::format("{} {}[{}]{}",
                            _get_c_qtype_as_string(*c_array.element_type, ""),
-                           name, c_array.size, s_const);
+                           name,
+                           c_array.size,
+                           s_const);
     } else {
         BBL_THROW("unhandled variant");
     }
@@ -504,8 +561,8 @@ auto C_API::_translate_return_type(QType const& cpp_return_type)
             };
         } else {
             result = C_Param{
-                C_QType{nullptr, false,
-                        C_Pointer{
+                C_QType{nullptr,
+                        false, C_Pointer{
                             std::make_shared<C_QType>(std::move(return_type))}},
                 "_result",
             };
@@ -521,7 +578,8 @@ auto C_API::_translate_method(Method const* method,
     // Function name is the name of the struct followed by either the rename or
     // original method name
     std::string function_name =
-        fmt::format("{}_{}", function_prefix,
+        fmt::format("{}_{}",
+                    function_prefix,
                     method->function.rename.empty() ? method->function.name
                                                     : method->function.rename);
 
@@ -533,18 +591,37 @@ auto C_API::_translate_method(Method const* method,
     std::vector<C_Param> c_params;
     // if the method is not static, create _this param, which will be a (maybe
     // const) pointer to a struct of this class_id
-    std::optional<C_Param> receiver;
+    std::variant<IsStatic, C_Param, C_SmartPtr> receiver = IsStatic{};
     if (!method->is_static) {
         bool pointee_is_const = method->is_const;
 
-        receiver = C_Param{
-            C_QType{
-                    nullptr, false,
-                    C_Pointer{std::unique_ptr<C_QType>(new C_QType{
-                    nullptr, pointee_is_const, C_Type{C_StructId{class_id}}})},
-                    },
-            "_this",
-        };
+        if (method->target_class_id == class_id) {
+            // regular method call
+            receiver = std::move(C_Param{
+                C_QType{
+                        nullptr, false,
+                        C_Pointer{std::unique_ptr<C_QType>(
+                        new C_QType{nullptr,
+                                    pointee_is_const,
+                                    C_Type{C_StructId{class_id}}})},
+                        },
+                "_this",
+            });
+        } else {
+            // this method is being delegated from a smart pointer
+            receiver = std::move(C_SmartPtr{
+                C_Param{
+                        C_QType{
+                        nullptr,
+                        false,
+                        C_Pointer{std::unique_ptr<C_QType>(
+                            new C_QType{nullptr,
+                                        pointee_is_const,
+                                        C_Type{C_StructId{class_id}}})},
+                    }, "_this",
+                        }
+            });
+        }
     }
 
     std::vector<ExprPtr> body;
@@ -559,11 +636,22 @@ auto C_API::_translate_method(Method const* method,
     Class const* cls = _cpp_ctx.get_class(class_id);
     assert(cls);
 
-    ExprPtr receiving_call =
-        receiver.has_value()
-            ? ExprArrow::create(ExprToken::create(receiver.value().name),
-                                std::move(expr_call))
-            : ExprNamespaceRef::create(cls->spelling, std::move(expr_call));
+    ExprPtr receiving_call;
+    if (std::holds_alternative<C_Param>(receiver)) {
+        auto const& param = std::get<C_Param>(receiver);
+        receiving_call = ExprArrow::create(ExprToken::create(param.name),
+                                           std::move(expr_call));
+    } else if (std::holds_alternative<C_SmartPtr>(receiver)) {
+        // we need to put an extra deref around the smart pointer to delegate to
+        // the underlying class
+        auto const& param = std::get<C_SmartPtr>(receiver);
+        receiving_call = ExprArrow::create(
+            ExprParen::create(ExprDeref::create(ExprToken::create(param.smartptr.name))),
+            std::move(expr_call));
+    } else {
+        receiving_call =
+            ExprNamespaceRef::create(cls->spelling, std::move(expr_call));
+    }
 
     if (result.has_value()) {
         // if the function returns a reference, we need to wrap the call in an
@@ -667,8 +755,13 @@ auto C_API::_translate_function(Function const* function,
     body.emplace_back(ExprReturn::create(ExprToken::create("0")));
 
     return C_Function{
-        function, function_name,       function->comment, std::move(result),
-        {},       std::move(c_params), std::move(body),
+        function,
+        function_name,
+        function->comment,
+        std::move(result),
+        {},
+        std::move(c_params),
+        std::move(body),
     };
 }
 
@@ -738,7 +831,8 @@ auto C_API::_translate_parameter_list(std::vector<Param> const& params,
             if (enm == nullptr) {
                 BBL_THROW(
                     "could not get enum {} while translating param \"{}\"",
-                    enum_id.id, param_name);
+                    enum_id.id,
+                    param_name);
             }
             expr_params.emplace_back(
                 ExprStaticCast::create(ExprToken::create(enm->spelling),
@@ -752,8 +846,8 @@ auto C_API::_translate_parameter_list(std::vector<Param> const& params,
 }
 
 auto wrap_in_pointer(C_QType&& qt) -> C_QType {
-    return C_QType{nullptr, false,
-                   C_Pointer{std::make_shared<C_QType>(std::move(qt))}};
+    return C_QType{
+        nullptr, false, C_Pointer{std::make_shared<C_QType>(std::move(qt))}};
 }
 
 auto C_API::_translate_constructor(Constructor const* ctor,
@@ -768,7 +862,8 @@ auto C_API::_translate_constructor(Constructor const* ctor,
 
     // return type is the class itself. For opaque bytes and
     C_QType return_type = wrap_in_pointer(C_QType{
-        nullptr, false,
+        nullptr,
+        false,
         C_Type{
                C_StructId{class_id},
                }
@@ -809,8 +904,13 @@ auto C_API::_translate_constructor(Constructor const* ctor,
     body.emplace_back(ExprReturn::create(ExprToken::create("0")));
 
     return C_Function{
-        ctor, function_name,       ctor->comment,   std::move(result),
-        {},   std::move(c_params), std::move(body),
+        ctor,
+        function_name,
+        ctor->comment,
+        std::move(result),
+        {},
+        std::move(c_params),
+        std::move(body),
     };
 }
 
@@ -821,7 +921,8 @@ auto C_API::_generate_destructor(std::string const& function_prefix,
 
     // destructor takes a single argument of pointer to the class
     C_QType this_type = wrap_in_pointer(C_QType{
-        nullptr, false,
+        nullptr,
+        false,
         C_Type{
                C_StructId{class_id},
                }
@@ -837,7 +938,12 @@ auto C_API::_generate_destructor(std::string const& function_prefix,
     body.emplace_back(ExprReturn::create(ExprToken::create("0")));
 
     return C_Function{
-        Generated{},     function_name, "", {}, {}, std::vector{this_param},
+        Generated{},
+        function_name,
+        "",
+        {},
+        {},
+        std::vector{this_param},
         std::move(body),
     };
 }
@@ -909,25 +1015,29 @@ auto C_API::_translate_qtype(QType const& qt) -> C_QType {
     } else if (std::holds_alternative<Pointer>(qt.type)) {
         Pointer const& pointer = std::get<Pointer>(qt.type);
 
-        return C_QType{&qt, qt.is_const,
+        return C_QType{&qt,
+                       qt.is_const,
                        C_Pointer{std::unique_ptr<C_QType>(new C_QType(
                            std::move(_translate_qtype(*pointer.pointee))))}};
     } else if (std::holds_alternative<LValueReference>(qt.type)) {
         LValueReference const& pointer = std::get<LValueReference>(qt.type);
 
-        return C_QType{&qt, qt.is_const,
+        return C_QType{&qt,
+                       qt.is_const,
                        C_Pointer{std::unique_ptr<C_QType>(new C_QType(
                            std::move(_translate_qtype(*pointer.pointee))))}};
     } else if (std::holds_alternative<RValueReference>(qt.type)) {
         RValueReference const& pointer = std::get<RValueReference>(qt.type);
 
-        return C_QType{&qt, qt.is_const,
+        return C_QType{&qt,
+                       qt.is_const,
                        C_Pointer{std::unique_ptr<C_QType>(new C_QType(
                            std::move(_translate_qtype(*pointer.pointee))))}};
     } else if (std::holds_alternative<Array>(qt.type)) {
         Array const& array = std::get<Array>(qt.type);
         return C_QType{
-            &qt, qt.is_const,
+            &qt,
+            qt.is_const,
             C_Array{std::shared_ptr<C_QType>(new C_QType(
                         std::move(_translate_qtype(*array.element_type)))),
                     array.size}
@@ -937,7 +1047,8 @@ auto C_API::_translate_qtype(QType const& qt) -> C_QType {
     BBL_THROW("unreachable variant");
 }
 
-void replace_all(std::string& str, std::string const& from,
+void replace_all(std::string& str,
+                 std::string const& from,
                  std::string const& to) {
     size_t start_pos = 0;
     while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
@@ -1003,25 +1114,29 @@ extern "C" {
         }
 
         if (c_struct.cls.bind_kind == BindKind::OpaquePtr) {
-            result = fmt::format("{0}typedef struct {1} {1};\n", result,
-                                 c_struct.name);
+            result = fmt::format(
+                "{0}typedef struct {1} {1};\n", result, c_struct.name);
         } else if (c_struct.cls.bind_kind == BindKind::OpaqueBytes) {
-            result =
-                fmt::format("{}typedef struct BBL_ALIGN({}) {} {{\n", result,
-                            c_struct.cls.layout.align_bytes, c_struct.name);
+            result = fmt::format("{}typedef struct BBL_ALIGN({}) {} {{\n",
+                                 result,
+                                 c_struct.cls.layout.align_bytes,
+                                 c_struct.name);
 
-            result = fmt::format("{}    char _bbl_opaque[{}];\n", result,
+            result = fmt::format("{}    char _bbl_opaque[{}];\n",
+                                 result,
                                  c_struct.cls.layout.size_bytes);
             result = fmt::format("{}}} {};\n", result, c_struct.name);
             result = fmt::format("{}\n", result);
         } else {
-            result =
-                fmt::format("{}typedef struct BBL_ALIGN({}) {} {{\n", result,
-                            c_struct.cls.layout.align_bytes, c_struct.name);
+            result = fmt::format("{}typedef struct BBL_ALIGN({}) {} {{\n",
+                                 result,
+                                 c_struct.cls.layout.align_bytes,
+                                 c_struct.name);
 
             for (C_Field const& field : c_struct.fields) {
                 result =
-                    fmt::format("{}    {};\n", result,
+                    fmt::format("{}    {};\n",
+                                result,
                                 _get_c_qtype_as_string(field.type, field.name));
             }
 
@@ -1061,13 +1176,22 @@ auto C_API::_get_function_declaration(C_Function const& c_fun) const
     std::string result = fmt::format("int {}(", c_fun.name);
     bool first = true;
 
-    // If the method has a receiver (i.e. it's not static), bund the receiver in
+    // If the method has a receiver (i.e. it's not static), bind the receiver in
     // as the first parameter
-    if (c_fun.receiver.has_value()) {
+    if (std::holds_alternative<C_Param>(c_fun.receiver)) {
+        auto const& receiver = std::get<C_Param>(c_fun.receiver);
         result =
-            fmt::format("{}{}", result,
-                        _get_c_qtype_as_string(c_fun.receiver.value().type,
-                                               c_fun.receiver.value().name));
+            fmt::format("{}{}",
+                        result,
+                        _get_c_qtype_as_string(receiver.type, receiver.name));
+
+        first = false;
+    } else if (std::holds_alternative<C_SmartPtr>(c_fun.receiver)) {
+        auto const& receiver = std::get<C_SmartPtr>(c_fun.receiver);
+        result = fmt::format("{}{}",
+                             result,
+                             _get_c_qtype_as_string(receiver.smartptr.type,
+                                                    receiver.smartptr.name));
 
         first = false;
     }
@@ -1112,7 +1236,8 @@ std::string C_API::get_source() const {
     }
     result = fmt::format("{}\n", result);
 
-    result = fmt::format("{}{}", result,
+    result = fmt::format("{}{}",
+                         result,
                          R"(#if defined(__GNUC__) || defined(__clang__)
 #  define BBL_ALIGN(x) __attribute__ ((aligned(x)))
 #elif defined(_MSC_VER)
@@ -1142,39 +1267,46 @@ std::string C_API::get_source() const {
     // we expose enum parameters as their underlying integer type in the API, so
     // we write aliases for them in the source rather than an enum definition
     for (auto const& [enum_id, c_enum] : _enums) {
-        result = fmt::format("{}using {} = {};\n", result, c_enum.name,
-                             c_enum.integer_type);
+        result = fmt::format(
+            "{}using {} = {};\n", result, c_enum.name, c_enum.integer_type);
     }
     result = fmt::format("{}\n", result);
 
     // the struct definitions are just aliases to the corresponding C++ type
     for (auto const& [struct_id, c_struct] : _structs) {
-        result = fmt::format("{}using {} = {};\n", result, c_struct.name,
-                             c_struct.cls.spelling);
+        result = fmt::format(
+            "{}using {} = {};\n", result, c_struct.name, c_struct.cls.spelling);
 
         // if the type is opaque bytes, put a simple size check in
         if (c_struct.cls.bind_kind == BindKind::OpaqueBytes) {
             result = fmt::format("{0}static_assert(sizeof({1}) == {2}, \"size "
                                  "of {1} and {3} do not match\");\n",
-                                 result, c_struct.cls.spelling,
-                                 c_struct.cls.layout.size_bytes, c_struct.name);
+                                 result,
+                                 c_struct.cls.spelling,
+                                 c_struct.cls.layout.size_bytes,
+                                 c_struct.name);
 
             result =
                 fmt::format("{0}static_assert(alignof({1}) == {2}, \"align "
                             "of {1} and {3} do not match\");\n",
-                            result, c_struct.cls.spelling,
-                            c_struct.cls.layout.align_bytes, c_struct.name);
+                            result,
+                            c_struct.cls.spelling,
+                            c_struct.cls.layout.align_bytes,
+                            c_struct.name);
 
             result = fmt::format("{}\n", result);
         } else if (c_struct.cls.bind_kind == BindKind::ValueType) {
             // for value type, make a little size-checking type
-            result = fmt::format(
-                "{}struct BBL_ALIGN({}) {}_bbl_size_check {{\n", result,
-                c_struct.cls.layout.align_bytes, c_struct.name);
+            result =
+                fmt::format("{}struct BBL_ALIGN({}) {}_bbl_size_check {{\n",
+                            result,
+                            c_struct.cls.layout.align_bytes,
+                            c_struct.name);
 
             for (C_Field const& field : c_struct.fields) {
                 result =
-                    fmt::format("{}    {};\n", result,
+                    fmt::format("{}    {};\n",
+                                result,
                                 _get_c_qtype_as_string(field.type, field.name));
             }
 
@@ -1183,12 +1315,16 @@ std::string C_API::get_source() const {
             result = fmt::format(
                 "{}static_assert(sizeof({}_bbl_size_check) == sizeof({}), "
                 "\"size of value type does not match\");\n",
-                result, c_struct.name, c_struct.cls.spelling);
+                result,
+                c_struct.name,
+                c_struct.cls.spelling);
 
             result = fmt::format(
                 "{}static_assert(alignof({}_bbl_size_check) == alignof({}), "
                 "\"align of value type does not match\");\n",
-                result, c_struct.name, c_struct.cls.spelling);
+                result,
+                c_struct.name,
+                c_struct.cls.spelling);
 
             result = fmt::format("{}\n", result);
         }

@@ -20,7 +20,6 @@ BBL_MODULE(test018) {
     bbl::Class<qux::Foo>()
         .ctor(bbl::Ctor<qux::Foo, int, float>("a", "b"))
         .m(&qux::Foo::do_foo)
-        .opaque_bytes()
         ;
 
     bbl::Class<std::function<bool(qux::Foo const&)>>("FooFn");

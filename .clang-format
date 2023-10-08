@@ -12,3 +12,5 @@ InsertBraces: true
 ReflowComments: true
 ReferenceAlignment: Pointer
 PointerAlignment: Left
+BinPackParameters: false
+BinPackArguments: false

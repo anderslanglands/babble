@@ -58,8 +58,8 @@ public:
     }
 };
 
-std::string to_string(bbl::Type const& ty, char const* s_const,
-                      DeclMaps const& decl_maps) {
+std::string
+to_string(bbl::Type const& ty, char const* s_const, DeclMaps const& decl_maps) {
     if (std::holds_alternative<bbl_builtin_t>(ty.kind)) {
         bbl_builtin_t const& builtin = std::get<bbl_builtin_t>(ty.kind);
         return fmt::format("{}{}", builtin, s_const);
@@ -87,7 +87,9 @@ std::string to_string(bbl::Type const& ty, char const* s_const,
             name = it->second;
         }
         return fmt::format("ClassTemplateSpecialization({} \"{}\"){}",
-                           classid.id, name, s_const);
+                           classid.id,
+                           name,
+                           s_const);
     } else if (std::holds_alternative<bbl::EnumId>(ty.kind)) {
         bbl::EnumId const& enumid = std::get<bbl::EnumId>(ty.kind);
         std::string name;
@@ -124,21 +126,23 @@ std::string to_string(QType const& qt, DeclMaps const& decl_maps) {
     } else if (std::holds_alternative<bbl::LValueReference>(qt.type)) {
         bbl::LValueReference const& lvr =
             std::get<bbl::LValueReference>(qt.type);
-        return fmt::format("{}&{}", to_string(*lvr.pointee, decl_maps),
-                           s_const);
+        return fmt::format(
+            "{}&{}", to_string(*lvr.pointee, decl_maps), s_const);
     } else if (std::holds_alternative<bbl::RValueReference>(qt.type)) {
         bbl::RValueReference const& rvr =
             std::get<bbl::RValueReference>(qt.type);
-        return fmt::format("{}&&{}", to_string(*rvr.pointee, decl_maps),
-                           s_const);
+        return fmt::format(
+            "{}&&{}", to_string(*rvr.pointee, decl_maps), s_const);
     } else if (std::holds_alternative<bbl::Pointer>(qt.type)) {
         bbl::Pointer const& ptr = std::get<bbl::Pointer>(qt.type);
-        return fmt::format("{}*{}", to_string(*ptr.pointee, decl_maps),
-                           s_const);
+        return fmt::format(
+            "{}*{}", to_string(*ptr.pointee, decl_maps), s_const);
     } else if (std::holds_alternative<bbl::Array>(qt.type)) {
         bbl::Array const& arr = std::get<bbl::Array>(qt.type);
-        return fmt::format("{}[{}]{}", to_string(*arr.element_type, decl_maps),
-                           arr.size, s_const);
+        return fmt::format("{}[{}]{}",
+                           to_string(*arr.element_type, decl_maps),
+                           arr.size,
+                           s_const);
     } else {
         BBL_THROW("unhandled QType kind in format");
     }
@@ -336,7 +340,8 @@ auto Context::extract_qualtype(clang::QualType const& qt,
 }
 
 auto Context::extract_single_template_arg(
-    clang::TemplateArgument const& arg, std::vector<TemplateArg>& template_args,
+    clang::TemplateArgument const& arg,
+    std::vector<TemplateArg>& template_args,
     clang::MangleContext* mangle_ctx) -> void {
     if (arg.getKind() == clang::TemplateArgument::Type) {
         clang::QualType qt = arg.getAsType();
@@ -357,8 +362,8 @@ auto Context::extract_single_template_arg(
 
 auto Context::extract_template_arguments(
     clang::ClassTemplateSpecializationDecl const* ctsd,
-    std::vector<TemplateArg>& template_args, clang::MangleContext* mangle_ctx)
-    -> void {
+    std::vector<TemplateArg>& template_args,
+    clang::MangleContext* mangle_ctx) -> void {
 
     clang::TemplateArgumentList const& args = ctsd->getTemplateArgs();
     try {
@@ -367,7 +372,8 @@ auto Context::extract_template_arguments(
             extract_single_template_arg(arg, template_args, mangle_ctx);
         }
     } catch (std::exception& e) {
-        BBL_RETHROW(e, "could not extract template args from {}",
+        BBL_RETHROW(e,
+                    "could not extract template args from {}",
                     ctsd->getQualifiedNameAsString());
     }
 }
@@ -378,13 +384,15 @@ auto evaluate_field_expression_bool(clang::RecordDecl const* rd,
     clang::FieldDecl const* vd_size =
         find_named_child_of_type<clang::FieldDecl>(rd, name);
     if (vd_size == nullptr) {
-        BBL_THROW("could not get field {} from {}", name,
+        BBL_THROW("could not get field {} from {}",
+                  name,
                   rd->getQualifiedNameAsString());
     }
 
     clang::Expr const* expr_size = vd_size->getInClassInitializer();
     if (expr_size == nullptr) {
-        BBL_THROW("could not get {} expr from {}", name,
+        BBL_THROW("could not get {} expr from {}",
+                  name,
                   rd->getQualifiedNameAsString());
     }
 
@@ -396,11 +404,15 @@ auto evaluate_field_expression_bool(clang::RecordDecl const* rd,
     return result;
 }
 
-auto Context::extract_class_binding(
-    clang::CXXRecordDecl const* crd, std::string const& spelling,
-    std::string const& rename, std::string const& comment, Layout layout,
-    BindKind bind_kind, RuleOfSeven const& rule_of_seven, bool is_abstract,
-    clang::MangleContext* mangle_ctx) -> Class {
+auto Context::extract_class_binding(clang::CXXRecordDecl const* crd,
+                                    std::string const& spelling,
+                                    std::string const& rename,
+                                    std::string const& comment,
+                                    Layout layout,
+                                    BindKind bind_kind,
+                                    RuleOfSeven const& rule_of_seven,
+                                    bool is_abstract,
+                                    clang::MangleContext* mangle_ctx) -> Class {
     std::string id = get_mangled_name(crd, mangle_ctx);
     if (_decl_maps.class_map.contains(id)) {
         BBL_THROW("class binding for id {} already exists", id);
@@ -426,6 +438,7 @@ auto Context::extract_class_binding(
                  std::vector<std::string>(),
                  std::vector<std::string>(),
                  std::vector<Field>(),
+                 {}, // smartptr_to
                  layout,
                  bind_kind,
                  rule_of_seven,
@@ -434,7 +447,8 @@ auto Context::extract_class_binding(
 }
 
 auto Context::insert_class_binding(std::string const& mod_id,
-                                   std::string const& id, Class&& cls) -> void {
+                                   std::string const& id,
+                                   Class&& cls) -> void {
     // First, find the module we're going to insert into
     // this should already have been extracted
     auto it_mod = _module_map.find(mod_id);
@@ -449,7 +463,9 @@ auto Context::insert_class_binding(std::string const& mod_id,
         it != _type_to_module_map.end()) {
         BBL_THROW("Class {} ({}) is already bound in module {}"
                   "\n{}",
-                  cls.spelling, id, mod.name,
+                  cls.spelling,
+                  id,
+                  mod.name,
                   get_class_as_string(_decl_maps.class_map.at(id)));
     } else {
         _type_to_module_map.emplace(id, mod_id);
@@ -461,14 +477,20 @@ auto Context::insert_class_binding(std::string const& mod_id,
 }
 
 auto Context::extract_method_binding(clang::CXXMethodDecl const* cmd,
+                                     std::string const& target_class_id,
                                      std::string const& rename,
                                      std::string const& template_call,
                                      std::string const& comment,
                                      clang::MangleContext* mangle_ctx)
     -> Method {
     return Method{
-        extract_function_binding(cmd, rename, cmd->getNameAsString(),
-                                 template_call, comment, mangle_ctx),
+        extract_function_binding(cmd,
+                                 rename,
+                                 cmd->getNameAsString(),
+                                 template_call,
+                                 comment,
+                                 mangle_ctx),
+        target_class_id,
         cmd->isConst(),
         cmd->isStatic(),
         cmd->isVirtual(),
@@ -476,10 +498,13 @@ auto Context::extract_method_binding(clang::CXXMethodDecl const* cmd,
     };
 }
 
-auto Context::extract_function_binding(
-    clang::FunctionDecl const* fd, std::string const& rename,
-    std::string const& spelling, std::string const& template_call,
-    std::string const& comment, clang::MangleContext* mangle_ctx) -> Function {
+auto Context::extract_function_binding(clang::FunctionDecl const* fd,
+                                       std::string const& rename,
+                                       std::string const& spelling,
+                                       std::string const& template_call,
+                                       std::string const& comment,
+                                       clang::MangleContext* mangle_ctx)
+    -> Function {
     std::string qualified_name = fd->getQualifiedNameAsString();
     std::string name = fd->getNameAsString();
 
@@ -489,8 +514,10 @@ auto Context::extract_function_binding(
     } catch (MissingTypeBindingException& e) {
         BBL_RETHROW(e, "{} return type has missing binding", qualified_name);
     } catch (std::exception& e) {
-        BBL_RETHROW(e, "failed to extract return type {} for function {}",
-                    fd->getReturnType().getAsString(), qualified_name);
+        BBL_RETHROW(e,
+                    "failed to extract return type {} for function {}",
+                    fd->getReturnType().getAsString(),
+                    qualified_name);
     }
 
     std::vector<Param> params;
@@ -500,13 +527,16 @@ auto Context::extract_function_binding(
         try {
             type = extract_qualtype(param->getType(), mangle_ctx);
         } catch (MissingTypeBindingException& e) {
-            BBL_RETHROW(e, "{} param \"{}\" has missing binding",
-                        qualified_name, param_name);
+            BBL_RETHROW(e,
+                        "{} param \"{}\" has missing binding",
+                        qualified_name,
+                        param_name);
         } catch (std::exception& e) {
             BBL_RETHROW(e,
                         "could not extract type of param {} on "
                         "function {}",
-                        param_name, qualified_name);
+                        param_name,
+                        qualified_name);
         }
 
         params.push_back({param_name, std::move(type)});
@@ -529,8 +559,8 @@ auto Context::extract_function_binding(
 }
 
 auto Context::insert_function_binding(std::string const& mod_id,
-                                      std::string const& id, Function&& fun)
-    -> void {
+                                      std::string const& id,
+                                      Function&& fun) -> void {
     // First, find the module we're going to insert into
     // this should already have been extracted
     auto it_mod = _module_map.find(mod_id);
@@ -545,7 +575,9 @@ auto Context::insert_function_binding(std::string const& mod_id,
         it != _type_to_module_map.end()) {
         BBL_THROW("Function {} ({}) is already bound in module "
                   "{}",
-                  fun.qualified_name, id, mod.name);
+                  fun.qualified_name,
+                  id,
+                  mod.name);
     } else {
         _type_to_module_map.emplace(id, mod_id);
     }
@@ -616,9 +648,10 @@ auto Context::get_enum(std::string const& id) const noexcept -> Enum const* {
 
 auto Context::extract_stdfunction_binding(
     clang::ClassTemplateSpecializationDecl const* ctsd,
-    std::string const& spelling, std::string const& rename,
-    std::string const& comment, clang::MangleContext* mangle_ctx)
-    -> StdFunction {
+    std::string const& spelling,
+    std::string const& rename,
+    std::string const& comment,
+    clang::MangleContext* mangle_ctx) -> StdFunction {
 
     clang::TemplateArgumentList const& args = ctsd->getTemplateArgs();
     assert(args.size());
@@ -633,8 +666,8 @@ auto Context::extract_stdfunction_binding(
 
         std::string id = get_mangled_name(ctsd, mangle_ctx);
         _decl_maps.typename_map[id] = spelling;
-        return StdFunction{spelling, comment, std::move(return_type),
-                           std::move(parameters)};
+        return StdFunction{
+            spelling, comment, std::move(return_type), std::move(parameters)};
     } else {
         BBL_THROW("got std::function CTSD {} but template "
                   "argument is not a "
@@ -660,7 +693,9 @@ auto Context::insert_stdfunction_binding(std::string const& mod_id,
         it != _type_to_module_map.end()) {
         BBL_THROW("StdFunction {} ({}) is already bound in "
                   "module {}",
-                  fun.spelling, id, mod.name);
+                  fun.spelling,
+                  id,
+                  mod.name);
     } else {
         _type_to_module_map.emplace(id, mod_id);
     }
@@ -687,12 +722,16 @@ auto Context::extract_enum_binding(clang::EnumDecl const* ed,
         variants.emplace_back(std::make_pair(name, ss.str()));
     }
 
-    return Enum{spelling, rename, comment, std::move(variants),
+    return Enum{spelling,
+                rename,
+                comment,
+                std::move(variants),
                 extract_qualtype(ed->getIntegerType(), mangle_ctx)};
 }
 
 auto Context::insert_enum_binding(std::string const& mod_id,
-                                  std::string const& id, Enum&& enm) -> void {
+                                  std::string const& id,
+                                  Enum&& enm) -> void {
     // First, find the module we're going to insert into
     // this should already have been extracted
     auto it_mod = _module_map.find(mod_id);
@@ -705,8 +744,10 @@ auto Context::insert_enum_binding(std::string const& mod_id,
     // somewhere
     if (auto it = _type_to_module_map.find(id);
         it != _type_to_module_map.end()) {
-        BBL_THROW("Enum {} ({}) is already bound in module {}", enm.spelling,
-                  id, mod.name);
+        BBL_THROW("Enum {} ({}) is already bound in module {}",
+                  enm.spelling,
+                  id,
+                  mod.name);
     } else {
         _type_to_module_map.emplace(id, mod_id);
     }
@@ -743,8 +784,11 @@ Context::Context() : _option_category("bbl::Context options") {}
 std::string Context::get_class_as_string(Class const& cls) {
     std::string result;
 
-    result = fmt::format("{}{} [{}:{}]", result, cls.spelling,
-                         cls.layout.size_bytes, cls.layout.align_bytes);
+    result = fmt::format("{}{} [{}:{}]",
+                         result,
+                         cls.spelling,
+                         cls.layout.size_bytes,
+                         cls.layout.align_bytes);
 
     switch (cls.bind_kind) {
     case BindKind::OpaquePtr:
@@ -851,11 +895,11 @@ std::string Context::get_function_as_string(Function const& function) {
             result = fmt::format("{}, ", result);
         }
 
-        result = fmt::format("{}{} {}", result,
-                             to_string(param.type, _decl_maps), param.name);
+        result = fmt::format(
+            "{}{} {}", result, to_string(param.type, _decl_maps), param.name);
     }
-    result = fmt::format("{}) -> {}", result,
-                         to_string(function.return_type, _decl_maps));
+    result = fmt::format(
+        "{}) -> {}", result, to_string(function.return_type, _decl_maps));
 
     if (!function.rename.empty()) {
         result = fmt::format("{} \"{}\"", result, function.rename);
@@ -871,7 +915,8 @@ std::string Context::get_function_as_string(Function const& function) {
 std::string Context::get_stdfunction_as_string(StdFunction const& function) {
     std::string result;
 
-    result = fmt::format("{} std::function<{} (", function.spelling,
+    result = fmt::format("{} std::function<{} (",
+                         function.spelling,
                          to_string(function.return_type, _decl_maps));
 
     bool first = true;
@@ -891,8 +936,8 @@ std::string Context::get_stdfunction_as_string(StdFunction const& function) {
 }
 
 std::string Context::get_enum_as_string(Enum const& enm) {
-    std::string result = fmt::format("{}: {} {{", enm.spelling,
-                                     to_string(enm.integer_type, _decl_maps));
+    std::string result = fmt::format(
+        "{}: {} {{", enm.spelling, to_string(enm.integer_type, _decl_maps));
 
     bool first = true;
     for (auto const& var : enm.variants) {
@@ -1010,10 +1055,13 @@ static auto create_mangle_context(clang::ASTContext& ast_context)
                                               ast_context.getDiagnostics()));
 }
 
-static auto extract_module_from_function_decl(
-    clang::FunctionDecl const* fd, bbl::Context* bbl_ctx,
-    clang::ASTContext* ast_context, clang::SourceManager const& sm,
-    clang::MangleContext* mangle_context) -> void {
+static auto
+extract_module_from_function_decl(clang::FunctionDecl const* fd,
+                                  bbl::Context* bbl_ctx,
+                                  clang::ASTContext* ast_context,
+                                  clang::SourceManager const& sm,
+                                  clang::MangleContext* mangle_context)
+    -> void {
     std::string name =
         fd->getNameAsString().substr(9); //< 9 is the length of "bbl_bind_"
     auto loc_expanded = sm.getExpansionLoc(fd->getSourceRange().getBegin());
@@ -1025,14 +1073,15 @@ static auto extract_module_from_function_decl(
         // module has already been created, add this source file to it
         mod->source_files.push_back(source_filename);
     } else {
-        bbl_ctx->insert_module(module_id, Module{
-                                              {source_filename},
-                                              name,
-                                              {}, // classes
-                                              {}, // functions
-                                              {}, // stdfunctions
-                                              {}, // enums
-                                          });
+        bbl_ctx->insert_module(module_id,
+                               Module{
+                                   {source_filename},
+                                   name,
+                                   {}, // classes
+                                   {}, // functions
+                                   {}, // stdfunctions
+                                   {}, // enums
+                               });
     }
 
     // Add this module's id to the list of modules in its source file
@@ -1086,7 +1135,8 @@ get_record_to_extract_from_construct_expr(clang::CXXConstructExpr const* cce) {
     if (crd->getQualifiedNameAsString() != "bbl::Class") {
         BBL_THROW("got class binding but underlying record {} - {} "
                   "does not match bbl::Class",
-                  crd->getQualifiedNameAsString(), crd->getID());
+                  crd->getQualifiedNameAsString(),
+                  crd->getID());
     }
 
     // Now we get the type that we're binding from the template
@@ -1183,8 +1233,8 @@ static BindKind search_for_bind_kind_calls(clang::Stmt const* stmt,
         if (me->getMemberDecl()->getNameAsString() == "value_type") {
             return BindKind::ValueType;
         } else if (me->getMemberDecl()->getNameAsString() == "opaque_bytes") {
-            // XXX: investigate this more. Getting stack corruption on linux (WSL) even though size and alignment is
-            // correct.
+            // XXX: investigate this more. Getting stack corruption on linux
+            // (WSL) even though size and alignment is correct.
             return BindKind::OpaquePtr;
         } else if (me->getMemberDecl()->getNameAsString() == "opaque_ptr") {
             return BindKind::OpaquePtr;
@@ -1202,10 +1252,13 @@ static BindKind search_for_bind_kind_calls(clang::Stmt const* stmt,
     return BindKind::OpaquePtr;
 }
 
-static auto extract_class_from_construct_expr(
-    clang::CXXConstructExpr const* construct_expr, bbl::Context* bbl_ctx,
-    clang::ASTContext* ast_context, clang::SourceManager const& sm,
-    clang::MangleContext* mangle_context) -> void {
+static auto
+extract_class_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
+                                  bbl::Context* bbl_ctx,
+                                  clang::ASTContext* ast_context,
+                                  clang::SourceManager const& sm,
+                                  clang::MangleContext* mangle_context)
+    -> void {
     // Find the class decl that we're binding from the bbl::Class<Foo>()
     // constructor
     clang::CXXRecordDecl const* type_record_decl =
@@ -1297,12 +1350,15 @@ static auto extract_class_from_construct_expr(
             StdFunction fun = bbl_ctx->extract_stdfunction_binding(
                 dyn_cast<clang::ClassTemplateSpecializationDecl>(
                     type_record_decl),
-                class_spelling, rename_str, comment, mangle_context);
+                class_spelling,
+                rename_str,
+                comment,
+                mangle_context);
             std::string id = get_mangled_name(type_record_decl, mangle_context);
 
             std::string mod_id;
-            if (!find_containing_module(construct_expr, ast_context,
-                                        mangle_context, mod_id)) {
+            if (!find_containing_module(
+                    construct_expr, ast_context, mangle_context, mod_id)) {
                 BBL_THROW("could not find containing module for {}",
                           get_source_text(construct_expr->getSourceRange(),
                                           ast_context->getSourceManager()));
@@ -1316,7 +1372,11 @@ static auto extract_class_from_construct_expr(
     } else {
         try {
             Class cls = bbl_ctx->extract_class_binding(
-                type_record_decl, class_spelling, rename_str, comment, layout,
+                type_record_decl,
+                class_spelling,
+                rename_str,
+                comment,
+                layout,
                 bind_kind,
                 RuleOfSeven{
                     is_copy_constructible,
@@ -1330,20 +1390,22 @@ static auto extract_class_from_construct_expr(
                     is_destructible,
                     has_virtual_destructor,
                 },
-                is_abstract, mangle_context);
+                is_abstract,
+                mangle_context);
 
             std::string id = get_mangled_name(type_record_decl, mangle_context);
 
             std::string mod_id;
-            if (!find_containing_module(construct_expr, ast_context,
-                                        mangle_context, mod_id)) {
+            if (!find_containing_module(
+                    construct_expr, ast_context, mangle_context, mod_id)) {
                 BBL_THROW("could not find containing module for {}",
                           get_source_text(construct_expr->getSourceRange(),
                                           ast_context->getSourceManager()));
             }
             bbl_ctx->insert_class_binding(mod_id, id, std::move(cls));
         } catch (std::runtime_error& e) {
-            BBL_RETHROW(e, "failed to extract class binding from\n{}",
+            BBL_RETHROW(e,
+                        "failed to extract class binding from\n{}",
                         get_source_and_location(construct_expr, sm));
         }
     }
@@ -1388,7 +1450,8 @@ get_enum_to_extract_from_construct_expr(clang::CXXConstructExpr const* cce,
     if (crd->getQualifiedNameAsString() != "bbl::Enum") {
         BBL_THROW("got enum binding but underlying record {} - {} "
                   "does not match bbl::Enum",
-                  crd->getQualifiedNameAsString(), crd->getID());
+                  crd->getQualifiedNameAsString(),
+                  crd->getID());
     }
 
     // Now we get the type that we're binding from the template
@@ -1411,7 +1474,8 @@ get_enum_to_extract_from_construct_expr(clang::CXXConstructExpr const* cce,
     // actually want to extract
     if (!type->isEnumeralType()) {
         BBL_THROW("tried to bind type \"{}\" as an Enum at\n{}",
-                  qt.getAsString(), get_source_and_location(cce, sm));
+                  qt.getAsString(),
+                  get_source_and_location(cce, sm));
     }
 
     clang::EnumDecl const* enum_decl =
@@ -1423,10 +1487,12 @@ get_enum_to_extract_from_construct_expr(clang::CXXConstructExpr const* cce,
     return enum_decl;
 }
 
-static auto extract_enum_from_construct_expr(
-    clang::CXXConstructExpr const* construct_expr, bbl::Context* bbl_ctx,
-    clang::ASTContext* ast_context, clang::SourceManager const& sm,
-    clang::MangleContext* mangle_context) -> void {
+static auto
+extract_enum_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
+                                 bbl::Context* bbl_ctx,
+                                 clang::ASTContext* ast_context,
+                                 clang::SourceManager const& sm,
+                                 clang::MangleContext* mangle_context) -> void {
     // Find the class decl that we're binding from the bbl::Class<Foo>()
     // constructor
     clang::EnumDecl const* enum_decl =
@@ -1462,8 +1528,8 @@ static auto extract_enum_from_construct_expr(
     std::string id = get_mangled_name(enum_decl, mangle_context);
 
     std::string mod_id;
-    if (!find_containing_module(construct_expr, ast_context, mangle_context,
-                                mod_id)) {
+    if (!find_containing_module(
+            construct_expr, ast_context, mangle_context, mod_id)) {
         BBL_THROW("could not find containing module for {}",
                   get_source_text(construct_expr->getSourceRange(),
                                   ast_context->getSourceManager()));
@@ -1534,10 +1600,13 @@ static auto get_target_record_decl_from_member_call_expr(
     }
 }
 
-static auto extract_method_from_decl_ref_expr(
-    clang::DeclRefExpr const* dre, bbl::Context* bbl_ctx,
-    clang::ASTContext* ast_context, clang::SourceManager& sm,
-    clang::MangleContext* mangle_context) -> void {
+static auto
+extract_method_from_decl_ref_expr(clang::DeclRefExpr const* dre,
+                                  bbl::Context* bbl_ctx,
+                                  clang::ASTContext* ast_context,
+                                  clang::SourceManager& sm,
+                                  clang::MangleContext* mangle_context)
+    -> void {
     auto const* cmd = llvm::dyn_cast<clang::CXXMethodDecl>(dre->getDecl());
     if (!cmd) {
         BBL_THROW("got decl ref expr but decl is not CXXMethodDecl");
@@ -1621,8 +1690,11 @@ static auto extract_method_from_decl_ref_expr(
                   cmd->getQualifiedNameAsString(),
                   crd_target->getQualifiedNameAsString(),
                   crd_target->getQualifiedNameAsString(),
-                  crd_parent->getQualifiedNameAsString(), source_text, filename,
-                  line, col);
+                  crd_parent->getQualifiedNameAsString(),
+                  source_text,
+                  filename,
+                  line,
+                  col);
     }
 
     bbl::Class* cls = bbl_ctx->get_class(target_class_id);
@@ -1632,15 +1704,16 @@ static auto extract_method_from_decl_ref_expr(
                   cmd->getQualifiedNameAsString(),
                   crd_target->getQualifiedNameAsString());
     }
+
     // extract and add the method to the corresponding class
+    // methods mangled names are based on the class in which
+    // they're first declared, which means we'll get
+    // "duplicate" entries for inherited methods.
+    // append the name of the target class to differentiate them
     std::string method_id = get_mangled_name(cmd, mangle_context);
+    method_id = fmt::format("{}/{}", method_id, crd_target->getQualifiedNameAsString());
 
     if (bbl_ctx->has_method(method_id)) {
-
-        // methods mangled names are based on the class in which
-        // they're first declared, which means we'll get
-        // "duplicate" entries for inherited methods.
-
         if (std::find(cls->methods.begin(), cls->methods.end(), method_id) !=
             cls->methods.end()) {
             // class already has method insert, warn
@@ -1648,28 +1721,37 @@ static auto extract_method_from_decl_ref_expr(
             SPDLOG_WARN("method {} is already bound on class "
                         "{}, ignoring "
                         "second binding",
-                        cmd->getQualifiedNameAsString(), cls->qualified_name);
+                        cmd->getQualifiedNameAsString(),
+                        cls->qualified_name);
         } else {
             cls->methods.push_back(method_id);
         }
     } else {
         std::string comment = get_comment_from_decl(cmd, ast_context);
         try {
-            bbl::Method method = bbl_ctx->extract_method_binding(
-                cmd, rename_str, template_call, comment, mangle_context);
+            bbl::Method method =
+                bbl_ctx->extract_method_binding(cmd,
+                                                target_class_id,
+                                                rename_str,
+                                                template_call,
+                                                comment,
+                                                mangle_context);
             bbl_ctx->insert_method_binding(method_id, std::move(method));
             cls->methods.emplace_back(std::move(method_id));
         } catch (std::exception& e) {
-            BBL_RETHROW(e, "could not bind method {}",
-                        cmd->getQualifiedNameAsString());
+            BBL_RETHROW(
+                e, "could not bind method {}", cmd->getQualifiedNameAsString());
         }
     }
 }
 
-static auto extract_function_from_decl_ref_expr(
-    clang::DeclRefExpr const* dre_fn, bbl::Context* bbl_ctx,
-    clang::ASTContext* ast_context, clang::SourceManager& sm,
-    clang::MangleContext* mangle_context) -> void {
+static auto
+extract_function_from_decl_ref_expr(clang::DeclRefExpr const* dre_fn,
+                                    bbl::Context* bbl_ctx,
+                                    clang::ASTContext* ast_context,
+                                    clang::SourceManager& sm,
+                                    clang::MangleContext* mangle_context)
+    -> void {
     // The DeclRefExpr that we get here will refer to bbl::fn. The
     // surrounding AST when binding a function `foo` is structured like:
     //
@@ -1779,10 +1861,12 @@ static auto extract_function_from_decl_ref_expr(
     }
 }
 
-static auto extract_field_from_decl_ref_expr(
-    clang::DeclRefExpr const* dre, bbl::Context* bbl_ctx,
-    clang::ASTContext* ast_context, clang::SourceManager& sm,
-    clang::MangleContext* mangle_context) -> void {
+static auto
+extract_field_from_decl_ref_expr(clang::DeclRefExpr const* dre,
+                                 bbl::Context* bbl_ctx,
+                                 clang::ASTContext* ast_context,
+                                 clang::SourceManager& sm,
+                                 clang::MangleContext* mangle_context) -> void {
     auto const* fd = llvm::dyn_cast_or_null<clang::FieldDecl>(dre->getDecl());
     if (!fd) {
         BBL_THROW("could not get FieldDecl from DeclRefExpr");
@@ -1792,7 +1876,8 @@ static auto extract_field_from_decl_ref_expr(
     try {
         qt_field = bbl_ctx->extract_qualtype(fd->getType(), mangle_context);
     } catch (std::exception& e) {
-        BBL_RETHROW(e, "could not extract field \"{}\" from class \"{}\"",
+        BBL_RETHROW(e,
+                    "could not extract field \"{}\" from class \"{}\"",
                     fd->getNameAsString(),
                     fd->getParent()->getQualifiedNameAsString());
     }
@@ -1848,10 +1933,13 @@ static auto extract_field_from_decl_ref_expr(
     });
 }
 
-static auto extract_ctor_from_member_call_expr(
-    clang::CXXMemberCallExpr const* mce, bbl::Context* bbl_ctx,
-    clang::ASTContext* ast_context, clang::SourceManager& sm,
-    clang::MangleContext* mangle_context) -> void {
+static auto
+extract_ctor_from_member_call_expr(clang::CXXMemberCallExpr const* mce,
+                                   bbl::Context* bbl_ctx,
+                                   clang::ASTContext* ast_context,
+                                   clang::SourceManager& sm,
+                                   clang::MangleContext* mangle_context)
+    -> void {
     clang::CXXConstructExpr const* cce = nullptr;
     visit_subtree(mce, [&](clang::Stmt const* stmt) {
         if (auto const* _cce = dyn_cast<clang::CXXConstructExpr>(stmt)) {
@@ -1966,20 +2054,23 @@ static auto extract_ctor_from_member_call_expr(
     // type-matching the parameters?
     std::string ctor_id =
         fmt::format("{}/ctor/{}", rename_str, target_class_id);
-    bbl_ctx->insert_constructor_binding(ctor_id, Constructor{
-                                                     rename_str,
-                                                     comment,
-                                                     std::move(parameters),
-                                                     is_noexcept,
-                                                 });
+    bbl_ctx->insert_constructor_binding(ctor_id,
+                                        Constructor{
+                                            rename_str,
+                                            comment,
+                                            std::move(parameters),
+                                            is_noexcept,
+                                        });
 
     // Add the constructor to the class
     cls->constructors.emplace_back(ctor_id);
 }
 
 static auto extract_replacement_type_from_member_call_expr(
-    clang::CXXMemberCallExpr const* mce, bbl::Context* bbl_ctx,
-    clang::ASTContext* ast_context, clang::SourceManager& sm,
+    clang::CXXMemberCallExpr const* mce,
+    bbl::Context* bbl_ctx,
+    clang::ASTContext* ast_context,
+    clang::SourceManager& sm,
     clang::MangleContext* mangle_context) -> void {
     // type to replace with will be the first (and only) template
     // argument
@@ -2033,6 +2124,57 @@ static auto extract_replacement_type_from_member_call_expr(
     }
 }
 
+static auto
+extract_smartptr_to_from_member_call_expr(clang::CXXMemberCallExpr const* mce,
+                                          bbl::Context* bbl_ctx,
+                                          clang::ASTContext* ast_context,
+                                          clang::SourceManager& sm,
+                                          clang::MangleContext* mangle_context)
+    -> void {
+    // type to delegate to will be the first (and only) template
+    // argument
+    clang::CXXMethodDecl const* cmd = mce->getMethodDecl();
+    clang::TemplateArgumentList const* template_args =
+        cmd->getTemplateSpecializationArgs();
+    if (template_args == nullptr || template_args->size() != 1) {
+        BBL_THROW("got bad template argument list for smartptr_to. "
+                  "Expected single template argument");
+    }
+
+    clang::RecordDecl const* rd_smartptr_to =
+        template_args->data()->getAsType()->getAsRecordDecl();
+    if (!rd_smartptr_to) {
+        BBL_THROW("could not get RecordDecl for smartptr_to type");
+    }
+
+    // find the CXXConstructExpr to get the class we're
+    // attaching to
+    // XXX: handle object instance not ctor
+    auto const* cce_target =
+        find_first_descendent_of_type<clang::CXXConstructExpr>(mce);
+    if (cce_target == nullptr) {
+        BBL_THROW("could not get CXXConstructExpr from "
+                  "CXXMemberCallExpr {}",
+                  get_source_text(mce->getSourceRange(), sm));
+    }
+
+    // And finally get the target class
+    clang::CXXRecordDecl const* crd_target =
+        get_record_to_extract_from_construct_expr(cce_target);
+
+    std::string target_class_id = get_mangled_name(crd_target, mangle_context);
+    std::string smartptr_to_id =
+        get_mangled_name(rd_smartptr_to, mangle_context);
+
+    if (bbl::Class* cls = bbl_ctx->get_class(target_class_id)) {
+        cls->smartptr_to = smartptr_to_id;
+    } else {
+        BBL_THROW("smartptr_to is targeting class {} but this class "
+                  "is not extracted",
+                  crd_target->getQualifiedNameAsString());
+    }
+}
+
 class ModuleVisitor : public clang::RecursiveASTVisitor<ModuleVisitor> {
     clang::ASTContext* _ast_context;
     bbl::Context* _bbl_ctx;
@@ -2048,8 +2190,8 @@ public:
 
     bool VisitFunctionDecl(clang::FunctionDecl* fd) {
         if (fd->getNameAsString().find("bbl_bind_") == 0) {
-            extract_module_from_function_decl(fd, _bbl_ctx, _ast_context, _sm,
-                                              _mangle_context.get());
+            extract_module_from_function_decl(
+                fd, _bbl_ctx, _ast_context, _sm, _mangle_context.get());
         }
         return true;
     }
@@ -2091,11 +2233,11 @@ public:
         }
 
         if (crd->getQualifiedNameAsString() == "bbl::Class") {
-            extract_class_from_construct_expr(cce, _bbl_ctx, _ast_context, _sm,
-                                              _mangle_context.get());
+            extract_class_from_construct_expr(
+                cce, _bbl_ctx, _ast_context, _sm, _mangle_context.get());
         } else if (crd->getQualifiedNameAsString() == "bbl::Enum") {
-            extract_enum_from_construct_expr(cce, _bbl_ctx, _ast_context, _sm,
-                                             _mangle_context.get());
+            extract_enum_from_construct_expr(
+                cce, _bbl_ctx, _ast_context, _sm, _mangle_context.get());
         }
 
         return true;
@@ -2140,8 +2282,10 @@ public:
                         dre, _ast_context)) {
 
                 if (cmce->getMethodDecl()->getName() == "m") {
-                    extract_method_from_decl_ref_expr(dre, _bbl_ctx,
-                                                      _ast_context, _sm,
+                    extract_method_from_decl_ref_expr(dre,
+                                                      _bbl_ctx,
+                                                      _ast_context,
+                                                      _sm,
                                                       _mangle_context.get());
                 } else {
                     SPDLOG_WARN(
@@ -2154,8 +2298,8 @@ public:
         } else if (auto const* fd = llvm::dyn_cast_or_null<clang::FunctionDecl>(
                        dre->getDecl())) {
             if (fd->getQualifiedNameAsString() == "bbl::fn") {
-                extract_function_from_decl_ref_expr(dre, _bbl_ctx, _ast_context,
-                                                    _sm, _mangle_context.get());
+                extract_function_from_decl_ref_expr(
+                    dre, _bbl_ctx, _ast_context, _sm, _mangle_context.get());
             }
         } else if (auto const* fd = llvm::dyn_cast_or_null<clang::FieldDecl>(
                        dre->getDecl())) {
@@ -2166,8 +2310,10 @@ public:
                     find_first_ancestor_of_type<clang::CXXMemberCallExpr>(
                         dre, _ast_context)) {
                 if (cmce->getMethodDecl()->getName() == "f") {
-                    extract_field_from_decl_ref_expr(dre, _bbl_ctx,
-                                                     _ast_context, _sm,
+                    extract_field_from_decl_ref_expr(dre,
+                                                     _bbl_ctx,
+                                                     _ast_context,
+                                                     _sm,
                                                      _mangle_context.get());
                 }
             }
@@ -2183,10 +2329,13 @@ public:
 
         if (auto const* cmd = cmce->getMethodDecl()) {
             if (cmd->getName() == "ctor") {
-                extract_ctor_from_member_call_expr(cmce, _bbl_ctx, _ast_context,
-                                                   _sm, _mangle_context.get());
+                extract_ctor_from_member_call_expr(
+                    cmce, _bbl_ctx, _ast_context, _sm, _mangle_context.get());
             } else if (cmd->getName() == "replace_with") {
                 extract_replacement_type_from_member_call_expr(
+                    cmce, _bbl_ctx, _ast_context, _sm, _mangle_context.get());
+            } else if (cmd->getName() == "smartptr_to") {
+                extract_smartptr_to_from_member_call_expr(
                     cmce, _bbl_ctx, _ast_context, _sm, _mangle_context.get());
             }
         }
@@ -2202,8 +2351,8 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
     Timer timer_all;
 
     llvm::Expected<clang::tooling::CommonOptionsParser> opt =
-        clang::tooling::CommonOptionsParser::create(argc, argv,
-                                                    _option_category);
+        clang::tooling::CommonOptionsParser::create(
+            argc, argv, _option_category);
     if (!opt) {
         BBL_THROW("clang could not parse options");
     }

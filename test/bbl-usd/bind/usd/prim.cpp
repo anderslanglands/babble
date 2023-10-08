@@ -1,8 +1,8 @@
-#include <pxr/usd/usd/property.h>
 #if defined(__clang__)
 
 #include "babble"
 #include "babble-std"
+#include "babble-usd"
 
 #include <pxr/usd/usd/primTypeInfo.h>
 #include <pxr/usd/sdf/proxyTypes.h>
@@ -12,6 +12,7 @@
 #include <pxr/usd/usd/primDefinition.h>
 #include <pxr/usd/usd/primRange.h>
 #include <pxr/usd/usd/schemaRegistry.h>
+#include <pxr/usd/usd/property.h>
 
 #include <vector>
 
@@ -276,7 +277,10 @@ BBL_MODULE(usd) {
         .m(&Prim::GetPrimIndex)
         .m(&Prim::ComputeExpandedPrimIndex)
         .m(&Prim::MakeResolveTargetUpToEditTarget)
-        .m(&Prim::MakeResolveTargetStrongerThanEditTarget);
+        .m(&Prim::MakeResolveTargetStrongerThanEditTarget)
+        
+        OBJECT_METHODS(PXR_NS::UsdPrim)
+        ;
 
     // end Prim
 

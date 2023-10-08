@@ -579,8 +579,13 @@ bbl_result_t bbl_capi_function_get_receiver_param(bbl_capi_function_t function, 
         return BBL_RESULT_ArgumentIsNull;
     }
 
-    if (function->receiver.has_value()) {
-        *receiver_param = &*function->receiver;
+    if (std::holds_alternative<bbl::C_Param>(function->receiver)) {
+        auto const& param = std::get<bbl::C_Param>(function->receiver);
+        *receiver_param = &param;
+        return BBL_RESULT_Success;
+    } else if (std::holds_alternative<bbl::C_SmartPtr>(function->receiver)) {
+        auto const& param = std::get<bbl::C_SmartPtr>(function->receiver);
+        *receiver_param = &param.smartptr;
         return BBL_RESULT_Success;
     } else {
         return BBL_RESULT_NotFound;

@@ -1,5 +1,3 @@
-#include <pxr/base/tf/hashmap.h>
-#include <pxr/usd/sdf/path.h>
 #if defined(__clang__)
 
 #include "babble"
@@ -7,7 +5,11 @@
 
 #include <pxr/base/gf/bbox3d.h>
 #include <pxr/base/gf/matrix4d.h>
+#include <pxr/base/tf/hashmap.h>
 #include <pxr/base/tf/token.h>
+#include <pxr/base/vt/types.h>
+#include <pxr/base/vt/value.h>
+#include <pxr/usd/sdf/path.h>
 #include <pxr/usd/usd/attribute.h>
 #include <pxr/usd/usd/prim.h>
 #include <pxr/usd/usd/timeCode.h>
@@ -44,9 +46,6 @@
 #include <pxr/usd/usdGeom/xformCommonAPI.h>
 #include <pxr/usd/usdGeom/xformOp.h>
 #include <pxr/usd/usdGeom/xformable.h>
-#include <pxr/base/vt/types.h>
-#include <pxr/base/vt/value.h>
-
 
 BBL_MODULE(usdGeom) {
     // clang-format off

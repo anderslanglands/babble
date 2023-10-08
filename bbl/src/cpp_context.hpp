@@ -142,6 +142,7 @@ struct Function {
 /// A method, as bound by the `.m()` call on bbl::Class
 struct Method {
     Function function;
+    std::string target_class_id;
     bool is_const;
     bool is_static;
     bool is_virtual;
@@ -217,6 +218,7 @@ struct Class {
     std::vector<std::string> methods;
     std::vector<std::string> constructors;
     std::vector<Field> fields;
+    std::optional<std::string> smartptr_to;
     Layout layout;
     BindKind bind_kind;
     RuleOfSeven rule_of_seven;
@@ -389,6 +391,7 @@ public:
     /// bbl::Method
     [[nodiscard]] auto
     extract_method_binding(clang::CXXMethodDecl const* cmd,
+                           std::string const& target_class_id,
                            std::string const& rename,
                            std::string const& template_call,
                            std::string const& comment,
