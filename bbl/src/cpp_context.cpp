@@ -37,6 +37,42 @@ using llvm::dyn_cast;
 
 namespace bbl {
 
+QType clone(QType const& qt) {
+    if (std::holds_alternative<Type>(qt.type)) {
+        const auto& type = std::get<Type>(qt.type);
+        return QType {
+            qt.is_const,
+            type
+        };
+    } else if (std::holds_alternative<Pointer>(qt.type)) {
+        const auto& pointer = std::get<Pointer>(qt.type);
+        return QType {
+            qt.is_const,
+            Pointer{std::make_unique<QType>(clone(*pointer.pointee))}
+        };
+    } else if (std::holds_alternative<LValueReference>(qt.type)) {
+        const auto& lvref = std::get<LValueReference>(qt.type);
+        return QType {
+            qt.is_const,
+            LValueReference{std::make_unique<QType>(clone(*lvref.pointee))}
+        };
+    } else if (std::holds_alternative<RValueReference>(qt.type)) {
+        const auto& rvref = std::get<RValueReference>(qt.type);
+        return QType {
+            qt.is_const,
+            RValueReference{std::make_unique<QType>(clone(*rvref.pointee))}
+        };
+    } else if (std::holds_alternative<Array>(qt.type)) {
+        const auto& array = std::get<Array>(qt.type);
+        return QType {
+            qt.is_const,
+            Array{std::make_unique<QType>(clone(*array.element_type)), array.size}
+        };
+    } else {
+        BBL_THROW("unreachable QType variant");
+    }
+}
+
 class Timer {
     using time_point = std::chrono::time_point<std::chrono::steady_clock>;
 
@@ -619,6 +655,16 @@ auto Context::get_stdfunction(std::string const& id) noexcept -> StdFunction* {
     }
 }
 
+auto Context::get_stdfunction(std::string const& id) const noexcept
+    -> StdFunction const* {
+    if (auto it = _decl_maps.stdfunction_map.find(id);
+        it != _decl_maps.stdfunction_map.end()) {
+        return &it->second;
+    } else {
+        return nullptr;
+    }
+}
+
 auto Context::stdfunctions() const noexcept
     -> StdFunctionMap::value_container_type const& {
     return _decl_maps.stdfunction_map.values();
@@ -666,8 +712,11 @@ auto Context::extract_stdfunction_binding(
 
         std::string id = get_mangled_name(ctsd, mangle_ctx);
         _decl_maps.typename_map[id] = spelling;
-        return StdFunction{
-            spelling, comment, std::move(return_type), std::move(parameters)};
+        return StdFunction{spelling,
+                           rename,
+                           comment,
+                           std::move(return_type),
+                           std::move(parameters)};
     } else {
         BBL_THROW("got std::function CTSD {} but template "
                   "argument is not a "
@@ -1711,7 +1760,8 @@ extract_method_from_decl_ref_expr(clang::DeclRefExpr const* dre,
     // "duplicate" entries for inherited methods.
     // append the name of the target class to differentiate them
     std::string method_id = get_mangled_name(cmd, mangle_context);
-    method_id = fmt::format("{}/{}", method_id, crd_target->getQualifiedNameAsString());
+    method_id =
+        fmt::format("{}/{}", method_id, crd_target->getQualifiedNameAsString());
 
     if (bbl_ctx->has_method(method_id)) {
         if (std::find(cls->methods.begin(), cls->methods.end(), method_id) !=

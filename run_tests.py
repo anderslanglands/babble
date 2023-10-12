@@ -63,8 +63,8 @@ for test in TESTS:
     ref_c = ref_c_f.readlines()
     ref_h = ref_h_f.readlines()
 
-    diff_c = "".join(difflib.unified_diff(tst_c, ref_c, tst_c_p, ref_c_p))
-    diff_h = "".join(difflib.unified_diff(tst_h, ref_h, tst_h_p, ref_h_p))
+    diff_c = "".join(difflib.unified_diff(ref_c, tst_c, ref_c_p, tst_c_p))
+    diff_h = "".join(difflib.unified_diff(ref_h, tst_h, ref_h_p, tst_h_p))
 
     if diff_c or diff_h:
         print(f"FAILED {test}")

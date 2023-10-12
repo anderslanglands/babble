@@ -109,6 +109,8 @@ struct QType {
     std::variant<Type, Pointer, LValueReference, RValueReference, Array> type;
 };
 
+QType clone(QType const& qt);
+
 /// An integral value, represented as a string for precision's sake. Used to
 /// store template arguments
 struct Integral {
@@ -232,6 +234,7 @@ struct Class {
 /// We have separate bindings for these because they require special handling
 struct StdFunction {
     std::string spelling;
+    std::string rename;
     std::string comment;
     QType return_type;
     std::vector<QType> params;
@@ -371,6 +374,7 @@ public:
     /// Get the StdFunction with given `id`. Returns nullptr on failure
     auto has_stdfunction(std::string const& id) const noexcept -> bool;
     auto get_stdfunction(std::string const& id) noexcept -> StdFunction*;
+    auto get_stdfunction(std::string const& id) const noexcept -> StdFunction const*;
 
     auto stdfunctions() const noexcept
         -> StdFunctionMap::value_container_type const&;

@@ -22,17 +22,17 @@ extern "C" {
 
 /** structs */
 
-typedef struct test018_qux::Foo_t test018_qux::Foo_t;
+typedef struct test018_Foo_t test018_Foo_t;
 
 
 
 /** functions */
 
-int test018_qux::Foo_do_foo(test018_qux::Foo_t const* _this, bool(*)(test018_qux::Foo_t const*)* fun);
+int test018_Foo_do_foo(test018_Foo_t const* _this, void (*fun)(test018_Foo_t const* param00, int param01, float param02, test018_Foo_t* _result));
 
-int test018_qux::Foo_ctor(int a, float b, test018_qux::Foo_t** _result);
+int test018_Foo_ctor(int a, float b, test018_Foo_t** _result);
 
-int test018_qux::Foo_dtor(test018_qux::Foo_t* _this);
+int test018_Foo_dtor(test018_Foo_t* _this);
 
 
 

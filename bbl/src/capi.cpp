@@ -6,6 +6,7 @@
 #include <memory>
 #include <optional>
 #include <stdexcept>
+#include <utility>
 #include <variant>
 
 namespace bbl {
@@ -32,6 +33,44 @@ static auto is_void(C_QType const& qt) -> bool {
     return false;
 }
 
+auto is_stdfunction(QType const& qt) -> bool {
+    if (std::holds_alternative<Type>(qt.type)) {
+        Type const& type = std::get<Type>(qt.type);
+        if (std::holds_alternative<StdFunctionId>(type.kind)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+auto get_stdfunction_id(QType const& qt) -> std::optional<std::string> {
+    if (std::holds_alternative<Type>(qt.type)) {
+        Type const& type = std::get<Type>(qt.type);
+        if (std::holds_alternative<StdFunctionId>(type.kind)) {
+            return std::get<StdFunctionId>(type.kind).id;
+        } else {
+            return {};
+        }
+    } else if (std::holds_alternative<LValueReference>(qt.type)) {
+        auto const& lvref = std::get<LValueReference>(qt.type);
+        return get_stdfunction_id(*lvref.pointee);
+    } else {
+        return {};
+    }
+}
+
+auto is_stdfunction(C_QType const& qt) -> bool {
+    if (std::holds_alternative<C_Type>(qt.type)) {
+        auto const& type = std::get<C_Type>(qt.type);
+        if (std::holds_alternative<C_StdFunctionId>(type.kind)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 // Return the builtin that this QType holds, if it does. Will throw otherwise
 static auto get_builtin(QType const& qt) -> bbl_builtin_t {
     Type const& type = std::get<Type>(qt.type);
@@ -44,8 +83,37 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
     for (auto const& [cpp_id, cpp_mod] : _cpp_ctx.modules()) {
         std::vector<std::string> mod_structs;
         std::vector<std::string> mod_functions;
+        std::vector<std::string> mod_stdfunctions;
         std::vector<std::string> mod_enums;
 
+        // Translate all enums
+        for (auto const& cpp_enum_id : cpp_mod.enums) {
+            auto const* cpp_enum = _cpp_ctx.get_enum(cpp_enum_id);
+            std::string enum_namespace = replace_namespace_prefix(
+                cpp_enum->rename.empty() ? cpp_enum->spelling
+                                         : cpp_enum->rename,
+                cpp_mod.name);
+
+            std::string enum_name = fmt::format("{}", enum_namespace);
+            bbl_builtin_t integer_type = get_builtin(cpp_enum->integer_type);
+
+            std::vector<EnumVariant> c_variants;
+            for (auto const& var : cpp_enum->variants) {
+                c_variants.emplace_back(
+                    fmt::format("{}_{}", enum_name, var.first), var.second);
+            }
+
+            _enums.emplace(cpp_enum_id,
+                           C_Enum{
+                               enum_name,
+                               cpp_enum->comment,
+                               std::move(c_variants),
+                               integer_type,
+                           });
+            mod_enums.push_back(cpp_enum_id);
+        }
+
+        // translate all classes
         for (auto const& cpp_class_id : cpp_mod.classes) {
             auto const* cpp_cls = _cpp_ctx.get_class(cpp_class_id);
             assert(cpp_cls);
@@ -81,6 +149,37 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
                 cpp_class_id,
                 C_Struct{*cpp_cls, struct_name, cpp_cls->comment, fields});
             mod_structs.push_back(cpp_class_id);
+        }
+
+        // Translate stdfunctions
+        for (auto const& cpp_fun_id : cpp_mod.stdfunctions) {
+            auto const* cpp_fun = _cpp_ctx.get_stdfunction(cpp_fun_id);
+
+            try {
+                C_StdFunction c_fun =
+                    _translate_stdfunction(cpp_fun, cpp_mod.name);
+                _stdfunctions.emplace(cpp_fun_id, std::move(c_fun));
+                mod_stdfunctions.push_back(cpp_fun_id);
+            } catch (MissingTypeBindingException& e) {
+                SPDLOG_ERROR("could not translate stdfunction {}. "
+                             "Function will be ignored.\n{}",
+                             cpp_fun->spelling,
+                             e.what());
+            }
+        }
+
+        // now translate class methods (after stdfunctions)
+        for (auto const& cpp_class_id : cpp_mod.classes) {
+            auto const* cpp_cls = _cpp_ctx.get_class(cpp_class_id);
+            assert(cpp_cls);
+
+            // Construct the struct name from the name of the module, and the
+            // spelling or rename string
+            std::string struct_namespace = replace_namespace_prefix(
+                cpp_cls->rename.empty() ? cpp_cls->spelling : cpp_cls->rename,
+                cpp_mod.name);
+
+            std::string struct_name = fmt::format("{}_t", struct_namespace);
 
             // Translate all methods to functions
             for (auto const& method_id : cpp_cls->methods) {
@@ -186,33 +285,6 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
             }
         }
 
-        // Translate all enums
-        for (auto const& cpp_enum_id : cpp_mod.enums) {
-            auto const* cpp_enum = _cpp_ctx.get_enum(cpp_enum_id);
-            std::string enum_namespace = replace_namespace_prefix(
-                cpp_enum->rename.empty() ? cpp_enum->spelling
-                                         : cpp_enum->rename,
-                cpp_mod.name);
-
-            std::string enum_name = fmt::format("{}", enum_namespace);
-            bbl_builtin_t integer_type = get_builtin(cpp_enum->integer_type);
-
-            std::vector<EnumVariant> c_variants;
-            for (auto const& var : cpp_enum->variants) {
-                c_variants.emplace_back(
-                    fmt::format("{}_{}", enum_name, var.first), var.second);
-            }
-
-            _enums.emplace(cpp_enum_id,
-                           C_Enum{
-                               enum_name,
-                               cpp_enum->comment,
-                               std::move(c_variants),
-                               integer_type,
-                           });
-            mod_enums.push_back(cpp_enum_id);
-        }
-
         // Translate functions
         for (auto const& cpp_fun_id : cpp_mod.functions) {
             auto const* cpp_fun = _cpp_ctx.get_function(cpp_fun_id);
@@ -251,27 +323,28 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
                                        mod_inclusions,
                                        std::move(mod_structs),
                                        std::move(mod_functions),
-                                       {}, // stdfunctions
+                                       std::move(mod_stdfunctions),
                                        std::move(mod_enums),
                                        cpp_mod.function_impls});
     }
 
     // translate all std functions
-    for (auto const& [cpp_stdfun_id, cpp_stdfun] : _cpp_ctx.stdfunctions()) {
-        C_QType result_type = _translate_qtype(cpp_stdfun.return_type);
+    // for (auto const& [cpp_stdfun_id, cpp_stdfun] : _cpp_ctx.stdfunctions()) {
+    //     C_QType result_type = _translate_qtype(cpp_stdfun.return_type);
 
-        std::vector<C_QType> c_params;
-        for (auto const& param : cpp_stdfun.params) {
-            c_params.emplace_back(_translate_qtype(param));
-        }
+    //     std::vector<C_QType> c_params;
+    //     for (auto const& param : cpp_stdfun.params) {
+    //         c_params.emplace_back(_translate_qtype(param));
+    //     }
 
-        _stdfunctions.emplace(cpp_stdfun_id,
-                              C_StdFunction{
-                                  result_type,
-                                  cpp_stdfun.comment,
-                                  std::move(c_params),
-                              });
-    }
+    //     _stdfunctions.emplace(cpp_stdfun_id,
+    //                           C_StdFunction{
+    //                               cpp_stdfun.rename,
+    //                               result_type,
+    //                               cpp_stdfun.comment,
+    //                               std::move(c_params),
+    //                           });
+    // }
 }
 
 auto C_API::_get_c_qtype_as_string(C_QType const& qt,
@@ -279,8 +352,7 @@ auto C_API::_get_c_qtype_as_string(C_QType const& qt,
     -> std::string {
     char const* s_const = qt.is_const ? " const" : "";
 
-    std::string name_with_space =
-        name.empty() ? name : fmt::format(" {}", name);
+    std::string name_with_space = name.empty() ? "" : fmt::format(" {}", name);
 
     if (std::holds_alternative<C_Type>(qt.type)) {
         C_Type const& c_type = std::get<C_Type>(qt.type);
@@ -300,21 +372,7 @@ auto C_API::_get_c_qtype_as_string(C_QType const& qt,
         } else if (std::holds_alternative<C_StdFunctionId>(c_type.kind)) {
             C_StdFunctionId fun_id = std::get<C_StdFunctionId>(c_type.kind);
             C_StdFunction const& fun = _stdfunctions.at(fun_id.id);
-
-            std::string result = fmt::format(
-                "{}(*{})(", _get_c_qtype_as_string(fun.return_type, ""), name);
-            bool first = true;
-            for (auto const& param : fun.params) {
-                if (first) {
-                    first = false;
-                } else {
-                    result = fmt::format("{}, ", result);
-                }
-
-                result = fmt::format(
-                    "{}{}", result, _get_c_qtype_as_string(param, ""));
-            }
-            return fmt::format("{})", result);
+            return _get_stdfunction_type_as_string(fun, name);
         } else {
             BBL_THROW("unhandled variant");
         }
@@ -337,13 +395,45 @@ auto C_API::_get_c_qtype_as_string(C_QType const& qt,
     }
 }
 
+auto C_API::_get_stdfunction_type_as_string(C_StdFunction const& fun,
+                                            std::string const& name) const
+    -> std::string {
+    std::string result = fmt::format("void (*{})(", name);
+    bool first = true;
+
+    for (auto const& param : fun.params) {
+        if (first) {
+            first = false;
+        } else {
+            result = fmt::format("{}, ", result);
+        }
+
+        result = fmt::format(
+            "{}{}", result, _get_c_qtype_as_string(param.type, param.name));
+    }
+
+    if (fun.return_type.has_value()) {
+        if (!first) {
+            result = fmt::format("{}, ", result);
+        }
+
+        result = fmt::format("{}{}",
+                             result,
+                             _get_c_qtype_as_string(fun.return_type->type,
+                                                    fun.return_type->name));
+    }
+
+    return fmt::format("{})", result);
+}
+
 // Returns true if the given QType is an l-value reference
 static bool is_lvalue_reference(QType const& qt) {
-    if (std::holds_alternative<LValueReference>(qt.type)) {
-        return true;
-    } else {
-        return false;
-    }
+    return std::holds_alternative<LValueReference>(qt.type);
+}
+
+// Returns true if the given QType is an r-value reference
+static bool is_rvalue_reference(QType const& qt) {
+    return std::holds_alternative<RValueReference>(qt.type);
 }
 
 // Returns true if the given QType is a pointer
@@ -626,12 +716,14 @@ auto C_API::_translate_method(Method const* method,
 
     std::vector<ExprPtr> body;
     std::vector<ExprPtr> expr_params;
+    std::vector<ExprPtr> decls;
 
-    _translate_parameter_list(method->function.params, c_params, expr_params);
+    _translate_parameter_list(
+        method->function.params, c_params, expr_params, body);
 
-    ExprPtr expr_call =
-        ExprCall::create(method->function.name + method->function.template_call,
-                         std::move(expr_params));
+    ExprPtr expr_call = ExprCall::create(
+        method->function.name + method->function.template_call,
+        std::make_unique<ExprParameterList>(std::move(expr_params)));
 
     Class const* cls = _cpp_ctx.get_class(class_id);
     assert(cls);
@@ -645,9 +737,10 @@ auto C_API::_translate_method(Method const* method,
         // we need to put an extra deref around the smart pointer to delegate to
         // the underlying class
         auto const& param = std::get<C_SmartPtr>(receiver);
-        receiving_call = ExprArrow::create(
-            ExprParen::create(ExprDeref::create(ExprToken::create(param.smartptr.name))),
-            std::move(expr_call));
+        receiving_call =
+            ExprArrow::create(ExprParen::create(ExprDeref::create(
+                                  ExprToken::create(param.smartptr.name))),
+                              std::move(expr_call));
     } else {
         receiving_call =
             ExprNamespaceRef::create(cls->spelling, std::move(expr_call));
@@ -716,11 +809,13 @@ auto C_API::_translate_function(Function const* function,
 
     std::vector<ExprPtr> body;
     std::vector<ExprPtr> expr_params;
+    std::vector<ExprPtr> decls;
 
-    _translate_parameter_list(function->params, c_params, expr_params);
+    _translate_parameter_list(function->params, c_params, expr_params, decls);
 
     ExprPtr expr_call = ExprCall::create(
-        function->name + function->template_call, std::move(expr_params));
+        function->name + function->template_call,
+        std::make_unique<ExprParameterList>(std::move(expr_params)));
 
     if (result.has_value()) {
         // if the function returns a reference, we need to wrap the call in an
@@ -765,10 +860,129 @@ auto C_API::_translate_function(Function const* function,
     };
 }
 
+auto C_API::_translate_stdfunction(StdFunction const* stdfunction,
+                                   std::string const& function_prefix)
+    -> C_StdFunction {
+    // Function name is the name of the struct followed by either the rename or
+    // original method name
+    std::string function_name = stdfunction->rename.empty()
+                                    ? "AUTOGENERATED_NAME"
+                                    : stdfunction->rename;
+
+    if (!function_prefix.empty()) {
+        function_name = fmt::format("{}_{}", function_prefix, function_name);
+    }
+
+    // C_QType result_type = _translate_qtype(stdfunction->return_type);
+
+    // std::vector<C_QType> c_params;
+    // for (auto const& param : stdfunction->params) {
+    //     c_params.emplace_back(_translate_qtype(param));
+    // }
+
+    std::optional<C_Param> result =
+        _translate_return_type(stdfunction->return_type);
+    bool result_is_reference_to_opaqueptr =
+        is_reference_to_opaqueptr(stdfunction->return_type, _cpp_ctx);
+
+    std::vector<C_Param> c_params;
+
+    std::vector<ExprPtr> body;
+    std::vector<ExprPtr> expr_params;
+    std::vector<ExprPtr> decls;
+
+    std::vector<Param> named_params;
+    int param_index = 0;
+    for (auto const& cpp_qt : stdfunction->params) {
+        named_params.push_back(
+            Param{fmt::format("param{:02}", param_index), clone(cpp_qt)});
+
+        param_index++;
+    }
+
+    _translate_parameter_list(named_params, c_params, expr_params, decls);
+
+    return C_StdFunction{
+        stdfunction,
+        stdfunction->rename,
+        result,
+        stdfunction->comment,
+        std::move(named_params),
+        std::move(c_params),
+    };
+}
+
+auto C_API::_generate_stdfunction_wraper(std::string const& id,
+                                         std::string const& fun_param_name)
+    -> ExprPtr {
+    C_StdFunction const& c_fun = _stdfunctions.at(id);
+    StdFunction const* cpp_fun = c_fun.cpp_fun;
+
+    std::vector<ExprPtr> expr_lambda_params;
+    std::vector<ExprPtr> expr_c_call_params;
+    for (size_t i = 0; i < cpp_fun->params.size(); ++i) {
+        QType const& cpp_param = cpp_fun->params[i];
+        std::string const& name = c_fun.params[i].name;
+
+        expr_lambda_params.emplace_back(ex_token(fmt::format(
+            "{} {}", _cpp_ctx.get_qtype_as_string(cpp_param), name)));
+
+        // now we need to handle passing the C++ parameter to C
+        // if the param is pass-by-value and the type is opaqueptr, or if it is
+        // an lvalue reference, then it will be expected as a pointer
+        if (is_by_value(cpp_param) && is_opaqueptr(cpp_param, _cpp_ctx) ||
+            is_lvalue_reference(cpp_param)) {
+            expr_c_call_params.emplace_back(ex_address(ex_token(name)));
+        } else {
+            expr_c_call_params.emplace_back(ex_token(name));
+        }
+    }
+
+    std::vector<ExprPtr> expr_lambda_body;
+
+    if (c_fun.return_type.has_value()) {
+        C_Param const& c_result = c_fun.return_type.value();
+        // add the variable declaration and pass of the return value
+        expr_lambda_body.emplace_back(ex_var_decl(
+            ex_token(_cpp_ctx.get_qtype_as_string(cpp_fun->return_type)),
+            ex_token(c_result.name)));
+        expr_c_call_params.emplace_back(ex_address(ex_token(c_result.name)));
+    }
+
+    // create the call expression from the function pointer name and parameter
+    // list and add it to the lambda body
+    ExprPtr expr_c_call = ex_call(
+        fun_param_name, ex_parameter_list(std::move(expr_c_call_params)));
+    expr_lambda_body.emplace_back(std::move(expr_c_call));
+
+    if (c_fun.return_type.has_value()) {
+        // add the return to the lambda body
+        C_Param const& c_result = c_fun.return_type.value();
+        expr_lambda_body.emplace_back(ex_result(ex_token(c_result.name)));
+    }
+
+    // create the compound for the lambda body from the individual statements
+    // ExprPtr expr_lambda_compound = ex_compound(std::move(expr_lambda_body));
+
+    // ExprPtr expr_lambda_param_list =
+    //     ExprParameterList::create(std::move(expr_lambda_params));
+
+    // return ExprToken::create(
+    //     fmt::format("auto {}_wrapper = [&]{} {{\n{}    }}",
+    //                 fun_param_name,
+    //                 expr_lambda_param_list->to_string(0),
+    //                 expr_lambda_compound->to_string(2)));
+    return ex_token(
+        ex_fun_wrapper_lambda(fmt::format("{}_wrapper", fun_param_name),
+                              std::move(expr_lambda_params),
+                              std::move(expr_lambda_body))
+            ->to_string(0));
+}
+
 auto C_API::_translate_parameter_list(std::vector<Param> const& params,
                                       std::vector<C_Param>& c_params,
-                                      std::vector<ExprPtr>& expr_params)
-    -> void {
+                                      std::vector<ExprPtr>& expr_params,
+                                      std::vector<ExprPtr>& decls) -> void {
     int param_number = 0;
     for (auto const& param : params) {
         C_QType param_type = _translate_qtype(param.type);
@@ -818,10 +1032,21 @@ auto C_API::_translate_parameter_list(std::vector<Param> const& params,
         //   this is probably a world of hurt - do we just want to error on
         //   trying to bind functions like this?
 
-        if (is_lvalue_reference(param.type) ||
-            (is_by_value(param.type) && is_opaque_ptr(param.type, _cpp_ctx))) {
+        std::optional<std::string> std_function_id =
+            get_stdfunction_id(param.type);
+        if (std_function_id.has_value()) {
+            decls.emplace_back(_generate_stdfunction_wraper(
+                std_function_id.value(), param_name));
+            expr_params.emplace_back(
+                ExprToken::create(fmt::format("{}_wrapper", param_name)));
+        } else if (is_lvalue_reference(param.type) ||
+                   (is_by_value(param.type) &&
+                    is_opaque_ptr(param.type, _cpp_ctx))) {
             expr_params.emplace_back(
                 ExprDeref::create(ExprToken::create(param_name)));
+        } else if (is_rvalue_reference(param.type)) {
+            BBL_THROW("cannot translate function rvalue reference parameter {}",
+                      param_name);
         } else if (is_enum(param.type)) {
             // enums need to be static_cast<>() from their underlying type to
             // the enum explicitly when passing to C++
@@ -883,10 +1108,13 @@ auto C_API::_translate_constructor(Constructor const* ctor,
 
     std::vector<ExprPtr> body;
     std::vector<ExprPtr> expr_params;
+    std::vector<ExprPtr> decls;
 
-    _translate_parameter_list(ctor->params, c_params, expr_params);
+    _translate_parameter_list(ctor->params, c_params, expr_params, decls);
 
-    ExprPtr expr_call = ExprCall::create(cls->spelling, std::move(expr_params));
+    ExprPtr expr_call = ExprCall::create(
+        cls->spelling,
+        std::make_unique<ExprParameterList>(std::move(expr_params)));
 
     // if it's opaque ptr, do a new, assigning the result to the deref'd result
     // ptr
@@ -1021,6 +1249,13 @@ auto C_API::_translate_qtype(QType const& qt) -> C_QType {
                            std::move(_translate_qtype(*pointer.pointee))))}};
     } else if (std::holds_alternative<LValueReference>(qt.type)) {
         LValueReference const& pointer = std::get<LValueReference>(qt.type);
+
+        // if it's an l-value reference to a stdfunction, then we *don't* want
+        // to convert to a pointer, because we will be converting the function
+        // itself to a pointer type
+        if (is_stdfunction(*pointer.pointee)) {
+            return _translate_qtype(*pointer.pointee);
+        }
 
         return C_QType{&qt,
                        qt.is_const,

@@ -75,13 +75,15 @@ struct C_Enum {
 };
 
 struct C_StdFunction {
-    C_QType return_type;
+    StdFunction const* cpp_fun;
+    std::string rename;
+    std::optional<C_Param> return_type;
     std::string comment;
-    std::vector<C_QType> params;
+    std::vector<Param> cpp_named_params;
+    std::vector<C_Param> params;
 };
 
 struct Generated {};
-
 
 using FunctionSource =
     std::variant<Method const*, Constructor const*, Function const*, Generated>;
@@ -90,7 +92,7 @@ struct C_SmartPtr {
     C_Param smartptr;
 };
 
-struct IsStatic {}; 
+struct IsStatic {};
 struct C_Function {
     FunctionSource method_or_function;
     std::string name;
@@ -128,7 +130,8 @@ class C_API {
 
     auto _translate_parameter_list(std::vector<Param> const& params,
                                    std::vector<C_Param>& c_params,
-                                   std::vector<ExprPtr>& expr_params) -> void;
+                                   std::vector<ExprPtr>& expr_params,
+                                   std::vector<ExprPtr>& decls) -> void;
 
     auto _translate_return_type(QType const& cpp_return_type)
         -> std::optional<C_Param>;
@@ -139,6 +142,13 @@ class C_API {
 
     auto _translate_function(Function const* function,
                              std::string const& function_prefix) -> C_Function;
+
+    auto _translate_stdfunction(StdFunction const* function,
+                                std::string const& function_prefix)
+        -> C_StdFunction;
+
+    auto _generate_stdfunction_wraper(std::string const& id,
+                                      std::string const& param_name) -> ExprPtr;
 
     auto _translate_constructor(Constructor const* ctor,
                                 std::string const& function_prefix,
@@ -151,7 +161,12 @@ class C_API {
 
     auto _get_c_qtype_as_string(C_QType const& qt,
                                 std::string const& name) const -> std::string;
+
     auto _get_function_declaration(C_Function const& c_fun) const
+        -> std::string;
+
+    auto _get_stdfunction_type_as_string(C_StdFunction const& fun,
+                                         std::string const& name) const
         -> std::string;
 
 public:

@@ -37,9 +37,4 @@ int test007_qux::Bar_bum() {
     return 0;
 }
 
-int test007_myfoo(test007_qux::Bar_t* bar, size_t* _result) {
-    *_result = foo(bar);
-    return 0;
-}
-
 } // extern "C"

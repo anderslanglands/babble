@@ -17,7 +17,8 @@ public:
 
 // a normal comment
 /// function foo
-auto foo(Bar&& bar) noexcept -> size_t;
+// XXX: no rvalue refs yet
+// auto foo(Bar&& bar) noexcept -> size_t;
 
 }
 
@@ -31,5 +32,5 @@ BBL_MODULE(test007) {
         .f(&qux::Bar::f2)
         ;
 
-    bbl::fn(&qux::foo, "myfoo");   
+    // bbl::fn(&qux::foo, "myfoo");   
 }

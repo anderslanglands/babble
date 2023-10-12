@@ -9,9 +9,11 @@
 namespace bbl {
 
 template <typename... Args>
-std::string iformat(int indent, fmt::format_string<Args...> format_str,
-                    Args&&... args) {
-    return fmt::format("{:{}}{}", "", indent * 4,
+std::string
+iformat(int indent, fmt::format_string<Args...> format_str, Args&&... args) {
+    return fmt::format("{:{}}{}",
+                       "",
+                       indent * 4,
                        fmt::format(format_str, std::forward<Args>(args)...));
 }
 
@@ -34,6 +36,10 @@ struct ExprToken : public Expr {
     virtual std::string to_string(int depth) const override { return token; }
 };
 
+inline auto ex_token(std::string const& tok) -> ExprPtr {
+    return ExprToken::create(tok);
+}
+
 struct ExprReturn : public Expr {
     ExprPtr expr;
 
@@ -47,6 +53,10 @@ struct ExprReturn : public Expr {
         return fmt::format("return {}", expr->to_string(0));
     }
 };
+
+inline ExprPtr ex_result(ExprPtr&& expr) {
+    return ExprPtr(new ExprReturn{std::move(expr)});
+}
 
 struct ExprCompound : public Expr {
     std::vector<ExprPtr> stmts;
@@ -68,20 +78,22 @@ struct ExprCompound : public Expr {
     }
 };
 
-struct ExprCall : public Expr {
-    std::string name;
+inline ExprPtr ex_compound(std::vector<ExprPtr>&& stmts) {
+    return ExprPtr(new ExprCompound(std::move(stmts)));
+}
+
+struct ExprParameterList : public Expr {
     std::vector<ExprPtr> params;
 
-    ExprCall(std::string const& name, std::vector<ExprPtr>&& params)
-        : name(name), params(std::move(params)) {}
+    ExprParameterList(std::vector<ExprPtr>&& params)
+        : params(std::move(params)) {}
 
-    static ExprPtr create(std::string const& name,
-                          std::vector<ExprPtr>&& params) {
-        return ExprPtr(new ExprCall(name, std::move(params)));
+    static ExprPtr create(std::vector<ExprPtr>&& params) {
+        return ExprPtr(new ExprParameterList(std::move(params)));
     }
 
     virtual std::string to_string(int depth) const override {
-        std::string result = iformat(depth, "{}(", name);
+        std::string result = iformat(depth, "(");
 
         bool first = true;
 
@@ -99,6 +111,34 @@ struct ExprCall : public Expr {
         return result;
     }
 };
+
+inline std::unique_ptr<ExprParameterList>
+ex_parameter_list(std::vector<ExprPtr>&& params) {
+    return std::make_unique<ExprParameterList>(std::move(params));
+}
+
+struct ExprCall : public Expr {
+    std::string name;
+    std::unique_ptr<ExprParameterList> params;
+
+    ExprCall(std::string const& name,
+             std::unique_ptr<ExprParameterList>&& params)
+        : name(name), params(std::move(params)) {}
+
+    static ExprPtr create(std::string const& name,
+                          std::unique_ptr<ExprParameterList>&& params) {
+        return ExprPtr(new ExprCall(name, std::move(params)));
+    }
+
+    virtual std::string to_string(int depth) const override {
+        return iformat(depth, "{}{}", name, params->to_string(0));
+    }
+};
+
+inline ExprPtr ex_call(std::string const& name,
+                       std::unique_ptr<ExprParameterList>&& params) {
+    return ExprPtr(new ExprCall(name, std::move(params)));
+}
 
 struct ExprParen : public Expr {
     ExprPtr inner;
@@ -128,6 +168,10 @@ struct ExprDeref : public Expr {
     }
 };
 
+inline ExprPtr ex_deref(ExprPtr&& pointer) {
+    return ExprPtr(new ExprDeref(std::move(pointer)));
+}
+
 struct ExprAddress : public Expr {
     ExprPtr pointee;
 
@@ -142,6 +186,10 @@ struct ExprAddress : public Expr {
     }
 };
 
+inline ExprPtr ex_address(ExprPtr&& pointee) {
+    return ExprPtr(new ExprAddress(std::move(pointee)));
+}
+
 struct ExprAssign : public Expr {
     ExprPtr left;
     ExprPtr right;
@@ -154,8 +202,8 @@ struct ExprAssign : public Expr {
     }
 
     virtual std::string to_string(int depth) const override {
-        return iformat(depth, "{} = {}", left->to_string(0),
-                       right->to_string(0));
+        return iformat(
+            depth, "{} = {}", left->to_string(0), right->to_string(0));
     }
 };
 
@@ -172,7 +220,9 @@ struct ExprStaticCast : public Expr {
     }
 
     virtual std::string to_string(int depth) const override {
-        return iformat(depth, "static_cast<{}>({})", cast_to->to_string(0),
+        return iformat(depth,
+                       "static_cast<{}>({})",
+                       cast_to->to_string(0),
                        object->to_string(0));
     }
 };
@@ -189,8 +239,8 @@ struct ExprArrow : public Expr {
     }
 
     virtual std::string to_string(int depth) const override {
-        return iformat(depth, "{}->{}", receiver->to_string(0),
-                       target->to_string(0));
+        return iformat(
+            depth, "{}->{}", receiver->to_string(0), target->to_string(0));
     }
 };
 
@@ -237,10 +287,30 @@ struct ExprPlacementNew : public Expr {
     }
 
     virtual std::string to_string(int depth) const override {
-        return iformat(depth, "new ({}) {}", address->to_string(0),
-                       child->to_string(0));
+        return iformat(
+            depth, "new ({}) {}", address->to_string(0), child->to_string(0));
     }
 };
+
+struct ExprVarDecl : public Expr {
+    ExprPtr type;
+    ExprPtr name;
+
+    ExprVarDecl(ExprPtr&& type, ExprPtr&& name)
+        : type(std::move(type)), name(std::move(name)) {}
+
+    static ExprPtr create(ExprPtr&& type, ExprPtr&& name) {
+        return ExprPtr(new ExprVarDecl(std::move(type), std::move(name)));
+    }
+
+    virtual std::string to_string(int depth) const override {
+        return iformat(depth, "{} {}", type->to_string(0), name->to_string(0));
+    }
+};
+
+static ExprPtr ex_var_decl(ExprPtr&& type, ExprPtr&& name) {
+    return ExprPtr(new ExprVarDecl(std::move(type), std::move(name)));
+}
 
 struct ExprDelete : public Expr {
     ExprPtr child;
@@ -269,5 +339,33 @@ struct Stmt : public Expr {
         return iformat(depth, "{};", pointer->to_string(0));
     }
 };
+
+struct ExprFunPtrWrapperLambda : public Expr {
+    std::string name;
+    ExprPtr parameter_list;
+    ExprPtr body_compound;
+
+    ExprFunPtrWrapperLambda(std::string const& name,
+                            std::vector<ExprPtr> parameter_list,
+                            std::vector<ExprPtr> body_compound)
+        : name(name),
+          parameter_list(ex_parameter_list(std::move(parameter_list))),
+          body_compound(ex_compound(std::move(body_compound))) {}
+
+    virtual std::string to_string(int depth) const override {
+        return iformat(depth,
+                       "auto {} = [&]{} {{\n{}    }}",
+                       name,
+                       parameter_list->to_string(0),
+                       body_compound->to_string(depth + 2));
+    }
+};
+
+inline ExprPtr ex_fun_wrapper_lambda(std::string const& name,
+                                     std::vector<ExprPtr> parameter_list,
+                                     std::vector<ExprPtr> body_compound) {
+    return ExprPtr(new ExprFunPtrWrapperLambda(
+        name, std::move(parameter_list), std::move(body_compound)));
+}
 
 } // namespace bbl
