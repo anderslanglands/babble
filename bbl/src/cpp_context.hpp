@@ -110,6 +110,7 @@ struct QType {
 };
 
 QType clone(QType const& qt);
+QType wrap_in_pointer(QType const& qt);
 
 /// An integral value, represented as a string for precision's sake. Used to
 /// store template arguments
@@ -189,6 +190,7 @@ struct Layout {
 enum class BindKind { OpaquePtr = 0, OpaqueBytes, ValueType };
 
 struct RuleOfSeven {
+    bool is_default_constructible;
     bool is_copy_constructible;
     bool is_nothrow_copy_constructible;
     bool is_move_constructible;

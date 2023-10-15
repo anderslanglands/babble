@@ -35,12 +35,12 @@ int test0021_Foo_is_float(test0021_Foo_t const* _this, bool* _result) {
     return 0;
 }
 
-int test0021_Foo_from_float(int value, test0021_Foo_t** _result) {
+int test0021_Foo_from_int(int value, test0021_Foo_t** _result) {
     *_result = new Foo(value);
     return 0;
 }
 
-int test0021_Foo_from_int(int value, test0021_Foo_t** _result) {
+int test0021_Foo_from_float(float value, test0021_Foo_t** _result) {
     *_result = new Foo(value);
     return 0;
 }

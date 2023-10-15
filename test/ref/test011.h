@@ -30,9 +30,9 @@ typedef struct test011_FooFloat_t test011_FooFloat_t;
 
 int test011_FooFloat_bar(test011_FooFloat_t* _this, float const* a, float* _result);
 
-int test011_FooFloat_with_float(test011_FooFloat_t** _result);
-
 int test011_FooFloat_ctor(test011_FooFloat_t** _result);
+
+int test011_FooFloat_with_float(float* f, test011_FooFloat_t** _result);
 
 int test011_FooFloat_dtor(test011_FooFloat_t* _this);
 

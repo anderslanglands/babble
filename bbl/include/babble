@@ -191,6 +191,7 @@ public:
     bool is_abstract = std::is_abstract<C>::value;
 
     /// @{ Rule-of-seven information
+    bool is_default_constructible = std::is_default_constructible<C>::value;
     bool is_copy_constructible = std::is_copy_constructible<C>::value;
     bool is_nothrow_copy_constructible =
         std::is_nothrow_copy_constructible<C>::value;

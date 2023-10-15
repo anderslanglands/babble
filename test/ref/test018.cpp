@@ -14,10 +14,13 @@ extern "C" {
 
 using test018_Foo_t = qux::Foo;
 
-int test018_Foo_do_foo(test018_Foo_t const* _this, void (*fun)(test018_Foo_t const* param00, int param01, float param02, test018_Foo_t* _result)) {
+int test018_Foo_do_foo(test018_Foo_t const* _this, void (*fun)(test018_Foo_t const* param00, int param01, float param02, test018_Foo_t** _result)) {
     auto fun_wrapper = [&](qux::Foo const& param00, int param01, float param02) {
         qux::Foo _result;
-        fun(&param00, param01, param02, &_result);
+        qux::Foo* _result_ptr;
+        fun(&param00, param01, param02, &_result_ptr);
+        _result = std::move(*_result_ptr);
+        delete _result_ptr;
         return _result;
     };
     _this->do_foo(fun_wrapper);

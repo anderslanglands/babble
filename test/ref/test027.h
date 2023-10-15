@@ -29,7 +29,7 @@ typedef struct test027_FooPtr_t test027_FooPtr_t;
 
 /** functions */
 
-int test027_Foo_create(test027_FooPtr_t* _result);
+int test027_Foo_create(test027_FooPtr_t** _result);
 
 int test027_Foo_get_foo(test027_Foo_t const* _this, int* _result);
 

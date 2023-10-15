@@ -42,3 +42,4 @@ if(${BUILD_USD_EXAMPLE})
 endif()
 
 add_subdirectory(test/smartptr)
+add_subdirectory(test/stdfunction)

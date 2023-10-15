@@ -19,13 +19,13 @@ int test011_FooFloat_bar(test011_FooFloat_t* _this, float const* a, float* _resu
     return 0;
 }
 
-int test011_FooFloat_with_float(test011_FooFloat_t** _result) {
+int test011_FooFloat_ctor(test011_FooFloat_t** _result) {
     *_result = new qux::Foo<float>();
     return 0;
 }
 
-int test011_FooFloat_ctor(test011_FooFloat_t** _result) {
-    *_result = new qux::Foo<float>();
+int test011_FooFloat_with_float(float* f, test011_FooFloat_t** _result) {
+    *_result = new qux::Foo<float>(*f);
     return 0;
 }
 

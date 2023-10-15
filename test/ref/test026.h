@@ -37,9 +37,9 @@ int test0021_Foo_get_float(test0021_Foo_t const* _this, float* _result);
 
 int test0021_Foo_is_float(test0021_Foo_t const* _this, bool* _result);
 
-int test0021_Foo_from_float(int value, test0021_Foo_t** _result);
-
 int test0021_Foo_from_int(int value, test0021_Foo_t** _result);
+
+int test0021_Foo_from_float(float value, test0021_Foo_t** _result);
 
 int test0021_Foo_dtor(test0021_Foo_t* _this);
 

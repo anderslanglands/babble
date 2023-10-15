@@ -15,8 +15,8 @@ extern "C" {
 using test027_Foo_t = Foo;
 using test027_FooPtr_t = FooPtr;
 
-int test027_Foo_create(test027_FooPtr_t* _result) {
-    *_result = Foo::create();
+int test027_Foo_create(test027_FooPtr_t** _result) {
+    *_result = new FooPtr(Foo::create());
     return 0;
 }
 

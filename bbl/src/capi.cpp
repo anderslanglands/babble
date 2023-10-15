@@ -538,7 +538,7 @@ static bool is_reference_to_bytes_or_value(QType const& qt,
     return false;
 }
 
-static bool is_reference_to_opaqueptr(QType const& qt, Context const& ctx) {
+static bool is_opaqueptr_lvalue_reference(QType const& qt, Context const& ctx) {
     if (std::holds_alternative<LValueReference>(qt.type)) {
         LValueReference const& ref = std::get<LValueReference>(qt.type);
         return is_opaqueptr(*ref.pointee, ctx);
@@ -547,39 +547,9 @@ static bool is_reference_to_opaqueptr(QType const& qt, Context const& ctx) {
     return false;
 }
 
-// Returns true if this QType is an opaque ptr-bound value
-static bool is_value_opaque_ptr(QType const& qt, Context& cpp_ctx) {
-    if (std::holds_alternative<Type>(qt.type)) {
-        Type const& type = std::get<Type>(qt.type);
-        if (std::holds_alternative<ClassId>(type.kind)) {
-            ClassId const& id = std::get<ClassId>(type.kind);
-
-            Class const* cls = cpp_ctx.get_class(id.id);
-            if (cls == nullptr) {
-                BBL_THROW("class {} is not bound", id.id);
-            }
-
-            return cls->bind_kind == BindKind::OpaquePtr;
-        } else if (std::holds_alternative<ClassTemplateSpecializationId>(
-                       type.kind)) {
-            ClassTemplateSpecializationId const& id =
-                std::get<ClassTemplateSpecializationId>(type.kind);
-
-            Class const* cls = cpp_ctx.get_class(id.id);
-            if (cls == nullptr) {
-                BBL_THROW("class {} is not bound", id.id);
-            }
-
-            return cls->bind_kind == BindKind::OpaquePtr;
-        }
-    }
-
-    return false;
-}
-
 // Returns true is the given QType directly holds a Class with bind kind of
 // opaque ptr
-static bool is_opaque_ptr(QType const& qt, Context const& ctx) {
+static bool is_opaque_ptr_by_value(QType const& qt, Context const& ctx) {
     if (std::holds_alternative<Type>(qt.type)) {
         Type const& type = std::get<Type>(qt.type);
         if (std::holds_alternative<ClassId>(type.kind)) {
@@ -611,14 +581,19 @@ static void remove_const_on_pointee(C_QType& qt) {
     }
 }
 
+auto wrap_in_pointer(C_QType&& qt) -> C_QType {
+    return C_QType{
+        nullptr, false, C_Pointer{std::make_shared<C_QType>(std::move(qt))}};
+}
+
 auto C_API::_translate_return_type(QType const& cpp_return_type)
     -> std::optional<C_Param> {
     // For return values:
     //
     // + opaque ptr
     //   o if the result is by value
-    //     - wrap the param in a pointer, and assign into it
-    //       *result = call()
+    //     - wrap the param in two pointers, and construct into it
+    //       *result = new Foo(call())
     //   o if the result is by pointer
     //     - wrap the param in another pointer, and assign the pointer into it
     //       *result = call()
@@ -639,22 +614,28 @@ auto C_API::_translate_return_type(QType const& cpp_return_type)
     //     into that
     //       *result = call()
     std::optional<C_Param> result;
-    bool result_is_reference_to_bytes_or_value =
-        is_reference_to_bytes_or_value(cpp_return_type, _cpp_ctx);
+
     C_QType return_type = _translate_qtype(cpp_return_type);
+    std::string return_name = "_result";
+
     if (!is_void(return_type)) {
-        if (result_is_reference_to_bytes_or_value) {
+        if (is_reference_to_bytes_or_value(cpp_return_type, _cpp_ctx)) {
             remove_const_on_pointee(return_type);
             result = C_Param{
                 std::move(return_type),
-                "_result",
+                std::move(return_name),
+            };
+        } else if (is_opaque_ptr_by_value(cpp_return_type, _cpp_ctx)) {
+            result = C_Param{
+                wrap_in_pointer(wrap_in_pointer(std::move(return_type))),
+                std::move(return_name),
             };
         } else {
             result = C_Param{
                 C_QType{nullptr,
                         false, C_Pointer{
                             std::make_shared<C_QType>(std::move(return_type))}},
-                "_result",
+                std::move(return_name),
             };
         }
     }
@@ -675,8 +656,6 @@ auto C_API::_translate_method(Method const* method,
 
     std::optional<C_Param> result =
         _translate_return_type(method->function.return_type);
-    bool result_is_reference_to_opaqueptr =
-        is_reference_to_opaqueptr(method->function.return_type, _cpp_ctx);
 
     std::vector<C_Param> c_params;
     // if the method is not static, create _this param, which will be a (maybe
@@ -721,7 +700,7 @@ auto C_API::_translate_method(Method const* method,
     _translate_parameter_list(
         method->function.params, c_params, expr_params, body);
 
-    ExprPtr expr_call = ExprCall::create(
+    ExprPtr expr_call = ex_call(
         method->function.name + method->function.template_call,
         std::make_unique<ExprParameterList>(std::move(expr_params)));
 
@@ -731,26 +710,39 @@ auto C_API::_translate_method(Method const* method,
     ExprPtr receiving_call;
     if (std::holds_alternative<C_Param>(receiver)) {
         auto const& param = std::get<C_Param>(receiver);
-        receiving_call = ExprArrow::create(ExprToken::create(param.name),
+        receiving_call = ex_arrow(ExprToken::create(param.name),
                                            std::move(expr_call));
     } else if (std::holds_alternative<C_SmartPtr>(receiver)) {
         // we need to put an extra deref around the smart pointer to delegate to
         // the underlying class
         auto const& param = std::get<C_SmartPtr>(receiver);
         receiving_call =
-            ExprArrow::create(ExprParen::create(ExprDeref::create(
+            ex_arrow(ex_paren(ex_deref(
                                   ExprToken::create(param.smartptr.name))),
                               std::move(expr_call));
     } else {
         receiving_call =
-            ExprNamespaceRef::create(cls->spelling, std::move(expr_call));
+            ex_namespace_ref(cls->spelling, std::move(expr_call));
     }
 
     if (result.has_value()) {
         // if the function returns a reference, we need to wrap the call in an
         // address operator in order to convert it back to a pointer
-        if (result_is_reference_to_opaqueptr) {
-            receiving_call = ExprAddress::create(std::move(receiving_call));
+        if (is_opaqueptr_lvalue_reference(method->function.return_type,
+                                          _cpp_ctx)) {
+            receiving_call = ex_address(std::move(receiving_call));
+        } else if (is_opaque_ptr_by_value(method->function.return_type,
+                                          _cpp_ctx)) {
+            // need to construct a new object on the heap to return
+            std::vector<ExprPtr> params;
+            params.emplace_back(std::move(receiving_call));
+
+            std::unique_ptr<ExprParameterList> param_list =
+                ex_parameter_list(std::move(params));
+
+            receiving_call = ex_new(ex_call(
+                _cpp_ctx.get_qtype_as_string(method->function.return_type),
+                std::move(param_list)));
         } else if (is_enum(method->function.return_type)) {
             // enums must be explicitly static_cast to their underlying type on
             // the way back
@@ -762,20 +754,20 @@ auto C_API::_translate_method(Method const* method,
                           enum_id.id);
             }
 
-            receiving_call = ExprStaticCast::create(
+            receiving_call = ex_static_cast(
                 ExprToken::create(
                     fmt::format("{}", get_builtin(enm->integer_type))),
                 std::move(receiving_call));
         }
 
-        body.emplace_back(ExprAssign::create(
-            ExprDeref::create(ExprToken::create(result.value().name)),
+        body.emplace_back(ex_assign(
+            ex_deref(ExprToken::create(result.value().name)),
             std::move(receiving_call)));
     } else {
         body.emplace_back(std::move(receiving_call));
     }
 
-    body.emplace_back(ExprReturn::create(ExprToken::create("0")));
+    body.emplace_back(ex_return(ExprToken::create("0")));
 
     return C_Function{
         method,
@@ -802,8 +794,6 @@ auto C_API::_translate_function(Function const* function,
 
     std::optional<C_Param> result =
         _translate_return_type(function->return_type);
-    bool result_is_reference_to_opaqueptr =
-        is_reference_to_opaqueptr(function->return_type, _cpp_ctx);
 
     std::vector<C_Param> c_params;
 
@@ -813,7 +803,7 @@ auto C_API::_translate_function(Function const* function,
 
     _translate_parameter_list(function->params, c_params, expr_params, decls);
 
-    ExprPtr expr_call = ExprCall::create(
+    ExprPtr expr_call = ex_call(
         function->name + function->template_call,
         std::make_unique<ExprParameterList>(std::move(expr_params)));
 
@@ -821,8 +811,19 @@ auto C_API::_translate_function(Function const* function,
         // if the function returns a reference, we need to wrap the call in an
         // address operator in order to convert it back to a pointer when
         // returning an opaqueptr
-        if (result_is_reference_to_opaqueptr) {
-            expr_call = ExprAddress::create(std::move(expr_call));
+        if (is_opaqueptr_lvalue_reference(function->return_type, _cpp_ctx)) {
+            expr_call = ex_address(std::move(expr_call));
+        } else if (is_opaque_ptr_by_value(function->return_type, _cpp_ctx)) {
+            // need to construct a new object on the heap to return
+            std::vector<ExprPtr> params;
+            params.emplace_back(std::move(expr_call));
+
+            std::unique_ptr<ExprParameterList> param_list =
+                ex_parameter_list(std::move(params));
+
+            expr_call = ex_new(
+                ex_call(_cpp_ctx.get_qtype_as_string(function->return_type),
+                        std::move(param_list)));
         } else if (is_enum(function->return_type)) {
             // enums must be explicitly static_cast to their underlying type on
             // the way back
@@ -834,20 +835,20 @@ auto C_API::_translate_function(Function const* function,
                           enum_id.id);
             }
 
-            expr_call = ExprStaticCast::create(
+            expr_call = ex_static_cast(
                 ExprToken::create(
                     fmt::format("{}", get_builtin(enm->integer_type))),
                 std::move(expr_call));
         }
 
-        body.emplace_back(ExprAssign::create(
-            ExprDeref::create(ExprToken::create(result.value().name)),
+        body.emplace_back(ex_assign(
+            ex_deref(ExprToken::create(result.value().name)),
             std::move(expr_call)));
     } else {
         body.emplace_back(std::move(expr_call));
     }
 
-    body.emplace_back(ExprReturn::create(ExprToken::create("0")));
+    body.emplace_back(ex_return(ExprToken::create("0")));
 
     return C_Function{
         function,
@@ -873,21 +874,13 @@ auto C_API::_translate_stdfunction(StdFunction const* stdfunction,
         function_name = fmt::format("{}_{}", function_prefix, function_name);
     }
 
-    // C_QType result_type = _translate_qtype(stdfunction->return_type);
-
-    // std::vector<C_QType> c_params;
-    // for (auto const& param : stdfunction->params) {
-    //     c_params.emplace_back(_translate_qtype(param));
-    // }
-
     std::optional<C_Param> result =
         _translate_return_type(stdfunction->return_type);
     bool result_is_reference_to_opaqueptr =
-        is_reference_to_opaqueptr(stdfunction->return_type, _cpp_ctx);
+        is_opaqueptr_lvalue_reference(stdfunction->return_type, _cpp_ctx);
 
     std::vector<C_Param> c_params;
 
-    std::vector<ExprPtr> body;
     std::vector<ExprPtr> expr_params;
     std::vector<ExprPtr> decls;
 
@@ -912,8 +905,8 @@ auto C_API::_translate_stdfunction(StdFunction const* stdfunction,
     };
 }
 
-auto C_API::_generate_stdfunction_wraper(std::string const& id,
-                                         std::string const& fun_param_name)
+auto C_API::_generate_stdfunction_wrapper(std::string const& id,
+                                          std::string const& fun_param_name)
     -> ExprPtr {
     C_StdFunction const& c_fun = _stdfunctions.at(id);
     StdFunction const* cpp_fun = c_fun.cpp_fun;
@@ -942,11 +935,36 @@ auto C_API::_generate_stdfunction_wraper(std::string const& id,
 
     if (c_fun.return_type.has_value()) {
         C_Param const& c_result = c_fun.return_type.value();
-        // add the variable declaration and pass of the return value
-        expr_lambda_body.emplace_back(ex_var_decl(
-            ex_token(_cpp_ctx.get_qtype_as_string(cpp_fun->return_type)),
-            ex_token(c_result.name)));
-        expr_c_call_params.emplace_back(ex_address(ex_token(c_result.name)));
+        if (is_opaque_ptr_by_value(cpp_fun->return_type, _cpp_ctx)) {
+            // This is a bit nasty. Hopefully there's a better way.
+            // Since the return is an opaqueptr by value, the C function will
+            // allocate a new object into a pointer that we pass as the out
+            // parameter. We need to move that heap allocation to the stack, so
+            // we create a temporary to move the heap allocation into an return
+            // and delete the heap allocation before returning. This will fail
+            // if the return type is not default-constructible.
+            std::string result_ptr_name = fmt::format("{}_ptr", c_result.name);
+
+            expr_lambda_body.emplace_back(ex_var_decl(
+                ex_token(_cpp_ctx.get_qtype_as_string(cpp_fun->return_type)),
+                ex_token(c_result.name)));
+
+            expr_lambda_body.emplace_back(
+                ex_var_decl(ex_token(_cpp_ctx.get_qtype_as_string(
+                                wrap_in_pointer(cpp_fun->return_type))),
+                            ex_token(result_ptr_name)));
+
+            expr_c_call_params.emplace_back(
+                ex_address(ex_token(result_ptr_name)));
+
+        } else {
+            // add the variable declaration and pass of the return value
+            expr_lambda_body.emplace_back(ex_var_decl(
+                ex_token(_cpp_ctx.get_qtype_as_string(cpp_fun->return_type)),
+                ex_token(c_result.name)));
+            expr_c_call_params.emplace_back(
+                ex_address(ex_token(c_result.name)));
+        }
     }
 
     // create the call expression from the function pointer name and parameter
@@ -956,22 +974,19 @@ auto C_API::_generate_stdfunction_wraper(std::string const& id,
     expr_lambda_body.emplace_back(std::move(expr_c_call));
 
     if (c_fun.return_type.has_value()) {
-        // add the return to the lambda body
         C_Param const& c_result = c_fun.return_type.value();
-        expr_lambda_body.emplace_back(ex_result(ex_token(c_result.name)));
+        if (is_opaque_ptr_by_value(cpp_fun->return_type, _cpp_ctx)) {
+            std::string result_ptr_name = fmt::format("{}_ptr", c_result.name);
+            expr_lambda_body.emplace_back(
+                ex_assign(ex_token(c_result.name),
+                          ex_move(ex_deref(ex_token(result_ptr_name)))));
+
+            expr_lambda_body.emplace_back(ex_delete(ex_token(result_ptr_name)));
+        }
+
+        expr_lambda_body.emplace_back(ex_return(ex_token(c_result.name)));
     }
 
-    // create the compound for the lambda body from the individual statements
-    // ExprPtr expr_lambda_compound = ex_compound(std::move(expr_lambda_body));
-
-    // ExprPtr expr_lambda_param_list =
-    //     ExprParameterList::create(std::move(expr_lambda_params));
-
-    // return ExprToken::create(
-    //     fmt::format("auto {}_wrapper = [&]{} {{\n{}    }}",
-    //                 fun_param_name,
-    //                 expr_lambda_param_list->to_string(0),
-    //                 expr_lambda_compound->to_string(2)));
     return ex_token(
         ex_fun_wrapper_lambda(fmt::format("{}_wrapper", fun_param_name),
                               std::move(expr_lambda_params),
@@ -988,13 +1003,10 @@ auto C_API::_translate_parameter_list(std::vector<Param> const& params,
         C_QType param_type = _translate_qtype(param.type);
 
         // if the param is pass-by-value and the type is opaque ptr, then wrap
-        // it in an extra pointer
-        if (is_by_value(param.type) && is_opaque_ptr(param.type, _cpp_ctx)) {
-            param_type = C_QType{
-                nullptr,
-                false,
-                C_Pointer{std::make_shared<C_QType>(std::move(param_type))},
-            };
+        // it in a pointer
+        if (is_by_value(param.type) &&
+            is_opaque_ptr_by_value(param.type, _cpp_ctx)) {
+            param_type = wrap_in_pointer(std::move(param_type));
         }
 
         std::string param_name = param.name.empty()
@@ -1035,15 +1047,15 @@ auto C_API::_translate_parameter_list(std::vector<Param> const& params,
         std::optional<std::string> std_function_id =
             get_stdfunction_id(param.type);
         if (std_function_id.has_value()) {
-            decls.emplace_back(_generate_stdfunction_wraper(
+            decls.emplace_back(_generate_stdfunction_wrapper(
                 std_function_id.value(), param_name));
             expr_params.emplace_back(
                 ExprToken::create(fmt::format("{}_wrapper", param_name)));
         } else if (is_lvalue_reference(param.type) ||
                    (is_by_value(param.type) &&
-                    is_opaque_ptr(param.type, _cpp_ctx))) {
+                    is_opaque_ptr_by_value(param.type, _cpp_ctx))) {
             expr_params.emplace_back(
-                ExprDeref::create(ExprToken::create(param_name)));
+                ex_deref(ExprToken::create(param_name)));
         } else if (is_rvalue_reference(param.type)) {
             BBL_THROW("cannot translate function rvalue reference parameter {}",
                       param_name);
@@ -1060,7 +1072,7 @@ auto C_API::_translate_parameter_list(std::vector<Param> const& params,
                     param_name);
             }
             expr_params.emplace_back(
-                ExprStaticCast::create(ExprToken::create(enm->spelling),
+                ex_static_cast(ExprToken::create(enm->spelling),
                                        ExprToken::create(param_name)));
         } else {
             expr_params.emplace_back(ExprToken::create(param_name));
@@ -1068,11 +1080,6 @@ auto C_API::_translate_parameter_list(std::vector<Param> const& params,
 
         param_number++;
     }
-}
-
-auto wrap_in_pointer(C_QType&& qt) -> C_QType {
-    return C_QType{
-        nullptr, false, C_Pointer{std::make_shared<C_QType>(std::move(qt))}};
 }
 
 auto C_API::_translate_constructor(Constructor const* ctor,
@@ -1112,24 +1119,24 @@ auto C_API::_translate_constructor(Constructor const* ctor,
 
     _translate_parameter_list(ctor->params, c_params, expr_params, decls);
 
-    ExprPtr expr_call = ExprCall::create(
+    ExprPtr expr_call = ex_call(
         cls->spelling,
         std::make_unique<ExprParameterList>(std::move(expr_params)));
 
     // if it's opaque ptr, do a new, assigning the result to the deref'd result
     // ptr
     if (cls->bind_kind == BindKind::OpaquePtr) {
-        ExprPtr expr_new = ExprNew::create(std::move(expr_call));
-        body.emplace_back(ExprAssign::create(
-            ExprDeref::create(ExprToken::create(result.name)),
+        ExprPtr expr_new = ex_new(std::move(expr_call));
+        body.emplace_back(ex_assign(
+            ex_deref(ExprToken::create(result.name)),
             std::move(expr_new)));
     } else {
         // otherwise, do placement new straight into the result *
-        body.emplace_back(ExprPlacementNew::create(
+        body.emplace_back(ex_placement_new(
             ExprToken::create(result.name), std::move(expr_call)));
     }
 
-    body.emplace_back(ExprReturn::create(ExprToken::create("0")));
+    body.emplace_back(ex_return(ExprToken::create("0")));
 
     return C_Function{
         ctor,
@@ -1162,8 +1169,8 @@ auto C_API::_generate_destructor(std::string const& function_prefix,
 
     std::vector<ExprPtr> body;
 
-    body.emplace_back(ExprDelete::create(ExprToken::create(this_param.name)));
-    body.emplace_back(ExprReturn::create(ExprToken::create("0")));
+    body.emplace_back(ex_delete(ExprToken::create(this_param.name)));
+    body.emplace_back(ex_return(ExprToken::create("0")));
 
     return C_Function{
         Generated{},

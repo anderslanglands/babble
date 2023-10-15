@@ -36,8 +36,8 @@ struct ExprToken : public Expr {
     virtual std::string to_string(int depth) const override { return token; }
 };
 
-inline auto ex_token(std::string const& tok) -> ExprPtr {
-    return ExprToken::create(tok);
+inline ExprPtr ex_token(std::string const& tok) {
+    return ExprPtr(new ExprToken{tok});
 }
 
 struct ExprReturn : public Expr {
@@ -45,16 +45,12 @@ struct ExprReturn : public Expr {
 
     ExprReturn(ExprPtr&& expr) : expr(std::move(expr)) {}
 
-    static ExprPtr create(ExprPtr&& expr) {
-        return ExprPtr(new ExprReturn{std::move(expr)});
-    }
-
     virtual std::string to_string(int depth) const override {
         return fmt::format("return {}", expr->to_string(0));
     }
 };
 
-inline ExprPtr ex_result(ExprPtr&& expr) {
+inline ExprPtr ex_return(ExprPtr&& expr) {
     return ExprPtr(new ExprReturn{std::move(expr)});
 }
 
@@ -62,10 +58,6 @@ struct ExprCompound : public Expr {
     std::vector<ExprPtr> stmts;
 
     ExprCompound(std::vector<ExprPtr>&& stmts) : stmts(std::move(stmts)) {}
-
-    static ExprPtr create(std::vector<ExprPtr>&& stmts) {
-        return ExprPtr(new ExprCompound(std::move(stmts)));
-    }
 
     virtual std::string to_string(int depth) const override {
         std::string result;
@@ -87,10 +79,6 @@ struct ExprParameterList : public Expr {
 
     ExprParameterList(std::vector<ExprPtr>&& params)
         : params(std::move(params)) {}
-
-    static ExprPtr create(std::vector<ExprPtr>&& params) {
-        return ExprPtr(new ExprParameterList(std::move(params)));
-    }
 
     virtual std::string to_string(int depth) const override {
         std::string result = iformat(depth, "(");
@@ -125,11 +113,6 @@ struct ExprCall : public Expr {
              std::unique_ptr<ExprParameterList>&& params)
         : name(name), params(std::move(params)) {}
 
-    static ExprPtr create(std::string const& name,
-                          std::unique_ptr<ExprParameterList>&& params) {
-        return ExprPtr(new ExprCall(name, std::move(params)));
-    }
-
     virtual std::string to_string(int depth) const override {
         return iformat(depth, "{}{}", name, params->to_string(0));
     }
@@ -145,23 +128,19 @@ struct ExprParen : public Expr {
 
     ExprParen(ExprPtr&& inner) : inner(std::move(inner)) {}
 
-    static ExprPtr create(ExprPtr&& inner) {
-        return ExprPtr(new ExprParen(std::move(inner)));
-    }
-
     virtual std::string to_string(int depth) const override {
         return iformat(depth, "({})", inner->to_string(0));
     }
 };
 
+inline ExprPtr ex_paren(ExprPtr&& inner) {
+    return ExprPtr(new ExprParen(std::move(inner)));
+}
+
 struct ExprDeref : public Expr {
     ExprPtr pointer;
 
     ExprDeref(ExprPtr&& pointer) : pointer(std::move(pointer)) {}
-
-    static ExprPtr create(ExprPtr&& pointer) {
-        return ExprPtr(new ExprDeref(std::move(pointer)));
-    }
 
     virtual std::string to_string(int depth) const override {
         return iformat(depth, "*{}", pointer->to_string(0));
@@ -177,10 +156,6 @@ struct ExprAddress : public Expr {
 
     ExprAddress(ExprPtr&& pointee) : pointee(std::move(pointee)) {}
 
-    static ExprPtr create(ExprPtr&& pointee) {
-        return ExprPtr(new ExprAddress(std::move(pointee)));
-    }
-
     virtual std::string to_string(int depth) const override {
         return iformat(depth, "&{}", pointee->to_string(0));
     }
@@ -190,6 +165,20 @@ inline ExprPtr ex_address(ExprPtr&& pointee) {
     return ExprPtr(new ExprAddress(std::move(pointee)));
 }
 
+struct ExprMove : public Expr {
+    ExprPtr pointee;
+
+    ExprMove(ExprPtr&& pointee) : pointee(std::move(pointee)) {}
+
+    virtual std::string to_string(int depth) const override {
+        return iformat(depth, "std::move({})", pointee->to_string(0));
+    }
+};
+
+inline ExprPtr ex_move(ExprPtr&& pointee) {
+    return ExprPtr(new ExprMove(std::move(pointee)));
+}
+
 struct ExprAssign : public Expr {
     ExprPtr left;
     ExprPtr right;
@@ -197,15 +186,15 @@ struct ExprAssign : public Expr {
     ExprAssign(ExprPtr&& left, ExprPtr&& right)
         : left(std::move(left)), right(std::move(right)) {}
 
-    static ExprPtr create(ExprPtr&& left, ExprPtr&& right) {
-        return ExprPtr(new ExprAssign(std::move(left), std::move(right)));
-    }
-
     virtual std::string to_string(int depth) const override {
         return iformat(
             depth, "{} = {}", left->to_string(0), right->to_string(0));
     }
 };
+
+inline ExprPtr ex_assign(ExprPtr&& left, ExprPtr&& right) {
+    return ExprPtr(new ExprAssign(std::move(left), std::move(right)));
+}
 
 struct ExprStaticCast : public Expr {
     ExprPtr cast_to;
@@ -213,11 +202,6 @@ struct ExprStaticCast : public Expr {
 
     ExprStaticCast(ExprPtr&& cast_to, ExprPtr&& object)
         : cast_to(std::move(cast_to)), object(std::move(object)) {}
-
-    static ExprPtr create(ExprPtr&& cast_to, ExprPtr&& object) {
-        return ExprPtr(
-            new ExprStaticCast(std::move(cast_to), std::move(object)));
-    }
 
     virtual std::string to_string(int depth) const override {
         return iformat(depth,
@@ -227,6 +211,10 @@ struct ExprStaticCast : public Expr {
     }
 };
 
+inline ExprPtr ex_static_cast(ExprPtr&& cast_to, ExprPtr&& object) {
+    return ExprPtr(new ExprStaticCast(std::move(cast_to), std::move(object)));
+}
+
 struct ExprArrow : public Expr {
     ExprPtr receiver;
     ExprPtr target;
@@ -234,15 +222,15 @@ struct ExprArrow : public Expr {
     ExprArrow(ExprPtr&& receiver, ExprPtr&& target)
         : receiver(std::move(receiver)), target(std::move(target)) {}
 
-    static ExprPtr create(ExprPtr&& receiver, ExprPtr&& target) {
-        return ExprPtr(new ExprArrow(std::move(receiver), std::move(target)));
-    }
-
     virtual std::string to_string(int depth) const override {
         return iformat(
             depth, "{}->{}", receiver->to_string(0), target->to_string(0));
     }
 };
+
+inline ExprPtr ex_arrow(ExprPtr&& receiver, ExprPtr&& target) {
+    return ExprPtr(new ExprArrow(std::move(receiver), std::move(target)));
+}
 
 struct ExprNamespaceRef : public Expr {
     std::string name;
@@ -251,28 +239,28 @@ struct ExprNamespaceRef : public Expr {
     ExprNamespaceRef(std::string const& name, ExprPtr&& child)
         : name(name), child(std::move(child)) {}
 
-    static ExprPtr create(std::string const& name, ExprPtr&& child) {
-        return ExprPtr(new ExprNamespaceRef(name, std::move(child)));
-    }
-
     virtual std::string to_string(int depth) const override {
         return iformat(depth, "{}::{}", name, child->to_string(0));
     }
 };
+
+inline ExprPtr ex_namespace_ref(std::string const& name, ExprPtr&& child) {
+    return ExprPtr(new ExprNamespaceRef(name, std::move(child)));
+}
 
 struct ExprNew : public Expr {
     ExprPtr child;
 
     ExprNew(ExprPtr&& child) : child(std::move(child)) {}
 
-    static ExprPtr create(ExprPtr&& child) {
-        return ExprPtr(new ExprNew(std::move(child)));
-    }
-
     virtual std::string to_string(int depth) const override {
         return iformat(depth, "new {}", child->to_string(0));
     }
 };
+
+inline ExprPtr ex_new(ExprPtr&& child) {
+    return ExprPtr(new ExprNew(std::move(child)));
+}
 
 struct ExprPlacementNew : public Expr {
     ExprPtr address;
@@ -281,16 +269,15 @@ struct ExprPlacementNew : public Expr {
     ExprPlacementNew(ExprPtr&& address, ExprPtr&& child)
         : address(std::move(address)), child(std::move(child)) {}
 
-    static ExprPtr create(ExprPtr&& address, ExprPtr&& child) {
-        return ExprPtr(
-            new ExprPlacementNew(std::move(address), std::move(child)));
-    }
-
     virtual std::string to_string(int depth) const override {
         return iformat(
             depth, "new ({}) {}", address->to_string(0), child->to_string(0));
     }
 };
+
+inline ExprPtr ex_placement_new(ExprPtr&& address, ExprPtr&& child) {
+    return ExprPtr(new ExprPlacementNew(std::move(address), std::move(child)));
+}
 
 struct ExprVarDecl : public Expr {
     ExprPtr type;
@@ -299,16 +286,12 @@ struct ExprVarDecl : public Expr {
     ExprVarDecl(ExprPtr&& type, ExprPtr&& name)
         : type(std::move(type)), name(std::move(name)) {}
 
-    static ExprPtr create(ExprPtr&& type, ExprPtr&& name) {
-        return ExprPtr(new ExprVarDecl(std::move(type), std::move(name)));
-    }
-
     virtual std::string to_string(int depth) const override {
         return iformat(depth, "{} {}", type->to_string(0), name->to_string(0));
     }
 };
 
-static ExprPtr ex_var_decl(ExprPtr&& type, ExprPtr&& name) {
+inline ExprPtr ex_var_decl(ExprPtr&& type, ExprPtr&& name) {
     return ExprPtr(new ExprVarDecl(std::move(type), std::move(name)));
 }
 
@@ -317,28 +300,28 @@ struct ExprDelete : public Expr {
 
     ExprDelete(ExprPtr&& child) : child(std::move(child)) {}
 
-    static ExprPtr create(ExprPtr&& child) {
-        return ExprPtr(new ExprDelete(std::move(child)));
-    }
-
     virtual std::string to_string(int depth) const override {
         return iformat(depth, "delete {}", child->to_string(0));
     }
 };
+
+inline ExprPtr ex_delete(ExprPtr&& child) {
+    return ExprPtr(new ExprDelete(std::move(child)));
+}
 
 struct Stmt : public Expr {
     ExprPtr pointer;
 
     Stmt(ExprPtr&& pointer) : pointer(std::move(pointer)) {}
 
-    static ExprPtr create(ExprPtr&& pointer) {
-        return ExprPtr(new Stmt(std::move(pointer)));
-    }
-
     virtual std::string to_string(int depth) const override {
         return iformat(depth, "{};", pointer->to_string(0));
     }
 };
+
+inline ExprPtr ex_stmt(ExprPtr&& pointer) {
+    return ExprPtr(new Stmt(std::move(pointer)));
+}
 
 struct ExprFunPtrWrapperLambda : public Expr {
     std::string name;

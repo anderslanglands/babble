@@ -147,7 +147,7 @@ class C_API {
                                 std::string const& function_prefix)
         -> C_StdFunction;
 
-    auto _generate_stdfunction_wraper(std::string const& id,
+    auto _generate_stdfunction_wrapper(std::string const& id,
                                       std::string const& param_name) -> ExprPtr;
 
     auto _translate_constructor(Constructor const* ctor,

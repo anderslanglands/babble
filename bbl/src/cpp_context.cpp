@@ -2,6 +2,8 @@
 #include "astutil.hpp"
 #include "bbl_detail.h"
 #include "bblfmt.hpp"
+#include "clang/AST/DeclCXX.h"
+#include "clang/AST/ExprCXX.h"
 #include "clang/Basic/SourceLocation.h"
 #include "clang/Basic/SourceManager.h"
 
@@ -40,37 +42,40 @@ namespace bbl {
 QType clone(QType const& qt) {
     if (std::holds_alternative<Type>(qt.type)) {
         const auto& type = std::get<Type>(qt.type);
-        return QType {
-            qt.is_const,
-            type
-        };
+        return QType{qt.is_const, type};
     } else if (std::holds_alternative<Pointer>(qt.type)) {
         const auto& pointer = std::get<Pointer>(qt.type);
-        return QType {
-            qt.is_const,
-            Pointer{std::make_unique<QType>(clone(*pointer.pointee))}
-        };
+        return QType{qt.is_const,
+                     Pointer{std::make_unique<QType>(clone(*pointer.pointee))}};
     } else if (std::holds_alternative<LValueReference>(qt.type)) {
         const auto& lvref = std::get<LValueReference>(qt.type);
-        return QType {
+        return QType{
             qt.is_const,
-            LValueReference{std::make_unique<QType>(clone(*lvref.pointee))}
-        };
+            LValueReference{std::make_unique<QType>(clone(*lvref.pointee))}};
     } else if (std::holds_alternative<RValueReference>(qt.type)) {
         const auto& rvref = std::get<RValueReference>(qt.type);
-        return QType {
+        return QType{
             qt.is_const,
-            RValueReference{std::make_unique<QType>(clone(*rvref.pointee))}
-        };
+            RValueReference{std::make_unique<QType>(clone(*rvref.pointee))}};
     } else if (std::holds_alternative<Array>(qt.type)) {
         const auto& array = std::get<Array>(qt.type);
-        return QType {
+        return QType{
             qt.is_const,
-            Array{std::make_unique<QType>(clone(*array.element_type)), array.size}
+            Array{std::make_unique<QType>(clone(*array.element_type)),
+                  array.size}
         };
     } else {
         BBL_THROW("unreachable QType variant");
     }
+}
+
+QType wrap_in_pointer(QType const& qt) {
+    return QType {
+        false,
+        Pointer {
+            std::make_unique<QType>(clone(qt))
+        }
+    };
 }
 
 class Timer {
@@ -1332,6 +1337,8 @@ extract_class_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
                   bbl_ctor_decl->getNameAsString());
     }
 
+    bool is_default_constructible = evaluate_field_expression_bool(
+        bbl_ctsd, "is_default_constructible", *ast_context);
     bool is_copy_constructible = evaluate_field_expression_bool(
         bbl_ctsd, "is_copy_constructible", *ast_context);
     bool is_nothrow_copy_constructible = evaluate_field_expression_bool(
@@ -1428,6 +1435,7 @@ extract_class_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
                 layout,
                 bind_kind,
                 RuleOfSeven{
+                    is_default_constructible,
                     is_copy_constructible,
                     is_nothrow_copy_constructible,
                     is_move_constructible,
@@ -1983,14 +1991,28 @@ extract_field_from_decl_ref_expr(clang::DeclRefExpr const* dre,
     });
 }
 
+static auto get_as_classid(QType const& qt) -> std::optional<std::string> {
+    if (std::holds_alternative<Type>(qt.type)) {
+        Type const& type = std::get<Type>(qt.type);
+        if (std::holds_alternative<ClassId>(type.kind)) {
+            return std::get<ClassId>(type.kind).id;
+        } else if (std::holds_alternative<ClassTemplateSpecializationId>(type.kind)) {
+            return std::get<ClassTemplateSpecializationId>(type.kind).id;
+        }
+    }
+
+    return {};
+}
+
 static auto
-extract_ctor_from_member_call_expr(clang::CXXMemberCallExpr const* mce,
-                                   bbl::Context* bbl_ctx,
-                                   clang::ASTContext* ast_context,
-                                   clang::SourceManager& sm,
-                                   clang::MangleContext* mangle_context)
-    -> void {
+extract_ctor_from_construct_expr(clang::CXXConstructExpr const* cce,
+                                 bbl::Context* bbl_ctx,
+                                 clang::ASTContext* ast_context,
+                                 clang::SourceManager& sm,
+                                 clang::MangleContext* mangle_context) -> void {
+#if 0
     clang::CXXConstructExpr const* cce = nullptr;
+    mce->dumpColor();
     visit_subtree(mce, [&](clang::Stmt const* stmt) {
         if (auto const* _cce = dyn_cast<clang::CXXConstructExpr>(stmt)) {
             auto const* _ccd = _cce->getConstructor();
@@ -2009,6 +2031,7 @@ extract_ctor_from_member_call_expr(clang::CXXMemberCallExpr const* mce,
         BBL_THROW(
             "could not find CXXConstructExpr from Ctor CXXMemberCallExpr");
     }
+#endif
 
     clang::CXXConstructorDecl const* ccd = cce->getConstructor();
     clang::CXXRecordDecl const* crd = ccd->getParent();
@@ -2060,6 +2083,13 @@ extract_ctor_from_member_call_expr(clang::CXXMemberCallExpr const* mce,
         ++i;
     }
 
+    auto const& mce =
+        find_first_ancestor_of_type<clang::CXXMemberCallExpr>(cce, ast_context);
+    if (mce == nullptr) {
+        BBL_THROW("could not find CXXMemberCallExpr from CXXConstructExpr {}",
+                  get_source_text(cce->getSourceRange(), sm));
+    }
+
     // If there's a StringLiteral inside an ImplicitCastExpr,
     // that will be our rename string
     std::string rename_str;
@@ -2071,23 +2101,34 @@ extract_ctor_from_member_call_expr(clang::CXXMemberCallExpr const* mce,
         }
     }
 
-    // find the CXXConstructExpr to get the class we're
-    // attaching to
-    // XXX: handle object instance not ctor
-    auto const* cce_target =
-        find_first_descendent_of_type<clang::CXXConstructExpr>(mce);
-    if (cce_target == nullptr) {
-        BBL_THROW("could not get CXXConstructExpr from "
-                  "CXXMemberCallExpr {}",
-                  get_source_text(mce->getSourceRange(), sm));
+    // // find the CXXConstructExpr to get the class we're
+    // // attaching to
+    // // XXX: handle object instance not ctor
+    // auto const* cce_target =
+    //     find_first_descendent_of_type<clang::CXXConstructExpr>(mce);
+    // if (cce_target == nullptr) {
+    //     BBL_THROW("could not get CXXConstructExpr from "
+    //               "CXXMemberCallExpr {}",
+    //               get_source_text(mce->getSourceRange(), sm));
+    // }
+
+    // // And finally get the target class that we're going to add the
+    // // constructor to
+    // clang::CXXRecordDecl const* crd_target =
+    //     get_record_to_extract_from_construct_expr(cce_target);
+    // std::string target_class_id = get_mangled_name(crd_target, mangle_context);
+
+    // the target class to attach to will be the first template argument to the Ctor constructor
+    if (!std::holds_alternative<QType>(template_args[0])) {
+        BBL_THROW("first template argument to Ctor is not a qtype in {}", get_source_text(cce->getSourceRange(), sm));
+    }
+    QType const& qt_target = std::get<QType>(template_args[0]);
+    std::optional<std::string> opt_target_class_id = get_as_classid(qt_target);
+    if (!opt_target_class_id.has_value()) {
+        BBL_THROW("first template argument to Ctor is not a class in {}", get_source_text(cce->getSourceRange(), sm));
     }
 
-    // And finally get the target class that we're going to add the
-    // constructor to
-    clang::CXXRecordDecl const* crd_target =
-        get_record_to_extract_from_construct_expr(cce_target);
-
-    std::string target_class_id = get_mangled_name(crd_target, mangle_context);
+    std::string target_class_id = opt_target_class_id.value();
 
     std::string comment = get_comment_from_decl(ccd, ast_context);
 
@@ -2095,7 +2136,7 @@ extract_ctor_from_member_call_expr(clang::CXXMemberCallExpr const* mce,
     if (cls == nullptr) {
         BBL_THROW("Ctor is targeting class {} but this class "
                   "is not extracted",
-                  crd_target->getQualifiedNameAsString());
+                  target_class_id);
     }
 
     // We're not actually pointing to the constructor here, so we need
@@ -2104,6 +2145,7 @@ extract_ctor_from_member_call_expr(clang::CXXMemberCallExpr const* mce,
     // type-matching the parameters?
     std::string ctor_id =
         fmt::format("{}/ctor/{}", rename_str, target_class_id);
+
     bbl_ctx->insert_constructor_binding(ctor_id,
                                         Constructor{
                                             rename_str,
@@ -2378,16 +2420,27 @@ public:
         }
 
         if (auto const* cmd = cmce->getMethodDecl()) {
-            if (cmd->getName() == "ctor") {
+            /*if (cmd->getName() == "ctor") {
                 extract_ctor_from_member_call_expr(
                     cmce, _bbl_ctx, _ast_context, _sm, _mangle_context.get());
-            } else if (cmd->getName() == "replace_with") {
+            } else*/
+            if (cmd->getName() == "replace_with") {
                 extract_replacement_type_from_member_call_expr(
                     cmce, _bbl_ctx, _ast_context, _sm, _mangle_context.get());
             } else if (cmd->getName() == "smartptr_to") {
                 extract_smartptr_to_from_member_call_expr(
                     cmce, _bbl_ctx, _ast_context, _sm, _mangle_context.get());
             }
+        }
+
+        return true;
+    }
+
+    bool VisitCXXConstructExpr(clang::CXXConstructExpr* cce) {
+        clang::CXXConstructorDecl const* ccd = cce->getConstructor();
+        if (ccd->getNameAsString() == "Ctor") {
+            extract_ctor_from_construct_expr(
+                cce, _bbl_ctx, _ast_context, _sm, _mangle_context.get());
         }
 
         return true;
