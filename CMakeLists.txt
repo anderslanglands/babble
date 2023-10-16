@@ -27,10 +27,6 @@ endif()
 
 set(BUILD_SHARED_LIBS OFF)
 
-set(SPDLOG_INSTALL ON)
-add_subdirectory(ext/spdlog)
-add_subdirectory(ext/tiny-process-library)
-
 add_subdirectory(bbl)
 
 if(${BUILD_USD_EXAMPLE})

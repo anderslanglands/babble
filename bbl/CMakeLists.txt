@@ -19,7 +19,6 @@ target_link_libraries(
       clangTooling 
       clangBasic 
       clangASTMatchers 
-      spdlog::spdlog 
 )
 
 add_library(babble::bbl ALIAS bbl)
@@ -29,6 +28,8 @@ target_include_directories(
     PUBLIC
       "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
       "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+    PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/../ext/spdlog/include
 )
 
 target_include_directories(bbl PRIVATE ${LLVM_INCLUDE_DIRS})
@@ -38,8 +39,12 @@ add_executable(bbl-translate src/bbl-translate.cpp)
 target_link_libraries(bbl-translate 
   PUBLIC
     bbl
-  PRIVATE
-    spdlog::spdlog 
+)
+
+target_include_directories(
+  bbl-translate
+    PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/../ext/spdlog/include
 )
 
 # LLVM is normally built without RTTI. Be consistent with that.
