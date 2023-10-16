@@ -1,63 +1,13 @@
 cmake_minimum_required(VERSION 3.15)
 project(stdfunction VERSION 0.1 LANGUAGES C CXX)
 
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/../../bbl/cmake)
+include(babble-functions)
+
 # The bindfile contains all our binding definitions
 set(bindfiles 
     bind.cpp
 )
-
-function(BBL_TRANSLATE_BINDING TARGET_NAME)
-    # God, I hate CMake so much...
-    set(bindfiles)
-    set(list_args BINDFILES COMPILE_ARGS)
-
-    cmake_parse_arguments(arg "${flags}" "${args}" "${list_args}" ${ARGN})
-
-    if(NOT arg_BINDFILES)
-        message(FATAL_ERROR "[translate_binding]: BINDFILES is a required argument")
-    endif()
-
-    if(BINDFILES IN_LIST arg_KEYWORDS_MISSING_VALUES)
-        message(FATAL_ERROR "[translate_binding]: BINDFILES required at least one value")
-    endif()
-
-    set(BBL_TRANSLATED_SOURCE "${TARGET_NAME}.cpp")
-    set(BBL_TRANSLATED_HEADER "${TARGET_NAME}.h")
-
-    set(bindfile_abs_args "")
-    foreach(bindfile ${arg_BINDFILES})
-        get_filename_component(_abs ${bindfile} REALPATH BASEDIR ${CMAKE_CURRENT_BINARY_DIR})
-        list(APPEND bindfile_abs_args ${_abs})
-    endforeach()
-
-    message("generating ${BBL_TRANSLATED_SOURCE} from ${bindfile_abs_args}")
-
-    # get clang args
-    execute_process(COMMAND clang -print-resource-dir OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE clang_resource_dir)
-    message("clang resource dir: '${clang_resource_dir}'")
-
-    add_library(${TARGET_NAME} STATIC ${BBL_TRANSLATED_SOURCE})
-    target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-
-    add_custom_command(
-        OUTPUT ${BBL_TRANSLATED_SOURCE}
-        DEPENDS ${arg_BINDFILES}
-        COMMAND 
-            bbl-translate 
-                ${bindfile_abs_args} 
-                -- 
-                -std=c++17
-                -fsyntax-only
-                -fno-spell-checking
-                -I${clang_resource_dir}/include
-                "-I$<JOIN:$<TARGET_PROPERTY:babble::bbl,INCLUDE_DIRECTORIES>,;-I>" 
-                "-I$<JOIN:$<TARGET_PROPERTY:${TARGET_NAME},INCLUDE_DIRECTORIES>,;-I>" 
-                ${arg_COMPILE_ARGS}
-                -- 
-                ${BBL_TRANSLATED_SOURCE} ${BBL_TRANSLATED_HEADER}
-        COMMAND_EXPAND_LISTS
-    )
-endfunction()
 
 bbl_translate_binding(
     stdfunction-c
@@ -68,11 +18,6 @@ bbl_translate_binding(
 add_executable(test_stdfunction test_stdfunction.cpp)
 target_link_libraries(test_stdfunction PUBLIC stdfunction-c)
 target_include_directories(test_stdfunction PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-
-# Compile a simple test program to exercise the generated library
-# add_executable(usd-c-test01 usd-c-test01.c)
-# target_link_libraries(usd-c-test01 PUBLIC usd-c)
-# set_property(TARGET usd-c-test01 PROPERTY C_STANDARD 99)
 
 # # This is just here to trigger generation of compile commands for the bind file so we get LSP functionality in the bind file
 add_library(stdfunction-bind-dummy ${bindfiles})

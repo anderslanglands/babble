@@ -3,6 +3,8 @@ project(babble VERSION 0.1 LANGUAGES C CXX)
 
 option(BUILD_USD_EXAMPLE "Builds an example OpenUSD binding")
 
+find_package(Clang 16.0 REQUIRED)
+
 set(CMAKE_CXX_STANDARD 17)
 
 include(GNUInstallDirs)

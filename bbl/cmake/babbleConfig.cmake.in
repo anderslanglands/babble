@@ -1,0 +1,9 @@
+set(BABBLE_VERSION @PROJECT_VERSION@)
+
+@PACKAGE_INIT@
+
+set_and_check(BABBLE_INCLUDE_DIR "@PACKAGE_INCLUDE_INSTALL_DIR@")
+
+check_required_components(babble)
+
+include(babble-functions)

@@ -1,8 +1,3 @@
-cmake_minimum_required(VERSION  3.15)
-project(bbl VERSION 0.1 LANGUAGES C CXX)
-
-find_package(Clang 16.0 REQUIRED)
-
 set(CMAKE_CXX_STANDARD 17 CACHE STRING "")
 # Generate info for LSP
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -41,8 +36,10 @@ target_include_directories(bbl PRIVATE ${LLVM_INCLUDE_DIRS})
 add_executable(bbl-translate src/bbl-translate.cpp)
 
 target_link_libraries(bbl-translate 
-  bbl
-  spdlog::spdlog 
+  PUBLIC
+    bbl
+  PRIVATE
+    spdlog::spdlog 
 )
 
 # LLVM is normally built without RTTI. Be consistent with that.
@@ -84,5 +81,24 @@ install(
   NAMESPACE 
     babble::
   DESTINATION 
+    ${CMAKE_INSTALL_LIBDIR}/cmake/babble
+)
+
+include(CMakePackageConfigHelpers)
+set(INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR})
+configure_package_config_file(
+  cmake/babbleConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/babbleConfig.cmake
+  INSTALL_DESTINATION
+    ${CMAKE_INSTALL_LIBDIR}/cmake/babble
+  PATH_VARS 
+    INCLUDE_INSTALL_DIR
+)
+
+install(
+  FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/babbleConfig.cmake
+    cmake/babble-functions.cmake
+  DESTINATION
     ${CMAKE_INSTALL_LIBDIR}/cmake/babble
 )
