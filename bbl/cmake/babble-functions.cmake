@@ -39,12 +39,13 @@ function(BBL_TRANSLATE_BINDING TARGET_NAME)
                 -fsyntax-only
                 -fno-spell-checking
                 -I${clang_resource_dir}/include
-                "-I$<JOIN:$<TARGET_PROPERTY:babble::bbl,INCLUDE_DIRECTORIES>,;-I>" 
+                "-I$<JOIN:$<TARGET_PROPERTY:babble::bind,INTERFACE_INCLUDE_DIRECTORIES>,;-I>" 
                 "-I$<JOIN:$<TARGET_PROPERTY:${TARGET_NAME},INCLUDE_DIRECTORIES>,;-I>" 
                 ${arg_COMPILE_ARGS}
                 -- 
                 ${BBL_TRANSLATED_SOURCE} ${BBL_TRANSLATED_HEADER}
         COMMAND_EXPAND_LISTS
     )
+
 endfunction()
 

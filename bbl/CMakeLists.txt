@@ -34,6 +34,15 @@ target_include_directories(
 
 target_include_directories(bbl PRIVATE ${LLVM_INCLUDE_DIRS})
 
+add_library(bind INTERFACE)
+add_library(babble::bind ALIAS bind)
+target_include_directories(
+  bind
+    INTERFACE
+      "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+      "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+)
+
 add_executable(bbl-translate src/bbl-translate.cpp)
 
 target_link_libraries(bbl-translate 
@@ -54,7 +63,7 @@ endif()
 
 install(
   TARGETS 
-    bbl bbl-translate
+    bbl bbl-translate bind
   EXPORT 
     bbl-targets
   LIBRARY 
@@ -92,8 +101,8 @@ install(
 include(CMakePackageConfigHelpers)
 set(INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR})
 configure_package_config_file(
-  cmake/babbleConfig.cmake.in
-  ${CMAKE_CURRENT_BINARY_DIR}/babbleConfig.cmake
+  cmake/babble-config.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/babble-config.cmake
   INSTALL_DESTINATION
     ${CMAKE_INSTALL_LIBDIR}/cmake/babble
   PATH_VARS 
@@ -102,7 +111,7 @@ configure_package_config_file(
 
 install(
   FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/babbleConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/babble-config.cmake
     cmake/babble-functions.cmake
   DESTINATION
     ${CMAKE_INSTALL_LIBDIR}/cmake/babble

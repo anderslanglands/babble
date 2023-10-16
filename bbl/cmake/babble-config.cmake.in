@@ -6,4 +6,5 @@ set_and_check(BABBLE_INCLUDE_DIR "@PACKAGE_INCLUDE_INSTALL_DIR@")
 
 check_required_components(babble)
 
-include(babble-functions)
+include(${CMAKE_CURRENT_LIST_DIR}/bbl-targets.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/babble-functions.cmake)
