@@ -1,3 +1,5 @@
+find_package(Threads REQUIRED)
+
 set(CMAKE_CXX_STANDARD 17 CACHE STRING "")
 # Generate info for LSP
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -8,9 +10,17 @@ add_library(bbl STATIC
   src/cpp_context.cpp
   src/capi.cpp
   src/astutil.cpp
+  src/process.cpp
   src/api/api_cpp_context.cpp
   src/api/api_capi.cpp
 )
+
+if(MSVC)
+  target_sources(bbl PRIVATE src/process_win.cpp)
+else()
+  target_sources(bbl PRIVATE src/process_unix.cpp)
+endif()
+
 
 target_link_libraries(
   bbl
@@ -19,6 +29,7 @@ target_link_libraries(
       clangTooling 
       clangBasic 
       clangASTMatchers 
+      ${CMAKE_THREAD_LIBS_INIT}
 )
 
 add_library(babble::bbl ALIAS bbl)

@@ -23,7 +23,7 @@ function(BBL_TRANSLATE_BINDING TARGET_NAME)
     endforeach()
 
     # get clang args
-    execute_process(COMMAND clang -print-resource-dir OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE clang_resource_dir)
+    # execute_process(COMMAND clang -print-resource-dir OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE clang_resource_dir)
 
     add_library(${TARGET_NAME} STATIC ${BBL_TRANSLATED_SOURCE})
     target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
@@ -38,7 +38,7 @@ function(BBL_TRANSLATE_BINDING TARGET_NAME)
                 -std=c++17
                 -fsyntax-only
                 -fno-spell-checking
-                -I${clang_resource_dir}/include
+                # -I${clang_resource_dir}/include
                 "-I$<JOIN:$<TARGET_PROPERTY:babble::bind,INTERFACE_INCLUDE_DIRECTORIES>,;-I>" 
                 "-I$<JOIN:$<TARGET_PROPERTY:${TARGET_NAME},INCLUDE_DIRECTORIES>,;-I>" 
                 ${arg_COMPILE_ARGS}
