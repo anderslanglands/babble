@@ -2459,7 +2459,7 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
     std::string clang_resource_include;
     std::string str_stderr;
     tpl::Process process("clang -print-resource-dir", "", [&](char const* bytes, size_t n) {
-        clang_resource_include = fmt::format("-I{}/include", std::string(bytes, n));
+        clang_resource_include = fmt::format("-I{}/include", std::string(bytes, n-1));
     }, [&](char const* bytes, size_t n){
         str_stderr = std::string(bytes, n);
     });
