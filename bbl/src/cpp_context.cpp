@@ -1997,7 +1997,8 @@ static auto get_as_classid(QType const& qt) -> std::optional<std::string> {
         Type const& type = std::get<Type>(qt.type);
         if (std::holds_alternative<ClassId>(type.kind)) {
             return std::get<ClassId>(type.kind).id;
-        } else if (std::holds_alternative<ClassTemplateSpecializationId>(type.kind)) {
+        } else if (std::holds_alternative<ClassTemplateSpecializationId>(
+                       type.kind)) {
             return std::get<ClassTemplateSpecializationId>(type.kind).id;
         }
     }
@@ -2117,16 +2118,20 @@ extract_ctor_from_construct_expr(clang::CXXConstructExpr const* cce,
     // // constructor to
     // clang::CXXRecordDecl const* crd_target =
     //     get_record_to_extract_from_construct_expr(cce_target);
-    // std::string target_class_id = get_mangled_name(crd_target, mangle_context);
+    // std::string target_class_id = get_mangled_name(crd_target,
+    // mangle_context);
 
-    // the target class to attach to will be the first template argument to the Ctor constructor
+    // the target class to attach to will be the first template argument to the
+    // Ctor constructor
     if (!std::holds_alternative<QType>(template_args[0])) {
-        BBL_THROW("first template argument to Ctor is not a qtype in {}", get_source_text(cce->getSourceRange(), sm));
+        BBL_THROW("first template argument to Ctor is not a qtype in {}",
+                  get_source_text(cce->getSourceRange(), sm));
     }
     QType const& qt_target = std::get<QType>(template_args[0]);
     std::optional<std::string> opt_target_class_id = get_as_classid(qt_target);
     if (!opt_target_class_id.has_value()) {
-        BBL_THROW("first template argument to Ctor is not a class in {}", get_source_text(cce->getSourceRange(), sm));
+        BBL_THROW("first template argument to Ctor is not a class in {}",
+                  get_source_text(cce->getSourceRange(), sm));
     }
 
     std::string target_class_id = opt_target_class_id.value();

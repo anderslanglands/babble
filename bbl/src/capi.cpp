@@ -327,24 +327,6 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
                                        std::move(mod_enums),
                                        cpp_mod.function_impls});
     }
-
-    // translate all std functions
-    // for (auto const& [cpp_stdfun_id, cpp_stdfun] : _cpp_ctx.stdfunctions()) {
-    //     C_QType result_type = _translate_qtype(cpp_stdfun.return_type);
-
-    //     std::vector<C_QType> c_params;
-    //     for (auto const& param : cpp_stdfun.params) {
-    //         c_params.emplace_back(_translate_qtype(param));
-    //     }
-
-    //     _stdfunctions.emplace(cpp_stdfun_id,
-    //                           C_StdFunction{
-    //                               cpp_stdfun.rename,
-    //                               result_type,
-    //                               cpp_stdfun.comment,
-    //                               std::move(c_params),
-    //                           });
-    // }
 }
 
 auto C_API::_get_c_qtype_as_string(C_QType const& qt,
