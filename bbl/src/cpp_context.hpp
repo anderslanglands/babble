@@ -12,12 +12,13 @@
 #pragma warning(disable : 4291)
 #endif
 
-#include <llvm/Support/CommandLine.h>
 #include <clang/AST/ASTContext.h>
 #include <clang/AST/Decl.h>
 #include <clang/AST/DeclCXX.h>
 #include <clang/AST/DeclTemplate.h>
 #include <clang/AST/Type.h>
+#include <llvm/Support/CommandLine.h>
+
 
 #if defined(WIN32)
 #pragma warning(pop)
@@ -43,13 +44,18 @@ class Context;
         fmt::format("{}:{} {}", __FILE__, __LINE__, fmt::format(__VA_ARGS__)))
 
 #define BBL_RETHROW(E, ...)                                                    \
-    throw std::runtime_error(fmt::format("{}:{} {}\n  {}", __FILE__, __LINE__, \
-                                         fmt::format(__VA_ARGS__), E.what()))
+    throw std::runtime_error(fmt::format("{}:{} {}\n  {}",                     \
+                                         __FILE__,                             \
+                                         __LINE__,                             \
+                                         fmt::format(__VA_ARGS__),             \
+                                         E.what()))
 
 #define BBL_RETHROW_MTBE(E, ...)                                               \
-    throw MissingTypeBindingException(                                         \
-        fmt::format("{}:{} {}\n  {}", __FILE__, __LINE__,                      \
-                    fmt::format(__VA_ARGS__), E.what()))
+    throw MissingTypeBindingException(fmt::format("{}:{} {}\n  {}",            \
+                                                  __FILE__,                    \
+                                                  __LINE__,                    \
+                                                  fmt::format(__VA_ARGS__),    \
+                                                  E.what()))
 
 template <typename Key, typename Value>
 using MapType = ankerl::unordered_dense::map<Key, Value>;
@@ -79,7 +85,10 @@ struct StdFunctionId {
 };
 
 struct Type {
-    std::variant<bbl_builtin_t, ClassId, ClassTemplateSpecializationId, EnumId,
+    std::variant<bbl_builtin_t,
+                 ClassId,
+                 ClassTemplateSpecializationId,
+                 EnumId,
                  StdFunctionId>
         kind;
 };
@@ -250,6 +259,8 @@ using EnumVariant = std::pair<std::string, std::string>;
 struct Enum {
     /// How the enum was spelt in the binding, i.e. `X` in `bbl::Enum<X>()`
     std::string spelling;
+    /// The name of the enum
+    std::string name;
     /// The name to give the enum in the C API
     std::string rename;
     std::string comment;
@@ -351,41 +362,50 @@ public:
                           clang::MangleContext* mangle_ctx) -> QType;
 
     /// Extract the class (or class template specialization) `crd`.
-    [[nodiscard]] auto
-    extract_class_binding(clang::CXXRecordDecl const* crd,
-                          std::string const& spelling,
-                          std::string const& rename, std::string const& comment,
-                          Layout layout, BindKind bind_kind,
-                          RuleOfSeven const& rule_of_seven, bool is_abstract,
-                          clang::MangleContext* mangle_ctx) -> Class;
+    [[nodiscard]] auto extract_class_binding(clang::CXXRecordDecl const* crd,
+                                             std::string const& spelling,
+                                             std::string const& rename,
+                                             std::string const& comment,
+                                             Layout layout,
+                                             BindKind bind_kind,
+                                             RuleOfSeven const& rule_of_seven,
+                                             bool is_abstract,
+                                             clang::MangleContext* mangle_ctx)
+        -> Class;
 
     /// Insert the class `cls` with ID `id` into Module `mod_id`
-    auto insert_class_binding(std::string const& mod_id, std::string const& id,
+    auto insert_class_binding(std::string const& mod_id,
+                              std::string const& id,
                               Class&& cls) -> void;
 
-    [[nodiscard]] auto
-    extract_stdfunction_binding(
+    [[nodiscard]] auto extract_stdfunction_binding(
         clang::ClassTemplateSpecializationDecl const* ctsd,
-        std::string const& spelling, std::string const& rename,
-        std::string const& comment, clang::MangleContext* mangle_ctx)
-        -> StdFunction;
+        std::string const& spelling,
+        std::string const& rename,
+        std::string const& comment,
+        clang::MangleContext* mangle_ctx) -> StdFunction;
     auto insert_stdfunction_binding(std::string const& mod_id,
-                                    std::string const& id, StdFunction&& fun)
-        -> void;
+                                    std::string const& id,
+                                    StdFunction&& fun) -> void;
 
     /// Get the StdFunction with given `id`. Returns nullptr on failure
     auto has_stdfunction(std::string const& id) const noexcept -> bool;
     auto get_stdfunction(std::string const& id) noexcept -> StdFunction*;
-    auto get_stdfunction(std::string const& id) const noexcept -> StdFunction const*;
+    auto get_stdfunction(std::string const& id) const noexcept
+        -> StdFunction const*;
 
     auto stdfunctions() const noexcept
         -> StdFunctionMap::value_container_type const&;
 
-    [[nodiscard]] auto
-    extract_enum_binding(clang::EnumDecl const* ed, std::string const& spelling,
-                         std::string const& rename, std::string const& comment,
-                         clang::MangleContext* mangle_ctx) -> Enum;
-    auto insert_enum_binding(std::string const& mod_id, std::string const& id,
+    [[nodiscard]] auto extract_enum_binding(clang::EnumDecl const* ed,
+                                            std::string const& spelling,
+                                            std::string const& name,
+                                            std::string const& rename,
+                                            std::string const& comment,
+                                            clang::MangleContext* mangle_ctx)
+        -> Enum;
+    auto insert_enum_binding(std::string const& mod_id,
+                             std::string const& id,
                              Enum&& fun) -> void;
 
     /// Get the Enum with given `id`. Returns nullptr on failure
@@ -426,7 +446,8 @@ public:
 
     /// Insert the Function `fun` with given `id` in the Module with ID `mod_id`
     auto insert_function_binding(std::string const& mod_id,
-                                 std::string const& id, Function&& fun) -> void;
+                                 std::string const& id,
+                                 Function&& fun) -> void;
 
     /// Get the Function with given `id`. Returns nullptr on failure
     auto get_function(std::string const& id) noexcept -> Function*;
@@ -465,7 +486,8 @@ public:
     auto insert_source_file(const std::string& filename,
                             SourceFile&& source_file) -> void;
 
-    auto insert_function_impl(std::string const& mod_id, std::string const& impl) -> void;
+    auto insert_function_impl(std::string const& mod_id,
+                              std::string const& impl) -> void;
 
     /// Compile the sources in the given command line to AST and run the
     /// extraction.

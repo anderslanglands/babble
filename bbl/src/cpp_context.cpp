@@ -4,18 +4,18 @@
 #include "bblfmt.hpp"
 #include "process.hpp"
 
-#include <clang/AST/DeclCXX.h>
-#include <clang/AST/ExprCXX.h>
-#include <clang/Basic/SourceLocation.h>
-#include <clang/Basic/SourceManager.h>
 #include <clang/AST/ASTContext.h>
 #include <clang/AST/ASTTypeTraits.h>
 #include <clang/AST/Decl.h>
+#include <clang/AST/DeclCXX.h>
+#include <clang/AST/ExprCXX.h>
 #include <clang/AST/Mangle.h>
 #include <clang/AST/RecursiveASTVisitor.h>
 #include <clang/AST/TemplateBase.h>
 #include <clang/AST/Type.h>
 #include <clang/Basic/ExceptionSpecificationType.h>
+#include <clang/Basic/SourceLocation.h>
+#include <clang/Basic/SourceManager.h>
 #include <clang/Frontend/ASTUnit.h>
 #include <clang/Tooling/CommonOptionsParser.h>
 #include <clang/Tooling/Tooling.h>
@@ -71,12 +71,7 @@ QType clone(QType const& qt) {
 }
 
 QType wrap_in_pointer(QType const& qt) {
-    return QType {
-        false,
-        Pointer {
-            std::make_unique<QType>(clone(qt))
-        }
-    };
+    return QType{false, Pointer{std::make_unique<QType>(clone(qt))}};
 }
 
 class Timer {
@@ -762,6 +757,7 @@ auto Context::insert_stdfunction_binding(std::string const& mod_id,
 
 auto Context::extract_enum_binding(clang::EnumDecl const* ed,
                                    std::string const& spelling,
+                                   std::string const& name,
                                    std::string const& rename,
                                    std::string const& comment,
                                    clang::MangleContext* mangle_ctx) -> Enum {
@@ -778,6 +774,7 @@ auto Context::extract_enum_binding(clang::EnumDecl const* ed,
     }
 
     return Enum{spelling,
+                name,
                 rename,
                 comment,
                 std::move(variants),
@@ -1581,8 +1578,12 @@ extract_enum_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
 
     std::string comment = get_comment_from_decl(enum_decl, ast_context);
 
-    Enum enm = bbl_ctx->extract_enum_binding(
-        enum_decl, class_spelling, rename_str, comment, mangle_context);
+    Enum enm = bbl_ctx->extract_enum_binding(enum_decl,
+                                             class_spelling,
+                                             enum_decl->getNameAsString(),
+                                             rename_str,
+                                             comment,
+                                             mangle_context);
     std::string id = get_mangled_name(enum_decl, mangle_context);
 
     std::string mod_id;
@@ -2471,8 +2472,8 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
                 fmt::format("-I{}/include", std::string(bytes, n - 1));
         },
         [&](char const* bytes, size_t n) {
-        str_stderr = std::string(bytes, n);
-    });
+            str_stderr = std::string(bytes, n);
+        });
     if (process.get_exit_status() != 0) {
         BBL_THROW("could not run clang: {}", str_stderr);
     }

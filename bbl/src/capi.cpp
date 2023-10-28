@@ -90,7 +90,7 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
         for (auto const& cpp_enum_id : cpp_mod.enums) {
             auto const* cpp_enum = _cpp_ctx.get_enum(cpp_enum_id);
             std::string enum_namespace = replace_namespace_prefix(
-                cpp_enum->rename.empty() ? cpp_enum->spelling
+                cpp_enum->rename.empty() ? cpp_enum->name
                                          : cpp_enum->rename,
                 cpp_mod.name);
 
@@ -121,7 +121,7 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
             // Construct the struct name from the name of the module, and the
             // spelling or rename string
             std::string struct_namespace = replace_namespace_prefix(
-                cpp_cls->rename.empty() ? cpp_cls->spelling : cpp_cls->rename,
+                cpp_cls->rename.empty() ? cpp_cls->name : cpp_cls->rename,
                 cpp_mod.name);
 
             std::string struct_name = fmt::format("{}_t", struct_namespace);
@@ -176,7 +176,7 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
             // Construct the struct name from the name of the module, and the
             // spelling or rename string
             std::string struct_namespace = replace_namespace_prefix(
-                cpp_cls->rename.empty() ? cpp_cls->spelling : cpp_cls->rename,
+                cpp_cls->rename.empty() ? cpp_cls->name : cpp_cls->rename,
                 cpp_mod.name);
 
             std::string struct_name = fmt::format("{}_t", struct_namespace);
