@@ -2458,9 +2458,14 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
     namespace tpl = TinyProcessLib;
     std::string clang_resource_include;
     std::string str_stderr;
-    tpl::Process process("clang -print-resource-dir", "", [&](char const* bytes, size_t n) {
-        clang_resource_include = fmt::format("-I{}/include", std::string(bytes, n-1));
-    }, [&](char const* bytes, size_t n){
+    tpl::Process process(
+        "clang -print-resource-dir",
+        "",
+        [&](char const* bytes, size_t n) {
+            clang_resource_include =
+                fmt::format("-I{}/include", std::string(bytes, n - 1));
+        },
+        [&](char const* bytes, size_t n) {
         str_stderr = std::string(bytes, n);
     });
     if (process.get_exit_status() != 0) {
@@ -2469,7 +2474,7 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
 
     SPDLOG_INFO("clang resource include: {}", clang_resource_include);
 
-    std::vector<char const*> args(argv, argv+argc);
+    std::vector<char const*> args(argv, argv + argc);
     args.push_back(clang_resource_include.c_str());
     int arg_count = args.size();
 
