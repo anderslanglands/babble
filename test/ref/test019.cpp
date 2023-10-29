@@ -28,7 +28,7 @@ int bar_Foo_dtor(bar_Foo_t* _this) {
 }
 
 int bar_bar_fn(bar_Foo_t const* a, int b) {
-    bar_fn(*a, static_cast<QUX_NS::BarEnum>(b));
+    QUX_NS::bar_fn(*a, static_cast<QUX_NS::BarEnum>(b));
     return 0;
 }
 
@@ -43,7 +43,7 @@ int baz_Foo_dtor(baz_Foo_t* _this) {
 }
 
 int baz_baz_fn(baz_Foo_t const* a, int b) {
-    baz_fn(*a, static_cast<QUX_NS::BazEnum>(b));
+    QUX_NS::baz_fn(*a, static_cast<QUX_NS::BazEnum>(b));
     return 0;
 }
 

@@ -2478,8 +2478,6 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
         BBL_THROW("could not run clang: {}", str_stderr);
     }
 
-    SPDLOG_INFO("clang resource include: {}", clang_resource_include);
-
     std::vector<char const*> args(argv, argv + argc);
     args.push_back(clang_resource_include.c_str());
     int arg_count = args.size();

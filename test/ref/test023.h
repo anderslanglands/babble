@@ -22,20 +22,20 @@ extern "C" {
 
 /** structs */
 
-typedef struct BBL_ALIGN(4) test0023_qux::Foo_t {
+typedef struct BBL_ALIGN(4) test0023_Foo_t {
     float x;
     float y;
     float z;
-} test0023_qux::Foo_t;
+} test0023_Foo_t;
 
 
 
 
 /** functions */
 
-int test0023_qux::Foo_length(test0023_qux::Foo_t* _this, float* _result);
+int test0023_Foo_length(test0023_Foo_t* _this, float* _result);
 
-int test0023_qux::Foo_normalize(test0023_qux::Foo_t* _this, float* _result);
+int test0023_Foo_normalize(test0023_Foo_t* _this, float* _result);
 
 
 

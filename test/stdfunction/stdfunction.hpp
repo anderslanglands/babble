@@ -3,7 +3,6 @@
 #include <functional>
 namespace tst {
 
-
 class Foo {
     int _a = 0;
 public:

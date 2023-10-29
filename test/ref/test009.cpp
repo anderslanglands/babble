@@ -20,22 +20,22 @@ int test_std_pair_StdPairIntFloat_dtor(test_std_pair_StdPairIntFloat_t* _this) {
 }
 
 int test_std_pair_StdPairIntFloat_get0(test_std_pair_StdPairIntFloat_t* _Pr, int* _result) {
-    *_result = get(*_Pr);
+    *_result = BBL_STD_PAIR_FUNCTIONS(*_Pr);
     return 0;
 }
 
 int test_std_pair_StdPairIntFloat_get0_const(test_std_pair_StdPairIntFloat_t const* _Pr, int* _result) {
-    *_result = get(*_Pr);
+    *_result = BBL_STD_PAIR_FUNCTIONS(*_Pr);
     return 0;
 }
 
 int test_std_pair_StdPairIntFloat_get1(test_std_pair_StdPairIntFloat_t* _Pr, float* _result) {
-    *_result = get(*_Pr);
+    *_result = BBL_STD_PAIR_FUNCTIONS(*_Pr);
     return 0;
 }
 
 int test_std_pair_StdPairIntFloat_get1_const(test_std_pair_StdPairIntFloat_t const* _Pr, float* _result) {
-    *_result = get(*_Pr);
+    *_result = BBL_STD_PAIR_FUNCTIONS(*_Pr);
     return 0;
 }
 

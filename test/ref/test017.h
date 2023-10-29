@@ -22,36 +22,36 @@ extern "C" {
 
 /** structs */
 
-typedef struct BBL_ALIGN(4) test017_qux::Vec3f_t {
+typedef struct BBL_ALIGN(4) test017_Vec3f_t {
     float x;
     float y;
     float z;
-} test017_qux::Vec3f_t;
+} test017_Vec3f_t;
 
-typedef struct test017_qux::Foo_t test017_qux::Foo_t;
-typedef struct test017_qux::Bar_t test017_qux::Bar_t;
+typedef struct test017_Foo_t test017_Foo_t;
+typedef struct test017_Bar_t test017_Bar_t;
 
 
 
 /** functions */
 
-int test017_qux::Vec3f_length(test017_qux::Vec3f_t const* _this, float* _result);
+int test017_Vec3f_length(test017_Vec3f_t const* _this, float* _result);
 
-int test017_qux::Vec3f_dist(test017_qux::Vec3f_t const* _this, test017_qux::Vec3f_t const* other, float* _result);
+int test017_Vec3f_dist(test017_Vec3f_t const* _this, test017_Vec3f_t const* other, float* _result);
 
-int test017_qux::Vec3f_ctor(test017_qux::Vec3f_t* _result);
+int test017_Vec3f_ctor(test017_Vec3f_t* _result);
 
-int test017_qux::Foo_do_foo(test017_qux::Foo_t const* _this, test017_qux::Foo_t const* other);
+int test017_Foo_do_foo(test017_Foo_t const* _this, test017_Foo_t const* other);
 
-int test017_qux::Foo_do_foo2(test017_qux::Foo_t* _this, test017_qux::Foo_t* other);
+int test017_Foo_do_foo2(test017_Foo_t* _this, test017_Foo_t* other);
 
-int test017_qux::Foo_ctor(int a, float b, test017_qux::Foo_t** _result);
+int test017_Foo_ctor(int a, float b, test017_Foo_t** _result);
 
-int test017_qux::Foo_dtor(test017_qux::Foo_t* _this);
+int test017_Foo_dtor(test017_Foo_t* _this);
 
-int test017_qux::Bar_ctor(int a, float b, test017_qux::Bar_t** _result);
+int test017_Bar_ctor(int a, float b, test017_Bar_t** _result);
 
-int test017_qux::Bar_dtor(test017_qux::Bar_t* _this);
+int test017_Bar_dtor(test017_Bar_t* _this);
 
 
 

@@ -677,7 +677,6 @@ auto C_API::_translate_method(Method const* method,
 
     std::vector<ExprPtr> body;
     std::vector<ExprPtr> expr_params;
-    std::vector<ExprPtr> decls;
 
     _translate_parameter_list(
         method->function.params, c_params, expr_params, body);
@@ -781,12 +780,11 @@ auto C_API::_translate_function(Function const* function,
 
     std::vector<ExprPtr> body;
     std::vector<ExprPtr> expr_params;
-    std::vector<ExprPtr> decls;
 
-    _translate_parameter_list(function->params, c_params, expr_params, decls);
+    _translate_parameter_list(function->params, c_params, expr_params, body);
 
     ExprPtr expr_call = ex_call(
-        function->name + function->template_call,
+        function->spelling,
         std::make_unique<ExprParameterList>(std::move(expr_params)));
 
     if (result.has_value()) {

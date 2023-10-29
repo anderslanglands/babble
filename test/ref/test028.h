@@ -1,5 +1,5 @@
-#ifndef __TEST012_H__
-#define __TEST012_H__
+#ifndef __TEST028_H__
+#define __TEST028_H__
 
 #if defined(__GNUC__) || defined(__clang__)
 #  define BBL_ALIGN(x) __attribute__ ((aligned(x)))
@@ -22,22 +22,20 @@ extern "C" {
 
 /** structs */
 
-typedef struct test012_Base_t test012_Base_t;
-typedef struct test012_Foo_t test012_Foo_t;
+typedef struct test027_Foo_t test027_Foo_t;
+typedef struct test027_Bar_t test027_Bar_t;
 
 
 
 /** functions */
 
-int test012_Base_bar(test012_Base_t* _this);
+int test027_Foo_dtor(test027_Foo_t* _this);
 
-int test012_Base_dtor(test012_Base_t* _this);
+int test027_Bar_adjust_foo(void (*fn)(test027_Foo_t* param00, test027_Foo_t** _result));
 
-int test012_Foo_bar(test012_Foo_t* _this);
+int test027_Bar_dtor(test027_Bar_t* _this);
 
-int test012_Foo_ctor(test012_Foo_t** _result);
-
-int test012_Foo_dtor(test012_Foo_t* _this);
+int test027_free_adjust_foo(void (*fn)(test027_Foo_t* param00, test027_Foo_t** _result), int* _result);
 
 
 

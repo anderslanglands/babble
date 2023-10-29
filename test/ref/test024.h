@@ -22,16 +22,16 @@ extern "C" {
 
 /** structs */
 
-typedef struct BBL_ALIGN(4) test0024_qux::Bar_t {
+typedef struct BBL_ALIGN(4) test0024_Bar_t {
     float data[3];
-} test0024_qux::Bar_t;
+} test0024_Bar_t;
 
 
 
 
 /** functions */
 
-int test0024_qux::Bar_set_data(test0024_qux::Bar_t* _this, float* d);
+int test0024_Bar_set_data(test0024_Bar_t* _this, float* d);
 
 
 

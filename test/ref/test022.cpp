@@ -24,7 +24,7 @@ int test0022_Foo_dtor(test0022_Foo_t* _this) {
 }
 
 int test0022_custom_foo(test0022_Foo_t const* foo, float* _result) {
-    *_result = custom_foo(*foo);
+    *_result = bblext::custom_foo(*foo);
     return 0;
 }
 
