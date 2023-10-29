@@ -254,6 +254,10 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
                         continue;
                     }
 
+                    if (cpp_cls->smartptr_is_const && !method->is_const) {
+                        continue;
+                    }
+
                     try {
                         C_Function c_fun = _translate_method(
                             method, struct_namespace, smartptr_class_id);

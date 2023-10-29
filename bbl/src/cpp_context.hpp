@@ -232,6 +232,7 @@ struct Class {
     std::vector<std::string> constructors;
     std::vector<Field> fields;
     std::optional<std::string> smartptr_to;
+    bool smartptr_is_const;
     Layout layout;
     BindKind bind_kind;
     RuleOfSeven rule_of_seven;

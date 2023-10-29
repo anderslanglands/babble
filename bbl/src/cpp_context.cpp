@@ -476,6 +476,7 @@ auto Context::extract_class_binding(clang::CXXRecordDecl const* crd,
                  std::vector<std::string>(),
                  std::vector<Field>(),
                  {}, // smartptr_to
+                 false,
                  layout,
                  bind_kind,
                  rule_of_seven,
@@ -2245,6 +2246,7 @@ extract_smartptr_to_from_member_call_expr(clang::CXXMemberCallExpr const* mce,
     if (!rd_smartptr_to) {
         BBL_THROW("could not get RecordDecl for smartptr_to type");
     }
+    bool target_is_const = template_args->data()->getAsType().isConstQualified();
 
     // find the CXXConstructExpr to get the class we're
     // attaching to
@@ -2267,6 +2269,7 @@ extract_smartptr_to_from_member_call_expr(clang::CXXMemberCallExpr const* mce,
 
     if (bbl::Class* cls = bbl_ctx->get_class(target_class_id)) {
         cls->smartptr_to = smartptr_to_id;
+        cls->smartptr_is_const = target_is_const;
     } else {
         BBL_THROW("smartptr_to is targeting class {} but this class "
                   "is not extracted",
