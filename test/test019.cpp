@@ -17,7 +17,7 @@ enum BarEnum {
     BarEnumTwo
 };
 
-void bar_fn(BarFoo const& a, BarEnum b);
+void bar_fn(BarFoo const& a, BarEnum b, BarEnum* c);
 
 class BazFoo {
     int a;
@@ -32,7 +32,7 @@ enum BazEnum {
     BazEnumTwo
 };
 
-void baz_fn(BazFoo const& a, BazEnum b);
+void baz_fn(BazFoo const& a, BazEnum b, BazEnum& c);
 
 }
 

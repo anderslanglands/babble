@@ -90,8 +90,7 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
         for (auto const& cpp_enum_id : cpp_mod.enums) {
             auto const* cpp_enum = _cpp_ctx.get_enum(cpp_enum_id);
             std::string enum_namespace = replace_namespace_prefix(
-                cpp_enum->rename.empty() ? cpp_enum->name
-                                         : cpp_enum->rename,
+                cpp_enum->rename.empty() ? cpp_enum->name : cpp_enum->rename,
                 cpp_mod.name);
 
             std::string enum_name = fmt::format("{}", enum_namespace);
@@ -476,6 +475,53 @@ static bool is_builtin(QType const& qt) {
     return false;
 }
 
+static bool is_lvalue_reference_to_enum(QType const& qt) {
+    if (std::holds_alternative<LValueReference>(qt.type)) {
+        LValueReference const& ref = std::get<LValueReference>(qt.type);
+        return is_enum(*ref.pointee);
+    }
+
+    return false;
+}
+
+static std::optional<EnumId> as_enum(QType const& qt) {
+    if (std::holds_alternative<Type>(qt.type)) {
+        Type type = std::get<Type>(qt.type);
+        if (std::holds_alternative<EnumId>(type.kind)) {
+            return std::get<EnumId>(type.kind);
+        }
+    }
+
+    return {};
+}
+
+static std::optional<EnumId> as_lvalue_reference_to_enum(QType const& qt) {
+    if (std::holds_alternative<LValueReference>(qt.type)) {
+        LValueReference const& ref = std::get<LValueReference>(qt.type);
+        return as_enum(*ref.pointee);
+    }
+
+    return {};
+}
+
+static bool is_pointer_to_enum(QType const& qt) {
+    if (std::holds_alternative<Pointer>(qt.type)) {
+        Pointer const& ptr = std::get<Pointer>(qt.type);
+        return is_enum(*ptr.pointee);
+    }
+
+    return false;
+}
+
+static std::optional<EnumId> as_pointer_to_enum(QType const& qt) {
+    if (std::holds_alternative<Pointer>(qt.type)) {
+        Pointer const& ptr = std::get<Pointer>(qt.type);
+        return as_enum(*ptr.pointee);
+    }
+
+    return {};
+}
+
 // Returns true if the given QType is not a pointer or reference type
 static bool is_by_value(QType const& qt) {
     return std::holds_alternative<Type>(qt.type);
@@ -685,9 +731,9 @@ auto C_API::_translate_method(Method const* method,
     _translate_parameter_list(
         method->function.params, c_params, expr_params, body);
 
-    ExprPtr expr_call = ex_call(
-        method->function.name + method->function.template_call,
-        std::make_unique<ExprParameterList>(std::move(expr_params)));
+    ExprPtr expr_call =
+        ex_call(method->function.name + method->function.template_call,
+                std::make_unique<ExprParameterList>(std::move(expr_params)));
 
     Class const* cls = _cpp_ctx.get_class(class_id);
     assert(cls);
@@ -695,19 +741,17 @@ auto C_API::_translate_method(Method const* method,
     ExprPtr receiving_call;
     if (std::holds_alternative<C_Param>(receiver)) {
         auto const& param = std::get<C_Param>(receiver);
-        receiving_call = ex_arrow(ExprToken::create(param.name),
-                                           std::move(expr_call));
+        receiving_call =
+            ex_arrow(ExprToken::create(param.name), std::move(expr_call));
     } else if (std::holds_alternative<C_SmartPtr>(receiver)) {
         // we need to put an extra deref around the smart pointer to delegate to
         // the underlying class
         auto const& param = std::get<C_SmartPtr>(receiver);
         receiving_call =
-            ex_arrow(ex_paren(ex_deref(
-                                  ExprToken::create(param.smartptr.name))),
-                              std::move(expr_call));
+            ex_arrow(ex_paren(ex_deref(ExprToken::create(param.smartptr.name))),
+                     std::move(expr_call));
     } else {
-        receiving_call =
-            ex_namespace_ref(cls->spelling, std::move(expr_call));
+        receiving_call = ex_namespace_ref(cls->spelling, std::move(expr_call));
     }
 
     if (result.has_value()) {
@@ -739,15 +783,15 @@ auto C_API::_translate_method(Method const* method,
                           enum_id.id);
             }
 
-            receiving_call = ex_static_cast(
-                ExprToken::create(
-                    fmt::format("{}", get_builtin(enm->integer_type))),
-                std::move(receiving_call));
+            receiving_call =
+                ex_static_cast(ExprToken::create(fmt::format(
+                                   "{}", get_builtin(enm->integer_type))),
+                               std::move(receiving_call));
         }
 
-        body.emplace_back(ex_assign(
-            ex_deref(ExprToken::create(result.value().name)),
-            std::move(receiving_call)));
+        body.emplace_back(
+            ex_assign(ex_deref(ExprToken::create(result.value().name)),
+                      std::move(receiving_call)));
     } else {
         body.emplace_back(std::move(receiving_call));
     }
@@ -787,9 +831,9 @@ auto C_API::_translate_function(Function const* function,
 
     _translate_parameter_list(function->params, c_params, expr_params, body);
 
-    ExprPtr expr_call = ex_call(
-        function->spelling,
-        std::make_unique<ExprParameterList>(std::move(expr_params)));
+    ExprPtr expr_call =
+        ex_call(function->spelling,
+                std::make_unique<ExprParameterList>(std::move(expr_params)));
 
     if (result.has_value()) {
         // if the function returns a reference, we need to wrap the call in an
@@ -819,15 +863,15 @@ auto C_API::_translate_function(Function const* function,
                           enum_id.id);
             }
 
-            expr_call = ex_static_cast(
-                ExprToken::create(
-                    fmt::format("{}", get_builtin(enm->integer_type))),
-                std::move(expr_call));
+            expr_call =
+                ex_static_cast(ExprToken::create(fmt::format(
+                                   "{}", get_builtin(enm->integer_type))),
+                               std::move(expr_call));
         }
 
-        body.emplace_back(ex_assign(
-            ex_deref(ExprToken::create(result.value().name)),
-            std::move(expr_call)));
+        body.emplace_back(
+            ex_assign(ex_deref(ExprToken::create(result.value().name)),
+                      std::move(expr_call)));
     } else {
         body.emplace_back(std::move(expr_call));
     }
@@ -1035,11 +1079,36 @@ auto C_API::_translate_parameter_list(std::vector<Param> const& params,
                 std_function_id.value(), param_name));
             expr_params.emplace_back(
                 ExprToken::create(fmt::format("{}_wrapper", param_name)));
+        } else if (auto enum_id = as_lvalue_reference_to_enum(param.type);
+                   enum_id.has_value()) {
+            // we need to static cast a pointer to the enum type then deref
+            Enum const* enm = _cpp_ctx.get_enum(enum_id.value().id);
+            if (enm == nullptr) {
+                BBL_THROW(
+                    "could not get enum {} while translating param \"{}\"",
+                    enum_id.value().id,
+                    param_name);
+            }
+            expr_params.emplace_back(ex_deref(
+                ex_reinterpret_cast(ex_token(fmt::format("{}*", enm->spelling)),
+                               ex_token(param_name))));
+        } else if (auto enum_id = as_pointer_to_enum(param.type);
+                   enum_id.has_value()) {
+            // we need to static cast to the pointer to the enum type
+            Enum const* enm = _cpp_ctx.get_enum(enum_id.value().id);
+            if (enm == nullptr) {
+                BBL_THROW(
+                    "could not get enum {} while translating param \"{}\"",
+                    enum_id.value().id,
+                    param_name);
+            }
+            expr_params.emplace_back(
+                ex_reinterpret_cast(ex_token(fmt::format("{}*", enm->spelling)),
+                               ex_token(param_name)));
         } else if (is_lvalue_reference(param.type) ||
                    (is_by_value(param.type) &&
                     is_opaque_ptr_by_value(param.type, _cpp_ctx))) {
-            expr_params.emplace_back(
-                ex_deref(ExprToken::create(param_name)));
+            expr_params.emplace_back(ex_deref(ExprToken::create(param_name)));
         } else if (is_rvalue_reference(param.type)) {
             BBL_THROW("cannot translate function rvalue reference parameter {}",
                       param_name);
@@ -1057,7 +1126,7 @@ auto C_API::_translate_parameter_list(std::vector<Param> const& params,
             }
             expr_params.emplace_back(
                 ex_static_cast(ExprToken::create(enm->spelling),
-                                       ExprToken::create(param_name)));
+                               ExprToken::create(param_name)));
         } else {
             expr_params.emplace_back(ExprToken::create(param_name));
         }
@@ -1103,21 +1172,20 @@ auto C_API::_translate_constructor(Constructor const* ctor,
 
     _translate_parameter_list(ctor->params, c_params, expr_params, decls);
 
-    ExprPtr expr_call = ex_call(
-        cls->spelling,
-        std::make_unique<ExprParameterList>(std::move(expr_params)));
+    ExprPtr expr_call =
+        ex_call(cls->spelling,
+                std::make_unique<ExprParameterList>(std::move(expr_params)));
 
     // if it's opaque ptr, do a new, assigning the result to the deref'd result
     // ptr
     if (cls->bind_kind == BindKind::OpaquePtr) {
         ExprPtr expr_new = ex_new(std::move(expr_call));
-        body.emplace_back(ex_assign(
-            ex_deref(ExprToken::create(result.name)),
-            std::move(expr_new)));
+        body.emplace_back(ex_assign(ex_deref(ExprToken::create(result.name)),
+                                    std::move(expr_new)));
     } else {
         // otherwise, do placement new straight into the result *
-        body.emplace_back(ex_placement_new(
-            ExprToken::create(result.name), std::move(expr_call)));
+        body.emplace_back(ex_placement_new(ExprToken::create(result.name),
+                                           std::move(expr_call)));
     }
 
     body.emplace_back(ex_return(ExprToken::create("0")));

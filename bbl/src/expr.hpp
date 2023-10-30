@@ -215,6 +215,25 @@ inline ExprPtr ex_static_cast(ExprPtr&& cast_to, ExprPtr&& object) {
     return ExprPtr(new ExprStaticCast(std::move(cast_to), std::move(object)));
 }
 
+struct ExprReinterpretCast : public Expr {
+    ExprPtr cast_to;
+    ExprPtr object;
+
+    ExprReinterpretCast(ExprPtr&& cast_to, ExprPtr&& object)
+        : cast_to(std::move(cast_to)), object(std::move(object)) {}
+
+    virtual std::string to_string(int depth) const override {
+        return iformat(depth,
+                       "reinterpret_cast<{}>({})",
+                       cast_to->to_string(0),
+                       object->to_string(0));
+    }
+};
+
+inline ExprPtr ex_reinterpret_cast(ExprPtr&& cast_to, ExprPtr&& object) {
+    return ExprPtr(new ExprReinterpretCast(std::move(cast_to), std::move(object)));
+}
+
 struct ExprArrow : public Expr {
     ExprPtr receiver;
     ExprPtr target;
