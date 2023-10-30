@@ -3,6 +3,9 @@
 #include "bbl_detail.h"
 #include "bblfmt.hpp"
 #include "process.hpp"
+#include "clang/AST/Expr.h"
+#include "clang/AST/Stmt.h"
+#include "llvm/Support/Casting.h"
 
 #include <clang/AST/ASTContext.h>
 #include <clang/AST/ASTTypeTraits.h>
@@ -761,6 +764,7 @@ auto Context::extract_enum_binding(clang::EnumDecl const* ed,
                                    std::string const& name,
                                    std::string const& rename,
                                    std::string const& comment,
+                                   std::optional<std::string> const& prefix,
                                    clang::MangleContext* mangle_ctx) -> Enum {
     std::vector<clang::EnumConstantDecl const*> constants =
         find_all_children_of_type<clang::EnumConstantDecl>(ed);
@@ -779,7 +783,8 @@ auto Context::extract_enum_binding(clang::EnumDecl const* ed,
                 rename,
                 comment,
                 std::move(variants),
-                extract_qualtype(ed->getIntegerType(), mangle_ctx)};
+                extract_qualtype(ed->getIntegerType(), mangle_ctx),
+                prefix};
 }
 
 auto Context::insert_enum_binding(std::string const& mod_id,
@@ -1543,6 +1548,33 @@ get_enum_to_extract_from_construct_expr(clang::CXXConstructExpr const* cce,
     return enum_decl;
 }
 
+static std::optional<std::string>
+search_for_prefix_from_enum_construct_expr(clang::CXXConstructExpr const* cce,
+                                           clang::ASTContext& ast_context) {
+    std::optional<std::string> result;
+
+    visit_ancestors(cce, &ast_context, [&](clang::Stmt const* stmt) -> bool {
+        if (auto cmce = llvm::dyn_cast<clang::CXXMemberCallExpr>(stmt)) {
+            if (cmce->getMethodDecl()->getName() == "prefix") {
+                if (auto* ice =
+                        find_first_child_of_type<clang::ImplicitCastExpr>(
+                            cmce)) {
+                    if (auto* sl =
+                            find_first_child_of_type<clang::StringLiteral>(
+                                ice)) {
+                        result = sl->getString().str();
+                    }
+                }
+                return true;
+            }
+        }
+
+        return false;
+    });
+
+    return result;
+}
+
 static auto
 extract_enum_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
                                  bbl::Context* bbl_ctx,
@@ -1553,6 +1585,10 @@ extract_enum_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
     // constructor
     clang::EnumDecl const* enum_decl =
         get_enum_to_extract_from_construct_expr(construct_expr, sm);
+
+    std::optional<std::string> prefix =
+        search_for_prefix_from_enum_construct_expr(construct_expr,
+                                                   *ast_context);
 
     // Get the source range of the type part of the ctor expr
     // for bbl::Class<Foo<float>>("FooFloat") this will be
@@ -1584,6 +1620,7 @@ extract_enum_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
                                              enum_decl->getNameAsString(),
                                              rename_str,
                                              comment,
+                                             prefix,
                                              mangle_context);
     std::string id = get_mangled_name(enum_decl, mangle_context);
 
@@ -1595,8 +1632,6 @@ extract_enum_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
                                   ast_context->getSourceManager()));
     }
 
-    // SPDLOG_INFO("inserting enum {} {}", id,
-    //             enum_decl->getQualifiedNameAsString());
     bbl_ctx->insert_enum_binding(mod_id, id, std::move(enm));
 }
 
@@ -2246,7 +2281,8 @@ extract_smartptr_to_from_member_call_expr(clang::CXXMemberCallExpr const* mce,
     if (!rd_smartptr_to) {
         BBL_THROW("could not get RecordDecl for smartptr_to type");
     }
-    bool target_is_const = template_args->data()->getAsType().isConstQualified();
+    bool target_is_const =
+        template_args->data()->getAsType().isConstQualified();
 
     // find the CXXConstructExpr to get the class we're
     // attaching to

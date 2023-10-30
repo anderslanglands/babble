@@ -1,5 +1,6 @@
 #pragma once
 
+#include "llvm/Support/Casting.h"
 #if defined(WIN32)
 #pragma warning(push)
 #pragma warning(disable : 4624)
@@ -119,6 +120,30 @@ auto visit_subtree(clang::Stmt const* stmt, F fun) -> bool {
 
     for (auto const* child : stmt->children()) {
         if (visit_subtree(child, fun)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/// Visit all ancestors of `stmt`, applying `fun`
+///
+/// F should have signature (Stmt const*) -> bool
+/// if F returns true, then the search is stopped.
+template <typename F>
+auto visit_ancestors(clang::Stmt const* stmt, clang::ASTContext* ctx, F fun) -> bool {
+    if (stmt == nullptr) {
+        return false;
+    }
+
+    if (fun(stmt)) {
+        return true;
+    }
+
+    auto const& parents = ctx->getParents(*stmt);
+    for (auto const& parent : parents) {
+        if (visit_ancestors(parent.get<clang::Stmt>(), ctx, fun)) {
             return true;
         }
     }

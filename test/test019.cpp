@@ -45,7 +45,8 @@ BBL_MODULE(bar) {
         .ctor(bbl::Ctor<QUX_NS::BarFoo, int, float>("a", "b"))
         ;
 
-    bbl::Enum<QUX_NS::BarEnum>("Enum");
+    bbl::Enum<QUX_NS::BarEnum>("Enum")
+        .prefix("");
 
     bbl::fn(&QUX_NS::bar_fn);
 }
@@ -58,7 +59,9 @@ BBL_MODULE(baz) {
         .ctor(bbl::Ctor<QUX_NS::BazFoo, int, float>("a", "b"))
         ;
 
-    bbl::Enum<QUX_NS::BazEnum>("Enum");
+    bbl::Enum<QUX_NS::BazEnum>("Enum")
+        .prefix("BAZ")
+        ;
 
     bbl::fn(&QUX_NS::baz_fn);
 }

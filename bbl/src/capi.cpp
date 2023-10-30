@@ -96,10 +96,22 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
             std::string enum_name = fmt::format("{}", enum_namespace);
             bbl_builtin_t integer_type = get_builtin(cpp_enum->integer_type);
 
+            std::string variant_prefix;
+            if (cpp_enum->prefix.has_value()) {
+                std::string const& prefix = cpp_enum->prefix.value();
+                if (prefix.empty()) {
+                    variant_prefix = "";
+                } else {
+                    variant_prefix = fmt::format("{}_", prefix);
+                }
+            } else {
+                variant_prefix = fmt::format("{}_", enum_name);
+            }
+
             std::vector<EnumVariant> c_variants;
             for (auto const& var : cpp_enum->variants) {
                 c_variants.emplace_back(
-                    fmt::format("{}_{}", enum_name, var.first), var.second);
+                    fmt::format("{}{}", variant_prefix, var.first), var.second);
             }
 
             _enums.emplace(cpp_enum_id,

@@ -217,6 +217,10 @@ template <typename E> class Enum {
 public:
     Enum() {}
     Enum(char const* rename) {}
+
+    Enum prefix(char const* prefix_str) {
+        return *this;
+    }
 };
 } // namespace bbl
 
