@@ -522,7 +522,7 @@ public:
 
     /// Get a string representation of the given `StdFunction` suitable for
     /// debugging and test printing
-    std::string get_stdfunction_as_string(StdFunction const& function);
+    std::string get_stdfunction_as_string(StdFunction const& function) const;
 
     /// Get a string representation of the given `Enum` suitable for debugging
     /// and test printing

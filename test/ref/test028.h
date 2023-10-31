@@ -22,20 +22,20 @@ extern "C" {
 
 /** structs */
 
-typedef struct test027_Foo_t test027_Foo_t;
-typedef struct test027_Bar_t test027_Bar_t;
+typedef struct test028_Foo_t test028_Foo_t;
+typedef struct test028_Bar_t test028_Bar_t;
 
 
 
 /** functions */
 
-int test027_Foo_dtor(test027_Foo_t* _this);
+int test028_Foo_dtor(test028_Foo_t* _this);
 
-int test027_Bar_adjust_foo(void (*fn)(test027_Foo_t* param00, test027_Foo_t** _result));
+int test028_Bar_adjust_foo(void (*fn)(test028_Foo_t* param00, test028_Foo_t** _result));
 
-int test027_Bar_dtor(test027_Bar_t* _this);
+int test028_Bar_dtor(test028_Bar_t* _this);
 
-int test027_free_adjust_foo(void (*fn)(test027_Foo_t* param00, test027_Foo_t** _result), int* _result);
+int test028_free_adjust_foo(void (*fn)(test028_Foo_t* param00, test028_Foo_t** _result), int* _result);
 
 
 

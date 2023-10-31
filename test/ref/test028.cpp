@@ -12,16 +12,16 @@
 
 extern "C" {
 
-using test027_Foo_t = tst::Foo;
-using test027_Bar_t = tst::Bar;
+using test028_Foo_t = tst::Foo;
+using test028_Bar_t = tst::Bar;
 
-int test027_Foo_dtor(test027_Foo_t* _this) {
+int test028_Foo_dtor(test028_Foo_t* _this) {
     delete _this;
     return 0;
 }
 
-int test027_Bar_adjust_foo(void (*fn)(test027_Foo_t* param00, test027_Foo_t** _result)) {
-    auto fn_wrapper = [&](tst::Foo param00) {
+int test028_Bar_adjust_foo(void (*fn)(test028_Foo_t* param00, test028_Foo_t** _result)) {
+    std::function<tst::Foo (tst::Foo)> fn_wrapper = [&](tst::Foo param00) {
         tst::Foo _result;
         tst::Foo* _result_ptr;
         fn(&param00, &_result_ptr);
@@ -33,13 +33,13 @@ int test027_Bar_adjust_foo(void (*fn)(test027_Foo_t* param00, test027_Foo_t** _r
     return 0;
 }
 
-int test027_Bar_dtor(test027_Bar_t* _this) {
+int test028_Bar_dtor(test028_Bar_t* _this) {
     delete _this;
     return 0;
 }
 
-int test027_free_adjust_foo(void (*fn)(test027_Foo_t* param00, test027_Foo_t** _result), int* _result) {
-    auto fn_wrapper = [&](tst::Foo param00) {
+int test028_free_adjust_foo(void (*fn)(test028_Foo_t* param00, test028_Foo_t** _result), int* _result) {
+    std::function<tst::Foo (tst::Foo)> fn_wrapper = [&](tst::Foo param00) {
         tst::Foo _result;
         tst::Foo* _result_ptr;
         fn(&param00, &_result_ptr);

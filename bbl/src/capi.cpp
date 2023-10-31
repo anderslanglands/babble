@@ -1029,6 +1029,7 @@ auto C_API::_generate_stdfunction_wrapper(std::string const& id,
 
     return ex_token(
         ex_fun_wrapper_lambda(fmt::format("{}_wrapper", fun_param_name),
+                              _cpp_ctx.get_stdfunction_as_string(*cpp_fun),
                               std::move(expr_lambda_params),
                               std::move(expr_lambda_body))
             ->to_string(0));
@@ -1103,7 +1104,7 @@ auto C_API::_translate_parameter_list(std::vector<Param> const& params,
             }
             expr_params.emplace_back(ex_deref(
                 ex_reinterpret_cast(ex_token(fmt::format("{}*", enm->spelling)),
-                               ex_token(param_name))));
+                                    ex_token(param_name))));
         } else if (auto enum_id = as_pointer_to_enum(param.type);
                    enum_id.has_value()) {
             // we need to static cast to the pointer to the enum type
@@ -1116,7 +1117,7 @@ auto C_API::_translate_parameter_list(std::vector<Param> const& params,
             }
             expr_params.emplace_back(
                 ex_reinterpret_cast(ex_token(fmt::format("{}*", enm->spelling)),
-                               ex_token(param_name)));
+                                    ex_token(param_name)));
         } else if (is_lvalue_reference(param.type) ||
                    (is_by_value(param.type) &&
                     is_opaque_ptr_by_value(param.type, _cpp_ctx))) {

@@ -5,8 +5,8 @@ namespace qux {
 
 struct Vec3f {
     float x;
-    float y;
-    float z;
+    float y = 0;
+    float z{0.0};
 
     float length() const;
     float dist(Vec3f const& other) const;

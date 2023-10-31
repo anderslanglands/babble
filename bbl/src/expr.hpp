@@ -231,7 +231,8 @@ struct ExprReinterpretCast : public Expr {
 };
 
 inline ExprPtr ex_reinterpret_cast(ExprPtr&& cast_to, ExprPtr&& object) {
-    return ExprPtr(new ExprReinterpretCast(std::move(cast_to), std::move(object)));
+    return ExprPtr(
+        new ExprReinterpretCast(std::move(cast_to), std::move(object)));
 }
 
 struct ExprArrow : public Expr {
@@ -344,19 +345,22 @@ inline ExprPtr ex_stmt(ExprPtr&& pointer) {
 
 struct ExprFunPtrWrapperLambda : public Expr {
     std::string name;
+    std::string type;
     ExprPtr parameter_list;
     ExprPtr body_compound;
 
     ExprFunPtrWrapperLambda(std::string const& name,
+                            std::string const& type,
                             std::vector<ExprPtr> parameter_list,
                             std::vector<ExprPtr> body_compound)
-        : name(name),
+        : name(name), type(type),
           parameter_list(ex_parameter_list(std::move(parameter_list))),
           body_compound(ex_compound(std::move(body_compound))) {}
 
     virtual std::string to_string(int depth) const override {
         return iformat(depth,
-                       "auto {} = [&]{} {{\n{}    }}",
+                       "{} {} = [&]{} {{\n{}    }}",
+                       type,
                        name,
                        parameter_list->to_string(0),
                        body_compound->to_string(depth + 2));
@@ -364,10 +368,11 @@ struct ExprFunPtrWrapperLambda : public Expr {
 };
 
 inline ExprPtr ex_fun_wrapper_lambda(std::string const& name,
+                                     std::string const& type,
                                      std::vector<ExprPtr> parameter_list,
                                      std::vector<ExprPtr> body_compound) {
     return ExprPtr(new ExprFunPtrWrapperLambda(
-        name, std::move(parameter_list), std::move(body_compound)));
+        name, type, std::move(parameter_list), std::move(body_compound)));
 }
 
 } // namespace bbl

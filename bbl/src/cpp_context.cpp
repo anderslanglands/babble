@@ -970,11 +970,10 @@ std::string Context::get_function_as_string(Function const& function) {
     return result;
 }
 
-std::string Context::get_stdfunction_as_string(StdFunction const& function) {
+std::string Context::get_stdfunction_as_string(StdFunction const& function) const {
     std::string result;
 
-    result = fmt::format("{} std::function<{} (",
-                         function.spelling,
+    result = fmt::format("std::function<{} (",
                          to_string(function.return_type, _decl_maps));
 
     bool first = true;

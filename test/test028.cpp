@@ -27,7 +27,7 @@ int free_adjust_foo(FooFn fn);
 
 
 }
-BBL_MODULE(test027) {
+BBL_MODULE(test028) {
     bbl::Class<tst::Foo>("Foo")
     ;
 

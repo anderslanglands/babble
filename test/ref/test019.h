@@ -20,15 +20,15 @@ extern "C" {
 /** enums */
 
 enum bar_Enum {
-    bar_Enum_BarEnumZero = 0,
-    bar_Enum_BarEnumOne = 1,
-    bar_Enum_BarEnumTwo = 2,
+    BarEnumZero = 0,
+    BarEnumOne = 1,
+    BarEnumTwo = 2,
 };
 
 enum baz_Enum {
-    baz_Enum_BazEnumZero = 0,
-    baz_Enum_BazEnumOne = 1,
-    baz_Enum_BazEnumTwo = 2,
+    BAZ_BazEnumZero = 0,
+    BAZ_BazEnumOne = 1,
+    BAZ_BazEnumTwo = 2,
 };
 
 
@@ -45,13 +45,13 @@ int bar_Foo_ctor(int a, float b, bar_Foo_t** _result);
 
 int bar_Foo_dtor(bar_Foo_t* _this);
 
-int bar_bar_fn(bar_Foo_t const* a, int b);
+int bar_bar_fn(bar_Foo_t const* a, int b, int* c);
 
 int baz_Foo_ctor(int a, float b, baz_Foo_t** _result);
 
 int baz_Foo_dtor(baz_Foo_t* _this);
 
-int baz_baz_fn(baz_Foo_t const* a, int b);
+int baz_baz_fn(baz_Foo_t const* a, int b, int* c);
 
 
 
