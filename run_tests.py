@@ -30,6 +30,8 @@ TESTS = [
     "test026",
     "test027",
     "test028",
+    "test029",
+    "test030",
 ]
 
 TEST_OUTPUT_PATH = os.path.join("build", "test", "out")
@@ -56,11 +58,22 @@ for test in TESTS:
 
     tst_c_f = open(tst_c_p)
     tst_h_f = open(tst_h_p)
-    ref_c_f = open(ref_c_p)
-    ref_h_f = open(ref_h_p)
-
     tst_c = tst_c_f.readlines()
     tst_h = tst_h_f.readlines()
+
+    try:
+        ref_c_f = open(ref_c_p)
+        ref_h_f = open(ref_h_p)
+    except FileNotFoundError:
+        print(f"no ref found for {test}:\n")
+        sys.stdout.writelines(tst_c)
+        print()
+        sys.stdout.writelines(tst_h)
+        print()
+        tst_c_f.close()
+        tst_h_f.close()
+        continue
+
     ref_c = ref_c_f.readlines()
     ref_h = ref_h_f.readlines()
 

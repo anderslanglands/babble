@@ -376,10 +376,24 @@ auto C_API::_get_c_qtype_as_string(C_QType const& qt,
 
     } else if (std::holds_alternative<C_Pointer>(qt.type)) {
         C_Pointer const& c_pointer = std::get<C_Pointer>(qt.type);
-        return fmt::format("{}*{}{}",
-                           _get_c_qtype_as_string(*c_pointer.pointee, ""),
-                           s_const,
-                           name_with_space);
+
+        if (std::holds_alternative<C_Array>(c_pointer.pointee->type)) {
+            // If it's a pointer to an array, we need to do handle the paren
+            // type specially
+            C_Array const& c_array = std::get<C_Array>(c_pointer.pointee->type);
+            return fmt::format(
+                "{} (*{})[{}]",
+                _get_c_qtype_as_string(*c_array.element_type, ""),
+                name,
+                c_array.size);
+
+        } else {
+            return fmt::format("{}*{}{}",
+                               _get_c_qtype_as_string(*c_pointer.pointee, ""),
+                               s_const,
+                               name_with_space);
+        }
+
     } else if (std::holds_alternative<C_Array>(qt.type)) {
         C_Array const& c_array = std::get<C_Array>(qt.type);
         return fmt::format("{} {}[{}]{}",

@@ -363,6 +363,9 @@ auto Context::extract_qualtype(clang::QualType const& qt,
         }
 
         return QType{is_const, Type{EnumId{id}}};
+    } else if (clang::ParenType const* pt =
+                   dyn_cast<clang::ParenType>(qt.getTypePtr())) {
+        return extract_qualtype(pt->getInnerType(), mangle_ctx);
     } else if (clang::ConstantArrayType const* cat =
                    dyn_cast<clang::ConstantArrayType>(qt.getTypePtr())) {
         QType element_type =
@@ -970,7 +973,8 @@ std::string Context::get_function_as_string(Function const& function) {
     return result;
 }
 
-std::string Context::get_stdfunction_as_string(StdFunction const& function) const {
+std::string
+Context::get_stdfunction_as_string(StdFunction const& function) const {
     std::string result;
 
     result = fmt::format("std::function<{} (",
