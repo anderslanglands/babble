@@ -30,6 +30,8 @@ typedef struct test018_Foo_t test018_Foo_t;
 
 int test018_Foo_do_foo(test018_Foo_t const* _this, void (*fun)(test018_Foo_t const* param00, int param01, float param02, test018_Foo_t** _result));
 
+int test018_Foo_do_foo2(test018_Foo_t const* _this, void (*fun)(test018_Foo_t const* param00, int param01, float param02, test018_Foo_t const** _result));
+
 int test018_Foo_ctor(int a, float b, test018_Foo_t** _result);
 
 int test018_Foo_dtor(test018_Foo_t* _this);

@@ -639,9 +639,18 @@ static void remove_const_on_pointee(C_QType& qt) {
     }
 }
 
-auto wrap_in_pointer(C_QType&& qt) -> C_QType {
+static auto wrap_in_pointer(C_QType&& qt) -> C_QType {
     return C_QType{
         nullptr, false, C_Pointer{std::make_shared<C_QType>(std::move(qt))}};
+}
+
+static QType unwrap_reference(QType const& qt) {
+    if (std::holds_alternative<LValueReference>(qt.type)) {
+        LValueReference const& ref = std::get<LValueReference>(qt.type);
+        return clone(*ref.pointee);
+    } else {
+        BBL_THROW("type is not an lvalue ref");
+    }
 }
 
 auto C_API::_translate_return_type(QType const& cpp_return_type)
@@ -1010,7 +1019,15 @@ auto C_API::_generate_stdfunction_wrapper(std::string const& id,
 
             expr_c_call_params.emplace_back(
                 ex_address(ex_token(result_ptr_name)));
-
+        } else if (is_lvalue_reference(cpp_fun->return_type)) {
+            // we can't create an lvalue ref temporary, so instead we need to
+            // create a pointer instead, then deref it in the lambda return
+            expr_lambda_body.emplace_back(ex_var_decl(
+                ex_token(_cpp_ctx.get_qtype_as_string(
+                    wrap_in_pointer(unwrap_reference(cpp_fun->return_type)))),
+                ex_token(c_result.name)));
+            expr_c_call_params.emplace_back(
+                ex_address(ex_token(c_result.name)));
         } else {
             // add the variable declaration and pass of the return value
             expr_lambda_body.emplace_back(ex_var_decl(
@@ -1036,9 +1053,12 @@ auto C_API::_generate_stdfunction_wrapper(std::string const& id,
                           ex_move(ex_deref(ex_token(result_ptr_name)))));
 
             expr_lambda_body.emplace_back(ex_delete(ex_token(result_ptr_name)));
+            expr_lambda_body.emplace_back(ex_return(ex_token(c_result.name)));
+        } else if (is_lvalue_reference(cpp_fun->return_type)) {
+            expr_lambda_body.emplace_back(ex_return(ex_deref(ex_token(c_result.name))));
+        } else {
+            expr_lambda_body.emplace_back(ex_return(ex_token(c_result.name)));
         }
-
-        expr_lambda_body.emplace_back(ex_return(ex_token(c_result.name)));
     }
 
     return ex_token(

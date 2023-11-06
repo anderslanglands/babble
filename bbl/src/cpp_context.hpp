@@ -58,6 +58,14 @@ class Context;
                                                   fmt::format(__VA_ARGS__),    \
                                                   E.what()))
 
+#define BBL_UNIMPLEMENTED(...)                                                         \
+    throw std::runtime_error(                                                  \
+        fmt::format("{}:{} UNIMPLEMENTED {}", __FILE__, __LINE__, fmt::format(__VA_ARGS__)))
+
+#define BBL_UNREACHABLE(...)                                                         \
+    throw std::runtime_error(                                                  \
+        fmt::format("{}:{} UNREACHABLE {}", __FILE__, __LINE__, fmt::format(__VA_ARGS__)))
+
 template <typename Key, typename Value>
 using MapType = ankerl::unordered_dense::map<Key, Value>;
 

@@ -18,8 +18,7 @@ public:
     Foo(int a, float b);
 
     void do_foo(std::function<Foo(Foo const&, int, float)> const& fun) const;
-
-    void do_foo2(bool (*callback)(Bar const&, int)) const;
+    void do_foo2(std::function<Foo const&(Foo const&, int, float)> const& fun) const;
 };
 
 }
@@ -29,10 +28,11 @@ BBL_MODULE(test018) {
     bbl::Class<qux::Foo>("Foo")
         .ctor(bbl::Ctor<qux::Foo, int, float>("a", "b"))
         .m(&qux::Foo::do_foo)
-        // .m(&qux::Foo::do_foo2)
+        .m(&qux::Foo::do_foo2)
         ;
 
     bbl::Class<std::function<qux::Foo(qux::Foo const&, int, float)>>("FooFn");
+    bbl::Class<std::function<qux::Foo const& (qux::Foo const&, int, float)>>("Foo2Fn");
 }
 
 #if 0

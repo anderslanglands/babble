@@ -77,6 +77,15 @@ QType wrap_in_pointer(QType const& qt) {
     return QType{false, Pointer{std::make_unique<QType>(clone(qt))}};
 }
 
+static QType unwrap_reference(QType const& qt) {
+    if (std::holds_alternative<LValueReference>(qt.type)) {
+        LValueReference const& ref = std::get<LValueReference>(qt.type);
+        return clone(*ref.pointee);
+    } else {
+        BBL_THROW("type is not an lvalue ref");
+    }
+}
+
 class Timer {
     using time_point = std::chrono::time_point<std::chrono::steady_clock>;
 

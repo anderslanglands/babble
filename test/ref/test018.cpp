@@ -27,6 +27,16 @@ int test018_Foo_do_foo(test018_Foo_t const* _this, void (*fun)(test018_Foo_t con
     return 0;
 }
 
+int test018_Foo_do_foo2(test018_Foo_t const* _this, void (*fun)(test018_Foo_t const* param00, int param01, float param02, test018_Foo_t const** _result)) {
+    std::function<qux::Foo const& (qux::Foo const&, int, float)> fun_wrapper = [&](qux::Foo const& param00, int param01, float param02) {
+        qux::Foo const* _result;
+        fun(&param00, param01, param02, &_result);
+        return *_result;
+    };
+    _this->do_foo2(fun_wrapper);
+    return 0;
+}
+
 int test018_Foo_ctor(int a, float b, test018_Foo_t** _result) {
     *_result = new qux::Foo(a, b);
     return 0;
