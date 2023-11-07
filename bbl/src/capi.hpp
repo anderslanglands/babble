@@ -100,7 +100,7 @@ struct C_Function {
     std::optional<C_Param> result;
     std::variant<IsStatic, C_Param, C_SmartPtr> receiver;
     std::vector<C_Param> params;
-    ExprCompound body;
+    ExprPtr body;
 };
 
 using C_StructMap = MapType<std::string, C_Struct>;

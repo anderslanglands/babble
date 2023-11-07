@@ -8,6 +8,11 @@
 #endif
 
 #include <stddef.h>
+#include <exception>
+#include <thread>
+#include <string>
+
+static thread_local std::string __bbl_error_message;
 
 extern "C" {
 
@@ -21,13 +26,23 @@ static_assert(alignof(test003_FooInt_t_bbl_size_check) == alignof(FooInt), "alig
 using test003_Baz_t = Baz;
 
 int test003_FooFloat_bar(test003_FooFloat_t* _this, float const* a, float* _result) {
-    *_result = _this->bar(*a);
-    return 0;
+    try {
+        *_result = _this->bar(*a);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test003_FooFloat_baz(test003_FooFloat_t* _this, test003_Baz_t* b) {
-    _this->baz(b);
-    return 0;
+    try {
+        _this->baz(b);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test003_FooFloat_dtor(test003_FooFloat_t* _this) {
@@ -36,13 +51,23 @@ int test003_FooFloat_dtor(test003_FooFloat_t* _this) {
 }
 
 int test003_FooInt_bar(test003_FooInt_t* _this, int const* a, int* _result) {
-    *_result = _this->bar(*a);
-    return 0;
+    try {
+        *_result = _this->bar(*a);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test003_FooInt_baz(test003_FooInt_t* _this, test003_Baz_t* b) {
-    _this->baz(b);
-    return 0;
+    try {
+        _this->baz(b);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test003_Baz_dtor(test003_Baz_t* _this) {

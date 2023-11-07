@@ -23,7 +23,9 @@ extern "C" {
 /** structs */
 
 typedef struct test_std_vector_StdVectorInt_t test_std_vector_StdVectorInt_t;
+
 typedef struct test_std_vector_StdPairIntFloat_t test_std_vector_StdPairIntFloat_t;
+
 
 
 

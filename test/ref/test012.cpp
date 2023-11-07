@@ -9,6 +9,11 @@
 #endif
 
 #include <stddef.h>
+#include <exception>
+#include <thread>
+#include <string>
+
+static thread_local std::string __bbl_error_message;
 
 extern "C" {
 
@@ -16,8 +21,13 @@ using test012_Base_t = qux::Base;
 using test012_Foo_t = qux::Foo;
 
 int test012_Base_bar(test012_Base_t* _this) {
-    _this->bar();
-    return 0;
+    try {
+        _this->bar();
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test012_Base_dtor(test012_Base_t* _this) {
@@ -26,8 +36,13 @@ int test012_Base_dtor(test012_Base_t* _this) {
 }
 
 int test012_Foo_bar(test012_Foo_t* _this) {
-    _this->bar();
-    return 0;
+    try {
+        _this->bar();
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test012_Foo_ctor(test012_Foo_t** _result) {

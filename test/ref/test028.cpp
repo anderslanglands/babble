@@ -9,6 +9,11 @@
 #endif
 
 #include <stddef.h>
+#include <exception>
+#include <thread>
+#include <string>
+
+static thread_local std::string __bbl_error_message;
 
 extern "C" {
 
@@ -21,7 +26,8 @@ int test028_Foo_dtor(test028_Foo_t* _this) {
 }
 
 int test028_Bar_adjust_foo(void (*fn)(test028_Foo_t* param00, test028_Foo_t** _result)) {
-    std::function<tst::Foo (tst::Foo)> fn_wrapper = [&](tst::Foo param00) {
+    try {
+        std::function<tst::Foo (tst::Foo)> fn_wrapper = [&](tst::Foo param00) {
         tst::Foo _result;
         tst::Foo* _result_ptr;
         fn(&param00, &_result_ptr);
@@ -29,8 +35,12 @@ int test028_Bar_adjust_foo(void (*fn)(test028_Foo_t* param00, test028_Foo_t** _r
         delete _result_ptr;
         return _result;
     };
-    tst::Bar::adjust_foo(fn_wrapper);
-    return 0;
+        tst::Bar::adjust_foo(fn_wrapper);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test028_Bar_dtor(test028_Bar_t* _this) {
@@ -39,7 +49,8 @@ int test028_Bar_dtor(test028_Bar_t* _this) {
 }
 
 int test028_free_adjust_foo(void (*fn)(test028_Foo_t* param00, test028_Foo_t** _result), int* _result) {
-    std::function<tst::Foo (tst::Foo)> fn_wrapper = [&](tst::Foo param00) {
+    try {
+        std::function<tst::Foo (tst::Foo)> fn_wrapper = [&](tst::Foo param00) {
         tst::Foo _result;
         tst::Foo* _result_ptr;
         fn(&param00, &_result_ptr);
@@ -47,8 +58,12 @@ int test028_free_adjust_foo(void (*fn)(test028_Foo_t* param00, test028_Foo_t** _
         delete _result_ptr;
         return _result;
     };
-    *_result = tst::free_adjust_foo(fn_wrapper);
-    return 0;
+        *_result = tst::free_adjust_foo(fn_wrapper);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 } // extern "C"

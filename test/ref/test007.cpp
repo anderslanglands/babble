@@ -10,6 +10,11 @@
 #endif
 
 #include <stddef.h>
+#include <exception>
+#include <thread>
+#include <string>
+
+static thread_local std::string __bbl_error_message;
 
 extern "C" {
 
@@ -28,8 +33,13 @@ int test007_Bar_bar(test007_Bar_t const* _this, int* _result) {
 }
 
 int test007_Bar_baz() {
-    qux::Bar::baz();
-    return 0;
+    try {
+        qux::Bar::baz();
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test007_Bar_bum() {

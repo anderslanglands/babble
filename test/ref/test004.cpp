@@ -8,6 +8,11 @@
 #endif
 
 #include <stddef.h>
+#include <exception>
+#include <thread>
+#include <string>
+
+static thread_local std::string __bbl_error_message;
 
 extern "C" {
 
@@ -15,13 +20,23 @@ using test004_FooFloat_t = Foo<float>;
 using test004_FooInt_t = FooInt;
 
 int test004_FooFloat_baz_int(test004_FooFloat_t* _this, size_t a) {
-    _this->baz(a);
-    return 0;
+    try {
+        _this->baz(a);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test004_FooFloat_baz_float(test004_FooFloat_t* _this, float a) {
-    _this->baz(a);
-    return 0;
+    try {
+        _this->baz(a);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test004_FooFloat_dtor(test004_FooFloat_t* _this) {
@@ -30,13 +45,23 @@ int test004_FooFloat_dtor(test004_FooFloat_t* _this) {
 }
 
 int test004_FooInt_baz_int(test004_FooInt_t* _this, size_t a) {
-    _this->baz(a);
-    return 0;
+    try {
+        _this->baz(a);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test004_FooInt_baz_float(test004_FooInt_t* _this, float a) {
-    _this->baz(a);
-    return 0;
+    try {
+        _this->baz(a);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test004_FooInt_dtor(test004_FooInt_t* _this) {

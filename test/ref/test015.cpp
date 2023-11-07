@@ -8,6 +8,11 @@
 #endif
 
 #include <stddef.h>
+#include <exception>
+#include <thread>
+#include <string>
+
+static thread_local std::string __bbl_error_message;
 
 extern "C" {
 
@@ -15,13 +20,23 @@ using test015_Bar_t = qux::Bar;
 using test015_Foo_t = qux::Foo;
 
 int test015_Bar_baz(test015_Bar_t const* _this, char const** s, float* const f, int** _result) {
-    *_result = _this->baz(s, f);
-    return 0;
+    try {
+        *_result = _this->baz(s, f);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test015_Bar_ctor(test015_Bar_t** _result) {
-    *_result = new qux::Bar();
-    return 0;
+    try {
+        *_result = new qux::Bar();
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test015_Bar_dtor(test015_Bar_t* _this) {
@@ -30,8 +45,13 @@ int test015_Bar_dtor(test015_Bar_t* _this) {
 }
 
 int test015_Foo_foo(test015_Foo_t const* _this, test015_Bar_t* b, int** i, test015_Foo_t const** _result) {
-    *_result = &_this->foo(*b, *i);
-    return 0;
+    try {
+        *_result = &_this->foo(*b, *i);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test015_Foo_foo2(test015_Foo_t* _this, test015_Bar_t* b) {
@@ -45,8 +65,13 @@ int test015_Foo_foo3(test015_Bar_t const* b, int* _result) {
 }
 
 int test015_Foo_ctor(test015_Foo_t** _result) {
-    *_result = new qux::Foo();
-    return 0;
+    try {
+        *_result = new qux::Foo();
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test015_Foo_dtor(test015_Foo_t* _this) {

@@ -26,6 +26,7 @@ typedef struct test0022_Foo_t test0022_Foo_t;
 
 
 
+
 /** functions */
 
 int test0022_Foo_dtor(test0022_Foo_t* _this);

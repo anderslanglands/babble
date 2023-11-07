@@ -26,6 +26,7 @@ typedef struct test013_Foo_t test013_Foo_t;
 
 
 
+
 /** functions */
 
 int test013_Foo_bar(test013_Foo_t* _this, float a, int* _result);

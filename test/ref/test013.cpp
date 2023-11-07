@@ -8,14 +8,24 @@
 #endif
 
 #include <stddef.h>
+#include <exception>
+#include <thread>
+#include <string>
+
+static thread_local std::string __bbl_error_message;
 
 extern "C" {
 
 using test013_Foo_t = Foo;
 
 int test013_Foo_bar(test013_Foo_t* _this, float a, int* _result) {
-    *_result = _this->bar(a);
-    return 0;
+    try {
+        *_result = _this->bar(a);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test013_Foo_dtor(test013_Foo_t* _this) {

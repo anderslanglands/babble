@@ -23,8 +23,11 @@ extern "C" {
 /** structs */
 
 typedef struct test027_Foo_t test027_Foo_t;
+
 typedef struct test027_FooPtr_t test027_FooPtr_t;
+
 typedef struct test027_ConstFooPtr_t test027_ConstFooPtr_t;
+
 
 
 

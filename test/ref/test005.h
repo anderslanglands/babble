@@ -26,6 +26,7 @@ typedef struct test005_FooFloat_t test005_FooFloat_t;
 
 
 
+
 /** functions */
 
 int test005_FooFloat_bar(test005_FooFloat_t* _this, float const* a, size_t* _result);

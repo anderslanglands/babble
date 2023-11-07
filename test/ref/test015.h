@@ -23,7 +23,9 @@ extern "C" {
 /** structs */
 
 typedef struct test015_Bar_t test015_Bar_t;
+
 typedef struct test015_Foo_t test015_Foo_t;
+
 
 
 

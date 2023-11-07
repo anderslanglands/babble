@@ -29,7 +29,9 @@ typedef struct BBL_ALIGN(4) test017_Vec3f_t {
 } test017_Vec3f_t;
 
 typedef struct test017_Foo_t test017_Foo_t;
+
 typedef struct test017_Bar_t test017_Bar_t;
+
 
 
 

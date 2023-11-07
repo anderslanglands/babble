@@ -26,6 +26,7 @@ typedef struct test018_Foo_t test018_Foo_t;
 
 
 
+
 /** functions */
 
 int test018_Foo_do_foo(test018_Foo_t const* _this, void (*fun)(test018_Foo_t const* param00, int param01, float param02, test018_Foo_t** _result));

@@ -9,6 +9,11 @@
 #endif
 
 #include <stddef.h>
+#include <exception>
+#include <thread>
+#include <string>
+
+static thread_local std::string __bbl_error_message;
 
 extern "C" {
 using bar_Enum = int;
@@ -18,8 +23,13 @@ using bar_Foo_t = QUX_NS::BarFoo;
 using baz_Foo_t = QUX_NS::BazFoo;
 
 int bar_Foo_ctor(int a, float b, bar_Foo_t** _result) {
-    *_result = new QUX_NS::BarFoo(a, b);
-    return 0;
+    try {
+        *_result = new QUX_NS::BarFoo(a, b);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int bar_Foo_dtor(bar_Foo_t* _this) {
@@ -28,13 +38,23 @@ int bar_Foo_dtor(bar_Foo_t* _this) {
 }
 
 int bar_bar_fn(bar_Foo_t const* a, int b, int* c) {
-    QUX_NS::bar_fn(*a, static_cast<QUX_NS::BarEnum>(b), reinterpret_cast<QUX_NS::BarEnum*>(c));
-    return 0;
+    try {
+        QUX_NS::bar_fn(*a, static_cast<QUX_NS::BarEnum>(b), reinterpret_cast<QUX_NS::BarEnum*>(c));
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int baz_Foo_ctor(int a, float b, baz_Foo_t** _result) {
-    *_result = new QUX_NS::BazFoo(a, b);
-    return 0;
+    try {
+        *_result = new QUX_NS::BazFoo(a, b);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int baz_Foo_dtor(baz_Foo_t* _this) {
@@ -43,8 +63,13 @@ int baz_Foo_dtor(baz_Foo_t* _this) {
 }
 
 int baz_baz_fn(baz_Foo_t const* a, int b, int* c) {
-    QUX_NS::baz_fn(*a, static_cast<QUX_NS::BazEnum>(b), *reinterpret_cast<QUX_NS::BazEnum*>(c));
-    return 0;
+    try {
+        QUX_NS::baz_fn(*a, static_cast<QUX_NS::BazEnum>(b), *reinterpret_cast<QUX_NS::BazEnum*>(c));
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 } // extern "C"

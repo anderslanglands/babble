@@ -26,6 +26,7 @@ typedef struct test030_Transform_t test030_Transform_t;
 
 
 
+
 /** functions */
 
 int test030_Transform_getValues(test030_Transform_t const* _this, double (*values)[3]);

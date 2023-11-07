@@ -8,6 +8,11 @@
 #endif
 
 #include <stddef.h>
+#include <exception>
+#include <thread>
+#include <string>
+
+static thread_local std::string __bbl_error_message;
 
 extern "C" {
 
@@ -24,13 +29,23 @@ using test017_Foo_t = qux::Foo;
 using test017_Bar_t = qux::Bar;
 
 int test017_Vec3f_length(test017_Vec3f_t const* _this, float* _result) {
-    *_result = _this->length();
-    return 0;
+    try {
+        *_result = _this->length();
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test017_Vec3f_dist(test017_Vec3f_t const* _this, test017_Vec3f_t const* other, float* _result) {
-    *_result = _this->dist(*other);
-    return 0;
+    try {
+        *_result = _this->dist(*other);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test017_Vec3f_ctor(test017_Vec3f_t* _result) {
@@ -39,18 +54,33 @@ int test017_Vec3f_ctor(test017_Vec3f_t* _result) {
 }
 
 int test017_Foo_do_foo(test017_Foo_t const* _this, test017_Foo_t const* other) {
-    _this->do_foo(*other);
-    return 0;
+    try {
+        _this->do_foo(*other);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test017_Foo_do_foo2(test017_Foo_t* _this, test017_Foo_t* other) {
-    _this->do_foo2(other);
-    return 0;
+    try {
+        _this->do_foo2(other);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test017_Foo_ctor(int a, float b, test017_Foo_t** _result) {
-    *_result = new qux::Foo(a, b);
-    return 0;
+    try {
+        *_result = new qux::Foo(a, b);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test017_Foo_dtor(test017_Foo_t* _this) {
@@ -59,8 +89,13 @@ int test017_Foo_dtor(test017_Foo_t* _this) {
 }
 
 int test017_Bar_ctor(int a, float b, test017_Bar_t** _result) {
-    *_result = new qux::Bar(a, b);
-    return 0;
+    try {
+        *_result = new qux::Bar(a, b);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test017_Bar_dtor(test017_Bar_t* _this) {

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION  3.15)
-project(babble VERSION 0.2.0 LANGUAGES C CXX)
+project(babble VERSION 0.3.0 LANGUAGES C CXX)
 
 option(BUILD_USD_EXAMPLE "Builds an example OpenUSD binding")
 

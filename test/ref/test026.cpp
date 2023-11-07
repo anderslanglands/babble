@@ -9,6 +9,11 @@
 #endif
 
 #include <stddef.h>
+#include <exception>
+#include <thread>
+#include <string>
+
+static thread_local std::string __bbl_error_message;
 
 extern "C" {
 
@@ -16,33 +21,63 @@ using test0021_Foo_t = Foo;
 using test0021_BarShort_t = Bar<short>;
 
 int test0021_Foo_get_int(test0021_Foo_t const* _this, int* _result) {
-    *_result = _this->get();
-    return 0;
+    try {
+        *_result = _this->get();
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test0021_Foo_is_int(test0021_Foo_t const* _this, bool* _result) {
-    *_result = _this->is();
-    return 0;
+    try {
+        *_result = _this->is();
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test0021_Foo_get_float(test0021_Foo_t const* _this, float* _result) {
-    *_result = _this->get();
-    return 0;
+    try {
+        *_result = _this->get();
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test0021_Foo_is_float(test0021_Foo_t const* _this, bool* _result) {
-    *_result = _this->is();
-    return 0;
+    try {
+        *_result = _this->is();
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test0021_Foo_from_int(int value, test0021_Foo_t** _result) {
-    *_result = new Foo(value);
-    return 0;
+    try {
+        *_result = new Foo(value);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test0021_Foo_from_float(float value, test0021_Foo_t** _result) {
-    *_result = new Foo(value);
-    return 0;
+    try {
+        *_result = new Foo(value);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test0021_Foo_dtor(test0021_Foo_t* _this) {

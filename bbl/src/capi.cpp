@@ -840,7 +840,7 @@ auto C_API::_translate_method(Method const* method,
         std::move(result),
         std::move(receiver),
         std::move(c_params),
-        std::move(body),
+        method->function.is_noexcept ? ex_compound(std::move(body)) : ex_trycatch(std::move(body)),
     };
 }
 
@@ -920,7 +920,7 @@ auto C_API::_translate_function(Function const* function,
         std::move(result),
         {},
         std::move(c_params),
-        std::move(body),
+        function->is_noexcept ? ex_compound(std::move(body)) : ex_trycatch(std::move(body)),
     };
 }
 
@@ -1244,7 +1244,7 @@ auto C_API::_translate_constructor(Constructor const* ctor,
         std::move(result),
         {},
         std::move(c_params),
-        std::move(body),
+        ctor->is_noexcept ? ex_compound(std::move(body)) : ex_trycatch(std::move(body)),
     };
 }
 
@@ -1271,6 +1271,11 @@ auto C_API::_generate_destructor(std::string const& function_prefix,
     body.emplace_back(ex_delete(ExprToken::create(this_param.name)));
     body.emplace_back(ex_return(ExprToken::create("0")));
 
+    // ExprPtr compound = ex_compound(std::move(body));
+    // std::vector<ExprPtr> exprs;
+    // exprs.emplace_back(std::move(compound));
+    // ExprBlock block(std::move(exprs));
+
     return C_Function{
         Generated{},
         function_name,
@@ -1278,7 +1283,7 @@ auto C_API::_generate_destructor(std::string const& function_prefix,
         {},
         {},
         std::vector{this_param},
-        std::move(body),
+        ex_compound(std::move(body))
     };
 }
 
@@ -1588,6 +1593,11 @@ std::string C_API::get_source() const {
 #endif
 
 #include <stddef.h>
+#include <exception>
+#include <thread>
+#include <string>
+
+static thread_local std::string _bbl_error_message;
 
 )");
 
@@ -1683,7 +1693,7 @@ std::string C_API::get_source() const {
         result =
             fmt::format("{}{} {{\n", result, _get_function_declaration(c_fun));
 
-        result = fmt::format("{}{}", result, c_fun.body.to_string(1));
+        result = fmt::format("{}{}", result, c_fun.body->to_string(1));
 
         result = fmt::format("{}}}\n\n", result);
     }

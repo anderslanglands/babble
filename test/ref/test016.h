@@ -32,6 +32,7 @@ typedef struct test016_Foo_t test016_Foo_t;
 
 
 
+
 /** functions */
 
 int test016_Foo_take_enum(test016_Foo_t const* _this, int64_t b);

@@ -10,6 +10,11 @@
 #endif
 
 #include <stddef.h>
+#include <exception>
+#include <thread>
+#include <string>
+
+static thread_local std::string __bbl_error_message;
 
 extern "C" {
 
@@ -42,8 +47,13 @@ int test_std_vector_StdVectorInt_max_size(test_std_vector_StdVectorInt_t const* 
 }
 
 int test_std_vector_StdVectorInt_reserve(test_std_vector_StdVectorInt_t* _this, size_t const _Newcapacity) {
-    _this->reserve(_Newcapacity);
-    return 0;
+    try {
+        _this->reserve(_Newcapacity);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test_std_vector_StdVectorInt_capacity(test_std_vector_StdVectorInt_t const* _this, size_t* _result) {
@@ -57,8 +67,13 @@ int test_std_vector_StdVectorInt_clear(test_std_vector_StdVectorInt_t* _this) {
 }
 
 int test_std_vector_StdVectorInt_push_back(test_std_vector_StdVectorInt_t* _this, test_std_vector_StdPairIntFloat_t const* _Val) {
-    _this->push_back(*_Val);
-    return 0;
+    try {
+        _this->push_back(*_Val);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test_std_vector_StdVectorInt_pop_back(test_std_vector_StdVectorInt_t* _this) {
@@ -67,13 +82,23 @@ int test_std_vector_StdVectorInt_pop_back(test_std_vector_StdVectorInt_t* _this)
 }
 
 int test_std_vector_StdVectorInt_resize(test_std_vector_StdVectorInt_t* _this, size_t const _Newsize) {
-    _this->resize(_Newsize);
-    return 0;
+    try {
+        _this->resize(_Newsize);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test_std_vector_StdVectorInt_resize_with(test_std_vector_StdVectorInt_t* _this, size_t const _Newsize, test_std_vector_StdPairIntFloat_t const* _Val) {
-    _this->resize(_Newsize, *_Val);
-    return 0;
+    try {
+        _this->resize(_Newsize, *_Val);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test_std_vector_StdVectorInt_op_index(test_std_vector_StdVectorInt_t const* _this, size_t const _Pos, test_std_vector_StdPairIntFloat_t const** _result) {

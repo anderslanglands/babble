@@ -8,6 +8,11 @@
 #endif
 
 #include <stddef.h>
+#include <exception>
+#include <thread>
+#include <string>
+
+static thread_local std::string __bbl_error_message;
 
 extern "C" {
 
@@ -15,8 +20,13 @@ using test002_FooFloat_t = Foo<float>;
 using test002_FooInt_t = FooInt;
 
 int test002_FooFloat_bar(test002_FooFloat_t* _this, float const* a, float* _result) {
-    *_result = _this->bar(*a);
-    return 0;
+    try {
+        *_result = _this->bar(*a);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test002_FooFloat_dtor(test002_FooFloat_t* _this) {
@@ -25,8 +35,13 @@ int test002_FooFloat_dtor(test002_FooFloat_t* _this) {
 }
 
 int test002_FooInt_bar(test002_FooInt_t* _this, int const* a, int* _result) {
-    *_result = _this->bar(*a);
-    return 0;
+    try {
+        *_result = _this->bar(*a);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test002_FooInt_dtor(test002_FooInt_t* _this) {

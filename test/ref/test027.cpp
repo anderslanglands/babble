@@ -9,6 +9,11 @@
 #endif
 
 #include <stddef.h>
+#include <exception>
+#include <thread>
+#include <string>
+
+static thread_local std::string __bbl_error_message;
 
 extern "C" {
 
@@ -17,18 +22,33 @@ using test027_FooPtr_t = FooPtr;
 using test027_ConstFooPtr_t = ConstFooPtr;
 
 int test027_Foo_create(test027_FooPtr_t** _result) {
-    *_result = new FooPtr(Foo::create());
-    return 0;
+    try {
+        *_result = new FooPtr(Foo::create());
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test027_Foo_get_foo(test027_Foo_t const* _this, int* _result) {
-    *_result = _this->get_foo();
-    return 0;
+    try {
+        *_result = _this->get_foo();
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test027_Foo_set_foo(test027_Foo_t* _this, int a, int* _result) {
-    *_result = _this->set_foo(a);
-    return 0;
+    try {
+        *_result = _this->set_foo(a);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test027_Foo_dtor(test027_Foo_t* _this) {
@@ -47,13 +67,23 @@ int test027_FooPtr_dtor(test027_FooPtr_t* _this) {
 }
 
 int test027_FooPtr_get_foo(test027_FooPtr_t const* _this, int* _result) {
-    *_result = (*_this)->get_foo();
-    return 0;
+    try {
+        *_result = (*_this)->get_foo();
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test027_FooPtr_set_foo(test027_FooPtr_t* _this, int a, int* _result) {
-    *_result = (*_this)->set_foo(a);
-    return 0;
+    try {
+        *_result = (*_this)->set_foo(a);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test027_ConstFooPtr_new(test027_ConstFooPtr_t** _result) {
@@ -67,8 +97,13 @@ int test027_ConstFooPtr_dtor(test027_ConstFooPtr_t* _this) {
 }
 
 int test027_ConstFooPtr_get_foo(test027_ConstFooPtr_t const* _this, int* _result) {
-    *_result = (*_this)->get_foo();
-    return 0;
+    try {
+        *_result = (*_this)->get_foo();
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 } // extern "C"

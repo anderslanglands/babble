@@ -8,6 +8,11 @@
 #endif
 
 #include <stddef.h>
+#include <exception>
+#include <thread>
+#include <string>
+
+static thread_local std::string __bbl_error_message;
 
 extern "C" {
 
@@ -20,8 +25,13 @@ static_assert(alignof(test0024_Bar_t_bbl_size_check) == alignof(qux::Bar), "alig
 
 
 int test0024_Bar_set_data(test0024_Bar_t* _this, float* d) {
-    _this->set_data(d);
-    return 0;
+    try {
+        _this->set_data(d);
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 } // extern "C"

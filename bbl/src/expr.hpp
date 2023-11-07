@@ -74,6 +74,50 @@ inline ExprPtr ex_compound(std::vector<ExprPtr>&& stmts) {
     return ExprPtr(new ExprCompound(std::move(stmts)));
 }
 
+struct ExprBlock : public Expr {
+    std::vector<ExprPtr> exprs;
+
+    ExprBlock(std::vector<ExprPtr>&& exprs) : exprs(std::move(exprs)) {}
+
+    virtual std::string to_string(int depth) const override {
+        std::string result;
+        for (auto const& expr : exprs) {
+            std::string line = fmt::format("{}", expr->to_string(depth));
+            result = fmt::format("{}{}", result, line);
+        }
+
+        return result;
+    }
+};
+
+inline ExprPtr ex_block(std::vector<ExprPtr>&& exprs) {
+    return ExprPtr(new ExprBlock(std::move(exprs)));
+}
+
+struct ExprTryCatch : public Expr {
+    std::vector<ExprPtr> stmts;
+
+    ExprTryCatch(std::vector<ExprPtr>&& stmts) : stmts(std::move(stmts)) {}
+
+    virtual std::string to_string(int depth) const override {
+        std::string result = iformat(depth, "try {{\n");
+        for (auto const& stmt : stmts) {
+            std::string line = iformat(depth+1, "{};\n", stmt->to_string(0));
+            result = fmt::format("{}{}", result, line);
+        }
+        result = fmt::format("{}{}", result, iformat(depth, "}} catch (std::exception& e) {{\n"));
+        result = fmt::format("{}{}", result, iformat(depth+1, "_bbl_error_message = e.what();\n"));
+        result = fmt::format("{}{}", result, iformat(depth+1, "return 1;\n"));
+        result = fmt::format("{}{}", result, iformat(depth, "}}\n"));
+
+        return result;
+    }
+};
+
+inline ExprPtr ex_trycatch(std::vector<ExprPtr>&& stmts) {
+    return ExprPtr(new ExprTryCatch(std::move(stmts)));
+}
+
 struct ExprParameterList : public Expr {
     std::vector<ExprPtr> params;
 

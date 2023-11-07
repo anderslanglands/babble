@@ -35,7 +35,9 @@ enum baz_Enum {
 /** structs */
 
 typedef struct bar_Foo_t bar_Foo_t;
+
 typedef struct baz_Foo_t baz_Foo_t;
+
 
 
 

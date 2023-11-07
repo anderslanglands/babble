@@ -8,6 +8,11 @@
 #endif
 
 #include <stddef.h>
+#include <exception>
+#include <thread>
+#include <string>
+
+static thread_local std::string __bbl_error_message;
 
 extern "C" {
 
@@ -22,13 +27,23 @@ static_assert(alignof(test0023_Foo_t_bbl_size_check) == alignof(qux::Foo), "alig
 
 
 int test0023_Foo_length(test0023_Foo_t* _this, float* _result) {
-    *_result = _this->length();
-    return 0;
+    try {
+        *_result = _this->length();
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 int test0023_Foo_normalize(test0023_Foo_t* _this, float* _result) {
-    *_result = _this->normalize();
-    return 0;
+    try {
+        *_result = _this->normalize();
+        return 0;
+    } catch (std::exception& e) {
+        __bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 } // extern "C"

@@ -628,7 +628,7 @@ bbl_result_t bbl_capi_function_get_body(bbl_capi_function_t function, char const
         return BBL_RESULT_ArgumentIsNull;
     }
 
-    result_str = function->body.to_string(1);
+    result_str = function->body->to_string(1);
 
     *ptr = result_str.c_str();
     *len = result_str.size();

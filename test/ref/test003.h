@@ -23,10 +23,12 @@ extern "C" {
 /** structs */
 
 typedef struct test003_FooFloat_t test003_FooFloat_t;
+
 typedef struct BBL_ALIGN(4) test003_FooInt_t {
 } test003_FooInt_t;
 
 typedef struct test003_Baz_t test003_Baz_t;
+
 
 
 

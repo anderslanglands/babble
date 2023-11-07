@@ -23,7 +23,9 @@ extern "C" {
 /** structs */
 
 typedef struct test002_FooFloat_t test002_FooFloat_t;
+
 typedef struct test002_FooInt_t test002_FooInt_t;
+
 
 
 
