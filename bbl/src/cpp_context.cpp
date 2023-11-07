@@ -2061,29 +2061,6 @@ extract_ctor_from_construct_expr(clang::CXXConstructExpr const* cce,
                                  clang::ASTContext* ast_context,
                                  clang::SourceManager& sm,
                                  clang::MangleContext* mangle_context) -> void {
-#if 0
-    clang::CXXConstructExpr const* cce = nullptr;
-    mce->dumpColor();
-    visit_subtree(mce, [&](clang::Stmt const* stmt) {
-        if (auto const* _cce = dyn_cast<clang::CXXConstructExpr>(stmt)) {
-            auto const* _ccd = _cce->getConstructor();
-            if (_ccd->getNameAsString() == "Ctor") {
-                cce = _cce;
-                return true;
-            }
-        }
-        return false;
-    });
-
-    if (cce == nullptr) {
-        auto const* mod_decl = find_containing_module_decl(mce, ast_context);
-        mod_decl->dumpColor();
-
-        BBL_THROW(
-            "could not find CXXConstructExpr from Ctor CXXMemberCallExpr");
-    }
-#endif
-
     clang::CXXConstructorDecl const* ccd = cce->getConstructor();
     clang::CXXRecordDecl const* crd = ccd->getParent();
     clang::ClassTemplateSpecializationDecl const* ctsd =
