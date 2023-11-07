@@ -1593,14 +1593,20 @@ std::string C_API::get_source() const {
 
     // next do functon impls
     bool did_any_impl = false;
+    bool first_impl = true;
     for (auto const& mod : _modules) {
         for (std::string const& impl : mod.function_impls) {
+            if (first_impl) {
+                first_impl = false;
+                result = fmt::format("{}namespace bblext {{\n\n", result);
+            }
+
             result = fmt::format("{}{}\n", result, impl);
             did_any_impl = true;
         }
     }
     if (did_any_impl) {
-        result = fmt::format("{}\n", result);
+        result = fmt::format("\n{}}}\n\n", result);
     }
 
     result = fmt::format("{}extern \"C\" {{\n", result);

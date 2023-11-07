@@ -1,3 +1,4 @@
+
 #include <string>
 
 #if defined(__GNUC__) || defined(__clang__)
@@ -10,8 +11,11 @@
 
 #include <stddef.h>
 
+namespace bblext {
+
 static float custom_foo(Foo const& foo) {
     return foo.get<float>();
+}
 }
 
 extern "C" {
