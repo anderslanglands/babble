@@ -1456,7 +1456,7 @@ extern "C" {
 
         if (c_struct.cls.bind_kind == BindKind::OpaquePtr) {
             result = fmt::format(
-                "{0}typedef struct {1} {1};\n", result, c_struct.name);
+                "{0}typedef struct {1} {1};\n\n", result, c_struct.name);
         } else if (c_struct.cls.bind_kind == BindKind::OpaqueBytes) {
             result = fmt::format("{}typedef struct BBL_ALIGN({}) {} {{\n",
                                  result,
