@@ -12,7 +12,7 @@
 #include <thread>
 #include <string>
 
-static thread_local std::string __bbl_error_message;
+static thread_local std::string _bbl_error_message;
 
 extern "C" {
 
@@ -33,7 +33,7 @@ int test017_Vec3f_length(test017_Vec3f_t const* _this, float* _result) {
         *_result = _this->length();
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -43,7 +43,7 @@ int test017_Vec3f_dist(test017_Vec3f_t const* _this, test017_Vec3f_t const* othe
         *_result = _this->dist(*other);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -58,7 +58,7 @@ int test017_Foo_do_foo(test017_Foo_t const* _this, test017_Foo_t const* other) {
         _this->do_foo(*other);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -68,7 +68,7 @@ int test017_Foo_do_foo2(test017_Foo_t* _this, test017_Foo_t* other) {
         _this->do_foo2(other);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -78,7 +78,7 @@ int test017_Foo_ctor(int a, float b, test017_Foo_t** _result) {
         *_result = new qux::Foo(a, b);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -93,7 +93,7 @@ int test017_Bar_ctor(int a, float b, test017_Bar_t** _result) {
         *_result = new qux::Bar(a, b);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }

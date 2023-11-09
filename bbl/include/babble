@@ -176,8 +176,18 @@ public:
         return *this;
     }
 
+    /// Declare that the bound class is a smart pointer (e.g. unique_ptr) to
+    /// the template argument and should get all its public methods.
+    /// Note that constness is respected here - if you specify <Foo const> then
+    /// only const methods will be bound
     template <typename Pointee>
     Class smartptr_to() {
+        return *this;
+    }
+
+    template <typename Base>
+    Class inherits_from() {
+        static_assert(std::is_base_of_v<Base, C>, "Class does not inherit from Base");
         return *this;
     }
 

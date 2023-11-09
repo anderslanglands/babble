@@ -12,7 +12,7 @@
 #include <thread>
 #include <string>
 
-static thread_local std::string __bbl_error_message;
+static thread_local std::string _bbl_error_message;
 
 extern "C" {
 
@@ -23,7 +23,7 @@ int test014_Foo_bar(test014_Foo_t* _this, float a, int* _result) {
         *_result = _this->bar(a);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }

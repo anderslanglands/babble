@@ -14,7 +14,7 @@
 #include <thread>
 #include <string>
 
-static thread_local std::string __bbl_error_message;
+static thread_local std::string _bbl_error_message;
 
 extern "C" {
 
@@ -51,7 +51,7 @@ int test_std_vector_StdVectorInt_reserve(test_std_vector_StdVectorInt_t* _this, 
         _this->reserve(_Newcapacity);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -71,7 +71,7 @@ int test_std_vector_StdVectorInt_push_back(test_std_vector_StdVectorInt_t* _this
         _this->push_back(*_Val);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -86,7 +86,7 @@ int test_std_vector_StdVectorInt_resize(test_std_vector_StdVectorInt_t* _this, s
         _this->resize(_Newsize);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -96,7 +96,7 @@ int test_std_vector_StdVectorInt_resize_with(test_std_vector_StdVectorInt_t* _th
         _this->resize(_Newsize, *_Val);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }

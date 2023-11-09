@@ -13,7 +13,7 @@
 #include <thread>
 #include <string>
 
-static thread_local std::string __bbl_error_message;
+static thread_local std::string _bbl_error_message;
 
 extern "C" {
 
@@ -25,7 +25,7 @@ int test012_Base_bar(test012_Base_t* _this) {
         _this->bar();
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -40,7 +40,7 @@ int test012_Foo_bar(test012_Foo_t* _this) {
         _this->bar();
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }

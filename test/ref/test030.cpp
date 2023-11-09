@@ -12,7 +12,7 @@
 #include <thread>
 #include <string>
 
-static thread_local std::string __bbl_error_message;
+static thread_local std::string _bbl_error_message;
 
 extern "C" {
 
@@ -23,7 +23,7 @@ int test030_Transform_getValues(test030_Transform_t const* _this, double (*value
         _this->getValues(*values);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -33,7 +33,7 @@ int test030_Transform_setValues(test030_Transform_t* _this, double const (*value
         _this->setValues(*values);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }

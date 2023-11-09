@@ -13,7 +13,7 @@
 #include <thread>
 #include <string>
 
-static thread_local std::string __bbl_error_message;
+static thread_local std::string _bbl_error_message;
 
 extern "C" {
 
@@ -24,7 +24,7 @@ int test011_FooFloat_bar(test011_FooFloat_t* _this, float const* a, float* _resu
         *_result = _this->bar(*a);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -39,7 +39,7 @@ int test011_FooFloat_with_float(float* f, test011_FooFloat_t** _result) {
         *_result = new qux::Foo<float>(*f);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }

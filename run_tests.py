@@ -32,6 +32,7 @@ TESTS = [
     "test028",
     "test029",
     "test030",
+    "test031",
 ]
 
 TEST_OUTPUT_PATH = os.path.join("build", "test", "out")

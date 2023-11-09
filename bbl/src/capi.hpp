@@ -6,6 +6,7 @@
 
 #include <memory>
 #include <optional>
+#include <set>
 #include <string>
 #include <variant>
 #include <vector>
@@ -138,7 +139,8 @@ class C_API {
 
     auto _translate_method(Method const* method,
                            std::string const& function_prefix,
-                           std::string const& class_id) -> C_Function;
+                           std::string const& class_id,
+                           bool is_smartptr_delegated) -> C_Function;
 
     auto _translate_function(Function const* function,
                              std::string const& function_prefix) -> C_Function;
@@ -148,7 +150,8 @@ class C_API {
         -> C_StdFunction;
 
     auto _generate_stdfunction_wrapper(std::string const& id,
-                                      std::string const& param_name) -> ExprPtr;
+                                       std::string const& param_name)
+        -> ExprPtr;
 
     auto _translate_constructor(Constructor const* ctor,
                                 std::string const& function_prefix,
@@ -168,6 +171,16 @@ class C_API {
     auto _get_stdfunction_type_as_string(C_StdFunction const& fun,
                                          std::string const& name) const
         -> std::string;
+
+    /// Recursively add methods from other classes referenced via
+    /// bbl::Class::inherits_from
+    auto _add_base_class_methods(Context const& cpp_ctx,
+                                 Class const* derived,
+                                 std::string const& struct_namespace,
+                                 std::string const& base_id,
+                                 C_FunctionMap& functions,
+                                 std::vector<std::string>& mod_functions,
+                                 std::set<std::string>& visited) -> void;
 
 public:
     C_API(Context const& cpp_ctx);

@@ -13,7 +13,7 @@
 #include <thread>
 #include <string>
 
-static thread_local std::string __bbl_error_message;
+static thread_local std::string _bbl_error_message;
 
 extern "C" {
 
@@ -38,7 +38,7 @@ int test028_Bar_adjust_foo(void (*fn)(test028_Foo_t* param00, test028_Foo_t** _r
         tst::Bar::adjust_foo(fn_wrapper);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -61,7 +61,7 @@ int test028_free_adjust_foo(void (*fn)(test028_Foo_t* param00, test028_Foo_t** _
         *_result = tst::free_adjust_foo(fn_wrapper);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }

@@ -13,7 +13,7 @@
 #include <thread>
 #include <string>
 
-static thread_local std::string __bbl_error_message;
+static thread_local std::string _bbl_error_message;
 
 extern "C" {
 
@@ -25,7 +25,7 @@ int test0021_Foo_get_float(test0021_Foo_t const* _this, float* _result) {
         *_result = _this->get<float>();
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -35,7 +35,7 @@ int test0021_Foo_get_int(test0021_Foo_t const* _this, int* _result) {
         *_result = _this->get<int>();
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -45,7 +45,7 @@ int test0021_Foo_is_float(test0021_Foo_t const* _this, bool* _result) {
         *_result = _this->is<float>();
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -55,7 +55,7 @@ int test0021_Foo_is_int(test0021_Foo_t const* _this, bool* _result) {
         *_result = _this->is<int>();
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -65,7 +65,7 @@ int test0021_Foo_get_bar_short(test0021_Foo_t const* _this, test0021_BarShort_t*
         *_result = new Bar<short>(_this->get<Bar<short>>());
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }

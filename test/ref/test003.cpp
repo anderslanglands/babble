@@ -12,7 +12,7 @@
 #include <thread>
 #include <string>
 
-static thread_local std::string __bbl_error_message;
+static thread_local std::string _bbl_error_message;
 
 extern "C" {
 
@@ -30,7 +30,7 @@ int test003_FooFloat_bar(test003_FooFloat_t* _this, float const* a, float* _resu
         *_result = _this->bar(*a);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -40,7 +40,7 @@ int test003_FooFloat_baz(test003_FooFloat_t* _this, test003_Baz_t* b) {
         _this->baz(b);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -55,7 +55,7 @@ int test003_FooInt_bar(test003_FooInt_t* _this, int const* a, int* _result) {
         *_result = _this->bar(*a);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -65,7 +65,7 @@ int test003_FooInt_baz(test003_FooInt_t* _this, test003_Baz_t* b) {
         _this->baz(b);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }

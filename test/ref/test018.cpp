@@ -13,7 +13,7 @@
 #include <thread>
 #include <string>
 
-static thread_local std::string __bbl_error_message;
+static thread_local std::string _bbl_error_message;
 
 extern "C" {
 
@@ -32,7 +32,7 @@ int test018_Foo_do_foo(test018_Foo_t const* _this, void (*fun)(test018_Foo_t con
         _this->do_foo(fun_wrapper);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -47,7 +47,7 @@ int test018_Foo_do_foo2(test018_Foo_t const* _this, void (*fun)(test018_Foo_t co
         _this->do_foo2(fun_wrapper);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -57,7 +57,7 @@ int test018_Foo_ctor(int a, float b, test018_Foo_t** _result) {
         *_result = new qux::Foo(a, b);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }

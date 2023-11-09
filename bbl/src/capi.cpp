@@ -199,7 +199,7 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
 
                 try {
                     C_Function c_fun = _translate_method(
-                        method, struct_namespace, cpp_class_id);
+                        method, struct_namespace, cpp_class_id, false);
 
                     // we can have multiple instances of the "same" method
                     // through inheritance, so make a new function id including
@@ -249,6 +249,19 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
                 mod_functions.push_back(dtor_id);
             }
 
+            // if the user's specified that this class inherits from others,
+            // copy the methods from those classes to this one
+            std::set<std::string> visited;
+            for (auto const& base_id : cpp_cls->inherits_from) {
+                _add_base_class_methods(cpp_ctx,
+                                        cpp_cls,
+                                        struct_namespace,
+                                        base_id,
+                                        _functions,
+                                        mod_functions,
+                                        visited);
+            }
+
             // If this class is a smart pointer to another class, then add the
             // pointee's non-static methods to it
             if (cpp_cls->smartptr_to.has_value()) {
@@ -271,7 +284,7 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
 
                     try {
                         C_Function c_fun = _translate_method(
-                            method, struct_namespace, smartptr_class_id);
+                            method, struct_namespace, smartptr_class_id, true);
 
                         // we can have multiple instances of the "same" method
                         // through inheritance, so make a new function id
@@ -341,6 +354,71 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
                                        std::move(mod_stdfunctions),
                                        std::move(mod_enums),
                                        cpp_mod.function_impls});
+    }
+}
+
+auto C_API::_add_base_class_methods(Context const& cpp_ctx,
+                                    Class const* derived,
+                                    std::string const& struct_namespace,
+                                    std::string const& base_id,
+                                    C_FunctionMap& functions,
+                                    std::vector<std::string>& mod_functions,
+                                    std::set<std::string>& visited) -> void {
+    // guard against cycles
+    if (visited.find(base_id) != visited.end()) {
+        return;
+    } else {
+        visited.emplace(base_id);
+    }
+
+    Class const* base_cls = cpp_ctx.get_class(base_id);
+    assert(base_cls);
+
+    // depth first
+    for (auto const& id : base_cls->inherits_from) {
+        _add_base_class_methods(cpp_ctx,
+                                derived,
+                                struct_namespace,
+                                id,
+                                functions,
+                                mod_functions,
+                                visited);
+    }
+
+    for (auto const& method_id : base_cls->methods) {
+        Method const* method = _cpp_ctx.get_method(method_id);
+        assert(method);
+
+        if (method->is_static) {
+            continue;
+        }
+
+        try {
+            C_Function c_fun =
+                _translate_method(method, struct_namespace, derived->id, false);
+
+            // we can have multiple instances of the "same" method
+            // through inheritance, so make a new function id
+            // including the class id
+            std::string function_id =
+                fmt::format("{}/{}", method_id, derived->id);
+
+            _functions.emplace(function_id, std::move(c_fun));
+            mod_functions.push_back(function_id);
+        } catch (MissingTypeBindingException& e) {
+            SPDLOG_ERROR("could not translate method {} of class {}. "
+                         "Method will be ignored.\n{}",
+                         method->function.name,
+                         base_cls->spelling,
+                         e.what());
+        } catch (std::runtime_error& e) {
+            BBL_RETHROW(e,
+                        "could not translate method {} of base "
+                        "{} to {}",
+                        method->function.qualified_name,
+                        derived->id,
+                        base_id);
+        }
     }
 }
 
@@ -712,7 +790,8 @@ auto C_API::_translate_return_type(QType const& cpp_return_type)
 
 auto C_API::_translate_method(Method const* method,
                               std::string const& function_prefix,
-                              std::string const& class_id) -> C_Function {
+                              std::string const& class_id,
+                              bool is_smartptr_delegated) -> C_Function {
     // Function name is the name of the struct followed by either the rename or
     // original method name
     std::string function_name =
@@ -731,19 +810,7 @@ auto C_API::_translate_method(Method const* method,
     if (!method->is_static) {
         bool pointee_is_const = method->is_const;
 
-        if (method->target_class_id == class_id) {
-            // regular method call
-            receiver = std::move(C_Param{
-                C_QType{
-                        nullptr, false,
-                        C_Pointer{std::unique_ptr<C_QType>(
-                        new C_QType{nullptr,
-                                    pointee_is_const,
-                                    C_Type{C_StructId{class_id}}})},
-                        },
-                "_this",
-            });
-        } else {
+        if (is_smartptr_delegated) {
             // this method is being delegated from a smart pointer
             receiver = std::move(C_SmartPtr{
                 C_Param{
@@ -756,6 +823,18 @@ auto C_API::_translate_method(Method const* method,
                                         C_Type{C_StructId{class_id}}})},
                     }, "_this",
                         }
+            });
+        } else {
+            // regular method call
+            receiver = std::move(C_Param{
+                C_QType{
+                        nullptr, false,
+                        C_Pointer{std::unique_ptr<C_QType>(
+                        new C_QType{nullptr,
+                                    pointee_is_const,
+                                    C_Type{C_StructId{class_id}}})},
+                        },
+                "_this",
             });
         }
     }
@@ -840,7 +919,8 @@ auto C_API::_translate_method(Method const* method,
         std::move(result),
         std::move(receiver),
         std::move(c_params),
-        method->function.is_noexcept ? ex_compound(std::move(body)) : ex_trycatch(std::move(body)),
+        method->function.is_noexcept ? ex_compound(std::move(body))
+                                     : ex_trycatch(std::move(body)),
     };
 }
 
@@ -920,7 +1000,8 @@ auto C_API::_translate_function(Function const* function,
         std::move(result),
         {},
         std::move(c_params),
-        function->is_noexcept ? ex_compound(std::move(body)) : ex_trycatch(std::move(body)),
+        function->is_noexcept ? ex_compound(std::move(body))
+                              : ex_trycatch(std::move(body)),
     };
 }
 
@@ -1055,7 +1136,8 @@ auto C_API::_generate_stdfunction_wrapper(std::string const& id,
             expr_lambda_body.emplace_back(ex_delete(ex_token(result_ptr_name)));
             expr_lambda_body.emplace_back(ex_return(ex_token(c_result.name)));
         } else if (is_lvalue_reference(cpp_fun->return_type)) {
-            expr_lambda_body.emplace_back(ex_return(ex_deref(ex_token(c_result.name))));
+            expr_lambda_body.emplace_back(
+                ex_return(ex_deref(ex_token(c_result.name))));
         } else {
             expr_lambda_body.emplace_back(ex_return(ex_token(c_result.name)));
         }
@@ -1244,7 +1326,8 @@ auto C_API::_translate_constructor(Constructor const* ctor,
         std::move(result),
         {},
         std::move(c_params),
-        ctor->is_noexcept ? ex_compound(std::move(body)) : ex_trycatch(std::move(body)),
+        ctor->is_noexcept ? ex_compound(std::move(body))
+                          : ex_trycatch(std::move(body)),
     };
 }
 
@@ -1271,20 +1354,13 @@ auto C_API::_generate_destructor(std::string const& function_prefix,
     body.emplace_back(ex_delete(ExprToken::create(this_param.name)));
     body.emplace_back(ex_return(ExprToken::create("0")));
 
-    // ExprPtr compound = ex_compound(std::move(body));
-    // std::vector<ExprPtr> exprs;
-    // exprs.emplace_back(std::move(compound));
-    // ExprBlock block(std::move(exprs));
-
-    return C_Function{
-        Generated{},
-        function_name,
-        "",
-        {},
-        {},
-        std::vector{this_param},
-        ex_compound(std::move(body))
-    };
+    return C_Function{Generated{},
+                      function_name,
+                      "",
+                      {},
+                      {},
+                      std::vector{this_param},
+                      ex_compound(std::move(body))};
 }
 
 auto C_API::_translate_qtype(QType const& qt) -> C_QType {

@@ -12,7 +12,7 @@
 #include <thread>
 #include <string>
 
-static thread_local std::string __bbl_error_message;
+static thread_local std::string _bbl_error_message;
 
 extern "C" {
 
@@ -31,7 +31,7 @@ int test0023_Foo_length(test0023_Foo_t* _this, float* _result) {
         *_result = _this->length();
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -41,7 +41,7 @@ int test0023_Foo_normalize(test0023_Foo_t* _this, float* _result) {
         *_result = _this->normalize();
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }

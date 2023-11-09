@@ -14,7 +14,7 @@
 #include <thread>
 #include <string>
 
-static thread_local std::string __bbl_error_message;
+static thread_local std::string _bbl_error_message;
 
 namespace bblext {
 
@@ -37,7 +37,7 @@ int test0022_custom_foo(test0022_Foo_t const* foo, float* _result) {
         *_result = bblext::custom_foo(*foo);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }

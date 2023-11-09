@@ -12,7 +12,7 @@
 #include <thread>
 #include <string>
 
-static thread_local std::string __bbl_error_message;
+static thread_local std::string _bbl_error_message;
 
 extern "C" {
 
@@ -24,7 +24,7 @@ int test015_Bar_baz(test015_Bar_t const* _this, char const** s, float* const f, 
         *_result = _this->baz(s, f);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -34,7 +34,7 @@ int test015_Bar_ctor(test015_Bar_t** _result) {
         *_result = new qux::Bar();
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -49,7 +49,7 @@ int test015_Foo_foo(test015_Foo_t const* _this, test015_Bar_t* b, int** i, test0
         *_result = &_this->foo(*b, *i);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -69,7 +69,7 @@ int test015_Foo_ctor(test015_Foo_t** _result) {
         *_result = new qux::Foo();
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }

@@ -13,7 +13,7 @@
 #include <thread>
 #include <string>
 
-static thread_local std::string __bbl_error_message;
+static thread_local std::string _bbl_error_message;
 
 extern "C" {
 using bar_Enum = int;
@@ -27,7 +27,7 @@ int bar_Foo_ctor(int a, float b, bar_Foo_t** _result) {
         *_result = new QUX_NS::BarFoo(a, b);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -42,7 +42,7 @@ int bar_bar_fn(bar_Foo_t const* a, int b, int* c) {
         QUX_NS::bar_fn(*a, static_cast<QUX_NS::BarEnum>(b), reinterpret_cast<QUX_NS::BarEnum*>(c));
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -52,7 +52,7 @@ int baz_Foo_ctor(int a, float b, baz_Foo_t** _result) {
         *_result = new QUX_NS::BazFoo(a, b);
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }
@@ -67,7 +67,7 @@ int baz_baz_fn(baz_Foo_t const* a, int b, int* c) {
         QUX_NS::baz_fn(*a, static_cast<QUX_NS::BazEnum>(b), *reinterpret_cast<QUX_NS::BazEnum*>(c));
         return 0;
     } catch (std::exception& e) {
-        __bbl_error_message = e.what();
+        _bbl_error_message = e.what();
         return 1;
     }
 }

@@ -242,6 +242,7 @@ struct Class {
     std::vector<Field> fields;
     std::optional<std::string> smartptr_to;
     bool smartptr_is_const;
+    std::vector<std::string> inherits_from;
     Layout layout;
     BindKind bind_kind;
     RuleOfSeven rule_of_seven;
