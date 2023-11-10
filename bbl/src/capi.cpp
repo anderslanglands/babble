@@ -339,14 +339,14 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
                 // and the inherited methods on the pointee
                 std::set<std::string> visited;
                 for (auto const& base_id : pointee_cls->inherits_from) {
-                    _add_base_class_methods(cpp_ctx,
-                                            cpp_cls,
-                                            struct_namespace,
-                                            base_id,
-                                            _functions,
-                                            mod_functions,
-                                            bound_methods,
-                                            visited);
+                    // _add_base_class_methods(cpp_ctx,
+                    //                         cpp_cls,
+                    //                         struct_namespace,
+                    //                         base_id,
+                    //                         _functions,
+                    //                         mod_functions,
+                    //                         bound_methods,
+                    //                         visited);
                 }
             }
         }
@@ -411,7 +411,14 @@ auto C_API::_add_base_class_methods(Context const& cpp_ctx,
     }
 
     Class const* base_cls = cpp_ctx.get_class(base_id);
-    assert(base_cls);
+    if (base_cls == nullptr) {
+        // if the base class has not been extracted with bbl::Class just ignore it
+        // it's possible the user didn't intend this, in which case the methods from
+        // the base class will just not show up, but if the class is inheriting from 
+        // a bunch of random stuff we don't want to force the user to manually specify
+        // a bunch of utility bases to avoid a warning or an error here
+        return;
+    }
 
     // depth first
     for (auto const& id : base_cls->inherits_from) {
