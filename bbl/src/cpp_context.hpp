@@ -20,7 +20,6 @@
 #include <clang/AST/Type.h>
 #include <llvm/Support/CommandLine.h>
 
-
 #if defined(WIN32)
 #pragma warning(pop)
 #endif
@@ -58,13 +57,15 @@ class Context;
                                                   fmt::format(__VA_ARGS__),    \
                                                   E.what()))
 
-#define BBL_UNIMPLEMENTED(...)                                                         \
-    throw std::runtime_error(                                                  \
-        fmt::format("{}:{} UNIMPLEMENTED {}", __FILE__, __LINE__, fmt::format(__VA_ARGS__)))
+#define BBL_UNIMPLEMENTED(...)                                                 \
+    throw std::runtime_error(fmt::format("{}:{} UNIMPLEMENTED {}",             \
+                                         __FILE__,                             \
+                                         __LINE__,                             \
+                                         fmt::format(__VA_ARGS__)))
 
-#define BBL_UNREACHABLE(...)                                                         \
-    throw std::runtime_error(                                                  \
-        fmt::format("{}:{} UNREACHABLE {}", __FILE__, __LINE__, fmt::format(__VA_ARGS__)))
+#define BBL_UNREACHABLE(...)                                                   \
+    throw std::runtime_error(fmt::format(                                      \
+        "{}:{} UNREACHABLE {}", __FILE__, __LINE__, fmt::format(__VA_ARGS__)))
 
 template <typename Key, typename Value>
 using MapType = ankerl::unordered_dense::map<Key, Value>;
@@ -81,17 +82,34 @@ struct ClassId {
     std::string id;
 };
 
+inline bool operator==(ClassId const& lhs, ClassId const& rhs) {
+    return lhs.id == rhs.id;
+}
+
 struct ClassTemplateSpecializationId {
     std::string id;
 };
+
+inline bool operator==(ClassTemplateSpecializationId const& lhs,
+                       ClassTemplateSpecializationId const& rhs) {
+    return lhs.id == rhs.id;
+}
 
 struct EnumId {
     std::string id;
 };
 
+inline bool operator==(EnumId const& lhs, EnumId const& rhs) {
+    return lhs.id == rhs.id;
+}
+
 struct StdFunctionId {
     std::string id;
 };
+
+inline bool operator==(StdFunctionId const& lhs, StdFunctionId const& rhs) {
+    return lhs.id == rhs.id;
+}
 
 struct Type {
     std::variant<bbl_builtin_t,
@@ -102,24 +120,46 @@ struct Type {
         kind;
 };
 
+bool operator==(Type const& lhs, Type const& rhs);
+
 class QType;
+bool operator==(QType const& lhs, QType const& rhs);
+inline bool operator!=(QType const& lhs, QType const& rhs) {
+    return !(lhs == rhs);
+}
 
 struct Pointer {
     std::unique_ptr<QType> pointee;
 };
 
+inline bool operator==(Pointer const& lhs, Pointer const& rhs) {
+    return *lhs.pointee == *rhs.pointee;
+}
+
 struct LValueReference {
     std::unique_ptr<QType> pointee;
 };
+
+inline bool operator==(LValueReference const& lhs, LValueReference const& rhs) {
+    return *lhs.pointee == *rhs.pointee;
+}
 
 struct RValueReference {
     std::unique_ptr<QType> pointee;
 };
 
+inline bool operator==(RValueReference const& lhs, RValueReference const& rhs) {
+    return *lhs.pointee == *rhs.pointee;
+}
+
 struct Array {
     std::unique_ptr<QType> element_type;
     size_t size;
 };
+
+inline bool operator==(Array const& lhs, Array const& rhs) {
+    return *lhs.element_type == *rhs.element_type && lhs.size == rhs.size;
+}
 
 /// A (const) qualified type
 struct QType {
@@ -144,6 +184,10 @@ struct Param {
     QType type;
 };
 
+inline bool is_equivalent(Param const& lhs, Param const& rhs) {
+    return lhs.type == rhs.type;
+}
+
 /// A function, as bound by `bbl::fn()`
 struct Function {
     std::string qualified_name;
@@ -160,6 +204,22 @@ struct Function {
     bool is_noexcept;
 };
 
+inline bool is_equivalent(Function const& lhs, Function const& rhs) {
+    if (lhs.name != rhs.name || lhs.template_call != rhs.template_call ||
+        lhs.return_type != rhs.return_type ||
+        lhs.params.size() != rhs.params.size()) {
+        return false;
+    }
+
+    for (int i = 0; i < lhs.params.size(); ++i) {
+        if (!is_equivalent(lhs.params[i], rhs.params[i])) {
+            return false;
+        }
+    }
+
+    return lhs.is_noexcept == rhs.is_noexcept;
+}
+
 /// A method, as bound by the `.m()` call on bbl::Class
 struct Method {
     Function function;
@@ -169,6 +229,11 @@ struct Method {
     bool is_virtual;
     bool is_pure;
 };
+
+inline bool is_equivalent(Method const& lhs, Method const& rhs) {
+    return is_equivalent(lhs.function, rhs.function) &&
+           lhs.is_const == rhs.is_const && lhs.is_static == rhs.is_static;
+}
 
 using MethodMap = MapType<std::string, Method>;
 
@@ -377,16 +442,17 @@ public:
                           clang::MangleContext* mangle_ctx) -> QType;
 
     /// Extract the class (or class template specialization) `crd`.
-    [[nodiscard]] auto extract_class_binding(clang::CXXRecordDecl const* crd,
-                                             std::string const& spelling,
-                                             std::string const& rename,
-                                             std::string const& comment,
-                                             Layout layout,
-                                             BindKind bind_kind,
-                                             RuleOfSeven const& rule_of_seven,
-                                             bool is_abstract,
-                                             clang::MangleContext* mangle_ctx)
-        -> Class;
+    [[nodiscard]] auto
+    extract_class_binding(clang::CXXRecordDecl const* crd,
+                          std::string const& spelling,
+                          std::string const& rename,
+                          std::string const& comment,
+                          Layout layout,
+                          BindKind bind_kind,
+                          RuleOfSeven const& rule_of_seven,
+                          bool is_abstract,
+                          std::vector<std::string> const& inherits_from,
+                          clang::MangleContext* mangle_ctx) -> Class;
 
     /// Insert the class `cls` with ID `id` into Module `mod_id`
     auto insert_class_binding(std::string const& mod_id,
@@ -412,14 +478,14 @@ public:
     auto stdfunctions() const noexcept
         -> StdFunctionMap::value_container_type const&;
 
-    [[nodiscard]] auto extract_enum_binding(clang::EnumDecl const* ed,
-                                            std::string const& spelling,
-                                            std::string const& name,
-                                            std::string const& rename,
-                                            std::string const& comment,
-                                            std::optional<std::string> const& prefix,
-                                            clang::MangleContext* mangle_ctx)
-        -> Enum;
+    [[nodiscard]] auto
+    extract_enum_binding(clang::EnumDecl const* ed,
+                         std::string const& spelling,
+                         std::string const& name,
+                         std::string const& rename,
+                         std::string const& comment,
+                         std::optional<std::string> const& prefix,
+                         clang::MangleContext* mangle_ctx) -> Enum;
     auto insert_enum_binding(std::string const& mod_id,
                              std::string const& id,
                              Enum&& fun) -> void;
@@ -523,11 +589,11 @@ public:
 
     /// Get a string representation of the given `Method` suitable for debugging
     /// and test printing
-    std::string get_method_as_string(Method const& method);
+    std::string get_method_as_string(Method const& method) const;
 
     /// Get a string representation of the given `Function` suitable for
     /// debugging and test printing
-    std::string get_function_as_string(Function const& function);
+    std::string get_function_as_string(Function const& function) const;
 
     /// Get a string representation of the given `StdFunction` suitable for
     /// debugging and test printing

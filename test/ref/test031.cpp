@@ -159,9 +159,49 @@ int test031_BarPtr_baz(test031_BarPtr_t* _this) {
     }
 }
 
+int test031_BarPtr_get_foo(test031_BarPtr_t const* _this, int* _result) {
+    try {
+        *_result = _this->get_foo();
+        return 0;
+    } catch (std::exception& e) {
+        _bbl_error_message = e.what();
+        return 1;
+    }
+}
+
+int test031_BarPtr_set_foo(test031_BarPtr_t* _this, int a, int* _result) {
+    try {
+        *_result = _this->set_foo(a);
+        return 0;
+    } catch (std::exception& e) {
+        _bbl_error_message = e.what();
+        return 1;
+    }
+}
+
 int test031_ConstBarPtr_dtor(test031_ConstBarPtr_t* _this) {
     delete _this;
     return 0;
+}
+
+int test031_ConstBarPtr_get_foo(test031_ConstBarPtr_t const* _this, int* _result) {
+    try {
+        *_result = _this->get_foo();
+        return 0;
+    } catch (std::exception& e) {
+        _bbl_error_message = e.what();
+        return 1;
+    }
+}
+
+int test031_ConstBarPtr_set_foo(test031_ConstBarPtr_t* _this, int a, int* _result) {
+    try {
+        *_result = _this->set_foo(a);
+        return 0;
+    } catch (std::exception& e) {
+        _bbl_error_message = e.what();
+        return 1;
+    }
 }
 
 } // extern "C"

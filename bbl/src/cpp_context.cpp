@@ -5,6 +5,7 @@
 #include "process.hpp"
 #include "clang/AST/Expr.h"
 #include "clang/AST/Stmt.h"
+#include "clang/Basic/Specifiers.h"
 #include "llvm/Support/Casting.h"
 
 #include <clang/AST/ASTContext.h>
@@ -42,6 +43,40 @@
 using llvm::dyn_cast;
 
 namespace bbl {
+template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+
+bool operator==(Type const& lhs, Type const& rhs) {
+    if (std::holds_alternative<bbl_builtin_t>(lhs.kind) && std::holds_alternative<bbl_builtin_t>(rhs.kind)) {
+        return std::get<bbl_builtin_t>(lhs.kind) == std::get<bbl_builtin_t>(rhs.kind);
+    } else if (std::holds_alternative<ClassId>(lhs.kind) && std::holds_alternative<ClassId>(rhs.kind)) {
+        return std::get<ClassId>(lhs.kind) == std::get<ClassId>(rhs.kind);
+    } else if (std::holds_alternative<ClassTemplateSpecializationId>(lhs.kind) && std::holds_alternative<ClassTemplateSpecializationId>(rhs.kind)) {
+        return std::get<ClassTemplateSpecializationId>(lhs.kind) == std::get<ClassTemplateSpecializationId>(rhs.kind);
+    } else if (std::holds_alternative<EnumId>(lhs.kind) && std::holds_alternative<EnumId>(rhs.kind)) {
+        return std::get<EnumId>(lhs.kind) == std::get<EnumId>(rhs.kind);
+    } else if (std::holds_alternative<StdFunctionId>(lhs.kind) && std::holds_alternative<StdFunctionId>(rhs.kind)) {
+        return std::get<StdFunctionId>(lhs.kind) == std::get<StdFunctionId>(rhs.kind);
+    } else {
+        return false;
+    }
+}
+
+bool operator==(QType const& lhs, QType const& rhs) {
+    if (std::holds_alternative<Type>(lhs.type) && std::holds_alternative<Type>(rhs.type)) {
+        return std::get<Type>(lhs.type) == std::get<Type>(rhs.type);
+    } else if (std::holds_alternative<Pointer>(lhs.type) && std::holds_alternative<Pointer>(rhs.type)) {
+        return std::get<Pointer>(lhs.type) == std::get<Pointer>(rhs.type);
+    } else if (std::holds_alternative<LValueReference>(lhs.type) && std::holds_alternative<LValueReference>(rhs.type)) {
+        return std::get<LValueReference>(lhs.type) == std::get<LValueReference>(rhs.type);
+    } else if (std::holds_alternative<RValueReference>(lhs.type) && std::holds_alternative<RValueReference>(rhs.type)) {
+        return std::get<RValueReference>(lhs.type) == std::get<RValueReference>(rhs.type);
+    } else if (std::holds_alternative<Array>(lhs.type) && std::holds_alternative<Array>(rhs.type)) {
+        return std::get<Array>(lhs.type) == std::get<Array>(rhs.type);
+    } else {
+        return false;
+    }
+}
 
 QType clone(QType const& qt) {
     if (std::holds_alternative<Type>(qt.type)) {
@@ -456,15 +491,17 @@ auto evaluate_field_expression_bool(clang::RecordDecl const* rd,
     return result;
 }
 
-auto Context::extract_class_binding(clang::CXXRecordDecl const* crd,
-                                    std::string const& spelling,
-                                    std::string const& rename,
-                                    std::string const& comment,
-                                    Layout layout,
-                                    BindKind bind_kind,
-                                    RuleOfSeven const& rule_of_seven,
-                                    bool is_abstract,
-                                    clang::MangleContext* mangle_ctx) -> Class {
+auto Context::extract_class_binding(
+    clang::CXXRecordDecl const* crd,
+    std::string const& spelling,
+    std::string const& rename,
+    std::string const& comment,
+    Layout layout,
+    BindKind bind_kind,
+    RuleOfSeven const& rule_of_seven,
+    bool is_abstract,
+    std::vector<std::string> const& inherits_from,
+    clang::MangleContext* mangle_ctx) -> Class {
     std::string id = get_mangled_name(crd, mangle_ctx);
     if (_decl_maps.class_map.contains(id)) {
         BBL_THROW("class binding for id {} already exists", id);
@@ -492,7 +529,7 @@ auto Context::extract_class_binding(clang::CXXRecordDecl const* crd,
                  std::vector<Field>(),       // fields
                  {},                         // smartptr_to
                  false,                      // smartptr_is_const
-                 {},                         // inherits_from
+                 inherits_from,
                  layout,
                  bind_kind,
                  rule_of_seven,
@@ -901,7 +938,7 @@ std::string Context::get_class_as_string(Class const& cls) {
     return result;
 }
 
-std::string Context::get_method_as_string(Method const& method) {
+std::string Context::get_method_as_string(Method const& method) const {
     std::string result = get_function_as_string(method.function);
 
     if (method.is_const) {
@@ -952,7 +989,7 @@ auto Context::get_constructor(std::string const& constructor_id) const
     }
 }
 
-std::string Context::get_function_as_string(Function const& function) {
+std::string Context::get_function_as_string(Function const& function) const {
     std::string result;
 
     result = fmt::format("{}{}(", result, function.name);
@@ -1323,6 +1360,32 @@ static BindKind search_for_bind_kind_calls(clang::Stmt const* stmt,
     return BindKind::OpaquePtr;
 }
 
+// recursively get all the bases of `crd` and append their mangled ids to `inherits_from`
+static auto get_bases(clang::CXXRecordDecl const* crd,
+                      std::vector<std::string>& inherits_from,
+                      clang::MangleContext* mangle_context) -> void {
+    for (auto const& base : crd->bases()) {
+        if (base.getAccessSpecifier() == clang::AS_public) {
+            clang::CXXRecordDecl const* base_crd =
+                base.getType()->getAsCXXRecordDecl();
+            if (base_crd == nullptr) {
+                SPDLOG_WARN("base {} of {} is not a CXXRecordDecl",
+                            base.getType().getAsString(),
+                            crd->getQualifiedNameAsString());
+                continue;
+            }
+
+            std::string base_id = get_mangled_name(base_crd, mangle_context);
+            if (std::find(inherits_from.begin(),
+                          inherits_from.end(),
+                          base_id) == inherits_from.end()) {
+                inherits_from.push_back(base_id);
+                get_bases(base_crd, inherits_from, mangle_context);
+            }
+        }
+    }
+}
+
 static auto
 extract_class_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
                                   bbl::Context* bbl_ctx,
@@ -1444,6 +1507,10 @@ extract_class_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
 
     } else {
         try {
+            // get the list of bases for this class recursively
+            std::vector<std::string> inherits_from;
+            get_bases(type_record_decl, inherits_from, mangle_context);
+
             Class cls = bbl_ctx->extract_class_binding(
                 type_record_decl,
                 class_spelling,
@@ -1465,6 +1532,7 @@ extract_class_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
                     has_virtual_destructor,
                 },
                 is_abstract,
+                inherits_from,
                 mangle_context);
 
             std::string id = get_mangled_name(type_record_decl, mangle_context);
@@ -2518,8 +2586,8 @@ public:
                 extract_smartptr_to_from_member_call_expr(
                     cmce, _bbl_ctx, _ast_context, _sm, _mangle_context.get());
             } else if (cmd->getName() == "inherits_from") {
-                extract_inherits_from_member_call_expr(
-                    cmce, _bbl_ctx, _ast_context, _sm, _mangle_context.get());
+                // extract_inherits_from_member_call_expr(
+                //     cmce, _bbl_ctx, _ast_context, _sm, _mangle_context.get());
             }
         }
 

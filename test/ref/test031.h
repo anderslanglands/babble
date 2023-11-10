@@ -71,7 +71,15 @@ int test031_BarPtr_dtor(test031_BarPtr_t* _this);
 
 int test031_BarPtr_baz(test031_BarPtr_t* _this);
 
+int test031_BarPtr_get_foo(test031_BarPtr_t const* _this, int* _result);
+
+int test031_BarPtr_set_foo(test031_BarPtr_t* _this, int a, int* _result);
+
 int test031_ConstBarPtr_dtor(test031_ConstBarPtr_t* _this);
+
+int test031_ConstBarPtr_get_foo(test031_ConstBarPtr_t const* _this, int* _result);
+
+int test031_ConstBarPtr_set_foo(test031_ConstBarPtr_t* _this, int a, int* _result);
 
 
 

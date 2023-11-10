@@ -180,6 +180,7 @@ class C_API {
                                  std::string const& base_id,
                                  C_FunctionMap& functions,
                                  std::vector<std::string>& mod_functions,
+                                 std::set<std::string>& bound_methods,
                                  std::set<std::string>& visited) -> void;
 
 public:

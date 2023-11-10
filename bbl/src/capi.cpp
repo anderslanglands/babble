@@ -2,12 +2,29 @@
 #include "bbl_detail.h"
 #include "bblfmt.hpp"
 #include "spdlog/spdlog.h"
+#include "clang/AST/DeclCXX.h"
 
 #include <memory>
 #include <optional>
 #include <stdexcept>
 #include <utility>
 #include <variant>
+
+template <class C, class T>
+inline auto contains_impl(const C& c, const T& x, int)
+    -> decltype(c.find(x), true) {
+    return end(c) != c.find(x);
+}
+
+template <class C, class T>
+inline bool contains_impl(const C& v, const T& x, long) {
+    return end(v) != std::find(begin(v), end(v), x);
+}
+
+template <class C, class T>
+auto contains(const C& c, const T& x) -> decltype(end(c), true) {
+    return contains_impl(c, x, 0);
+}
 
 namespace bbl {
 
@@ -192,10 +209,17 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
 
             std::string struct_name = fmt::format("{}_t", struct_namespace);
 
+            // keep track of all the signatures of methods generated from this class
+            // so when we add the base classes' methods we don't generate multiple
+            // versions of the same method due to overloads
+            std::set<std::string> bound_methods;
+
             // Translate all methods to functions
             for (auto const& method_id : cpp_cls->methods) {
                 Method const* method = _cpp_ctx.get_method(method_id);
                 assert(method);
+
+                bound_methods.insert(cpp_ctx.get_method_as_string(*method));
 
                 try {
                     C_Function c_fun = _translate_method(
@@ -259,6 +283,7 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
                                         base_id,
                                         _functions,
                                         mod_functions,
+                                        bound_methods,
                                         visited);
             }
 
@@ -309,6 +334,19 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
                                     smartptr_class_id,
                                     pointee_class_id);
                     }
+                }
+
+                // and the inherited methods on the pointee
+                std::set<std::string> visited;
+                for (auto const& base_id : pointee_cls->inherits_from) {
+                    _add_base_class_methods(cpp_ctx,
+                                            cpp_cls,
+                                            struct_namespace,
+                                            base_id,
+                                            _functions,
+                                            mod_functions,
+                                            bound_methods,
+                                            visited);
                 }
             }
         }
@@ -363,8 +401,9 @@ auto C_API::_add_base_class_methods(Context const& cpp_ctx,
                                     std::string const& base_id,
                                     C_FunctionMap& functions,
                                     std::vector<std::string>& mod_functions,
+                                    std::set<std::string>& bound_methods,
                                     std::set<std::string>& visited) -> void {
-    // guard against cycles
+    // guard against cycles - shouldn't happen, but you know...
     if (visited.find(base_id) != visited.end()) {
         return;
     } else {
@@ -382,6 +421,7 @@ auto C_API::_add_base_class_methods(Context const& cpp_ctx,
                                 id,
                                 functions,
                                 mod_functions,
+                                bound_methods,
                                 visited);
     }
 
@@ -391,6 +431,15 @@ auto C_API::_add_base_class_methods(Context const& cpp_ctx,
 
         if (method->is_static) {
             continue;
+        }
+
+        std::string method_str = cpp_ctx.get_method_as_string(*method);
+        if (contains(bound_methods, method_str)) {
+            // class has already generated a method with this signature, i.e. an
+            // overload of this method. Do not generate another one
+            continue;
+        } else {
+            bound_methods.insert(method_str);
         }
 
         try {
