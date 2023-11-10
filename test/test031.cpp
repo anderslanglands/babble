@@ -43,7 +43,6 @@ BBL_MODULE(test031) {
         ;
 
     bbl::Class<Bar>()
-        .inherits_from<Foo>()
         .m(&Bar::create)
         .m(&Bar::baz)
         ;

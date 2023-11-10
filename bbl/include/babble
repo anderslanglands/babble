@@ -185,12 +185,6 @@ public:
         return *this;
     }
 
-    template <typename Base>
-    Class inherits_from() {
-        static_assert(std::is_base_of_v<Base, C>, "Class does not inherit from Base");
-        return *this;
-    }
-
     /// Size of the bound type
     size_t type_size = sizeof(C);
 

@@ -2371,57 +2371,6 @@ extract_smartptr_to_from_member_call_expr(clang::CXXMemberCallExpr const* mce,
     }
 }
 
-static auto
-extract_inherits_from_member_call_expr(clang::CXXMemberCallExpr const* mce,
-                                       bbl::Context* bbl_ctx,
-                                       clang::ASTContext* ast_context,
-                                       clang::SourceManager& sm,
-                                       clang::MangleContext* mangle_context)
-    -> void {
-    // type to delegate to will be the first (and only) template
-    // argument
-    clang::CXXMethodDecl const* cmd = mce->getMethodDecl();
-    clang::TemplateArgumentList const* template_args =
-        cmd->getTemplateSpecializationArgs();
-    if (template_args == nullptr || template_args->size() != 1) {
-        BBL_THROW("got bad template argument list for inherits_from. "
-                  "Expected single template argument");
-    }
-
-    clang::RecordDecl const* rd_inherits_from =
-        template_args->data()->getAsType()->getAsRecordDecl();
-    if (!rd_inherits_from) {
-        BBL_THROW("could not get RecordDecl for inherits_from type");
-    }
-
-    // find the CXXConstructExpr to get the class we're
-    // attaching to
-    // XXX: handle object instance not ctor
-    auto const* cce_target =
-        find_first_descendent_of_type<clang::CXXConstructExpr>(mce);
-    if (cce_target == nullptr) {
-        BBL_THROW("could not get CXXConstructExpr from "
-                  "CXXMemberCallExpr {}",
-                  get_source_text(mce->getSourceRange(), sm));
-    }
-
-    // And finally get the target class
-    clang::CXXRecordDecl const* crd_target =
-        get_record_to_extract_from_construct_expr(cce_target);
-
-    std::string target_class_id = get_mangled_name(crd_target, mangle_context);
-    std::string inherits_from_id =
-        get_mangled_name(rd_inherits_from, mangle_context);
-
-    if (bbl::Class* cls = bbl_ctx->get_class(target_class_id)) {
-        cls->inherits_from.push_back(inherits_from_id);
-    } else {
-        BBL_THROW("inherits_from is targeting class {} but this class "
-                  "is not extracted",
-                  crd_target->getQualifiedNameAsString());
-    }
-}
-
 class ModuleVisitor : public clang::RecursiveASTVisitor<ModuleVisitor> {
     clang::ASTContext* _ast_context;
     bbl::Context* _bbl_ctx;
@@ -2585,9 +2534,6 @@ public:
             } else if (cmd->getName() == "smartptr_to") {
                 extract_smartptr_to_from_member_call_expr(
                     cmce, _bbl_ctx, _ast_context, _sm, _mangle_context.get());
-            } else if (cmd->getName() == "inherits_from") {
-                // extract_inherits_from_member_call_expr(
-                //     cmce, _bbl_ctx, _ast_context, _sm, _mangle_context.get());
             }
         }
 
