@@ -131,11 +131,6 @@ install(
 # copy the clang resource dir to the installation so we can pick up the headers
 # first need to extract the major version to get the right path from the 
 # llvm installation
-string(REGEX MATCH "^([0-9]+)\\.([0-9]+)\\.([0-9]+)"
-       LLVM_VERSION_MATCH ${LLVM_VERSION})
-set(LLVM_VERSION_MAJOR ${CMAKE_MATCH_1})
-set(LLVM_VERSION_MINOR ${CMAKE_MATCH_2})
-set(LLVM_VERSION_PATCH ${CMAKE_MATCH_3})
 install(
   DIRECTORY
     ${CLANG_INSTALL_PREFIX}/lib/clang/${LLVM_VERSION_MAJOR}/include

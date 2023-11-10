@@ -1,9 +1,12 @@
 cmake_minimum_required(VERSION  3.15)
-project(babble VERSION 0.3.0 LANGUAGES C CXX)
-
-option(BUILD_USD_EXAMPLE "Builds an example OpenUSD binding")
+project(babble VERSION 0.4.0 LANGUAGES C CXX)
 
 find_package(Clang 16.0 REQUIRED)
+string(REGEX MATCH "^([0-9]+)\\.([0-9]+)\\.([0-9]+)"
+       LLVM_VERSION_MATCH ${LLVM_VERSION})
+set(LLVM_VERSION_MAJOR ${CMAKE_MATCH_1})
+set(LLVM_VERSION_MINOR ${CMAKE_MATCH_2})
+set(LLVM_VERSION_PATCH ${CMAKE_MATCH_3})
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -14,7 +17,7 @@ if (POLICY CMP0074)
     cmake_policy(SET CMP0074 NEW)
 endif()
 
-# Screw you, visual studio
+# Make a usable debug target for MSVC
 if (MSVC)
     add_definitions(-D_ITERATOR_DEBUG_LEVEL=0)
     add_definitions(-DNOMINMAX)
@@ -29,17 +32,11 @@ set(BUILD_SHARED_LIBS OFF)
 
 add_subdirectory(bbl)
 
+# Define required locations in the build tree - these will be set automatically in babble-config
+# during installation to the final locations
 set(BABBLE_TRANSLATE $<TARGET_FILE:bbl-translate>)
-set(BABBLE_RESOURCE_DIR "${CLANG_INSTALL_PREFIX}/lib/clang/16")
-if(${BUILD_USD_EXAMPLE})
-    find_package(pxr)
+set(BABBLE_RESOURCE_DIR "${CLANG_INSTALL_PREFIX}/lib/clang/${LLVM_VERSION_MAJOR}")
 
-    if (${pxr_FOUND})
-        add_subdirectory(test/bbl-usd)
-    else()
-        message(SEND_ERROR, "Option BUILD_USD_EXAMPLE is enabled, but package pxr was not found. Skipping USD example.")
-    endif()
-endif()
-
+# more complete example bindings
 add_subdirectory(test/smartptr)
 add_subdirectory(test/stdfunction)
