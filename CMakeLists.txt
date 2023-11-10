@@ -29,6 +29,8 @@ set(BUILD_SHARED_LIBS OFF)
 
 add_subdirectory(bbl)
 
+set(BABBLE_TRANSLATE $<TARGET_FILE:bbl-translate>)
+set(BABBLE_RESOURCE_DIR "${CLANG_INSTALL_PREFIX}/lib/clang/16")
 if(${BUILD_USD_EXAMPLE})
     find_package(pxr)
 
