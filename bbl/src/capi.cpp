@@ -339,14 +339,14 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
                 // and the inherited methods on the pointee
                 std::set<std::string> visited;
                 for (auto const& base_id : pointee_cls->inherits_from) {
-                    // _add_base_class_methods(cpp_ctx,
-                    //                         cpp_cls,
-                    //                         struct_namespace,
-                    //                         base_id,
-                    //                         _functions,
-                    //                         mod_functions,
-                    //                         bound_methods,
-                    //                         visited);
+                    _add_base_class_methods(cpp_ctx,
+                                            cpp_cls,
+                                            struct_namespace,
+                                            base_id,
+                                            _functions,
+                                            mod_functions,
+                                            bound_methods,
+                                            visited);
                 }
             }
         }

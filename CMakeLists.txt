@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION  3.15)
 project(babble VERSION 0.4.0 LANGUAGES C CXX)
 
-find_package(Clang 16.0 REQUIRED)
+find_package(Clang REQUIRED)
 string(REGEX MATCH "^([0-9]+)\\.([0-9]+)\\.([0-9]+)"
        LLVM_VERSION_MATCH ${LLVM_VERSION})
 set(LLVM_VERSION_MAJOR ${CMAKE_MATCH_1})
