@@ -1,6 +1,6 @@
 #include "cpp_context.hpp"
 #include "astutil.hpp"
-#include "bbl_detail.h"
+#include "bbl-detail.h"
 #include "bblfmt.hpp"
 #include "process.hpp"
 #include "clang/AST/Expr.h"
@@ -2590,6 +2590,19 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
     // SPDLOG_INFO("building asts");
     Timer timer_ast;
     tool.buildASTs(ast_units);
+
+    if (ast_units.empty()) {
+        BBL_THROW("no AST units generated");
+    }
+
+    int num_errors = 0;
+    for (auto const& ast: ast_units) {
+        num_errors += ast->getDiagnostics().getNumErrors();
+    }
+
+    if (num_errors > 0) {
+        BBL_THROW("compilation generated {} errors. Cannot continue", num_errors);
+    }
 
     // SPDLOG_INFO("finding modules");
     Timer timer_mf;
