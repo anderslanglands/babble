@@ -2,7 +2,7 @@
 
 #include "cpp_context.hpp"
 
-#include "bbl_detail.h"
+#include "bbl-detail.h"
 
 #include <spdlog/fmt/fmt.h>
 

@@ -11,6 +11,7 @@ add_library(bbl STATIC
   src/capi.cpp
   src/astutil.cpp
   src/process.cpp
+  src/plugin.cpp
   src/api/api_cpp_context.cpp
   src/api/api_capi.cpp
 )
@@ -89,9 +90,9 @@ install(
 
 set(
   HEADERS 
-    include/bbl.h 
-    include/bbl-c.h 
-    include/bbl_detail.h
+    include/bbl-context.h 
+    include/bbl-capi.h 
+    include/bbl-detail.h
     include/babble
     include/babble-std
 )

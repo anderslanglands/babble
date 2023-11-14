@@ -1,6 +1,7 @@
-#include "bbl-c.h"
-#include "bbl.h"
-#include "bbl_detail.h"
+#include "bbl-capi.h"
+#include "bbl-context.h"
+#include "bbl-detail.h"
+#include "plugin.hpp"
 
 
 #include <algorithm>
@@ -427,7 +428,6 @@ std::string enum_to_string(bbl_context_t ctx, bbl_enum_t enm) {
 }
 
 int main(int argc, char const** argv) {
-
     // parse args
     // clang expects arguments like:
     //     source.cpp -- -Iinclude1 -Iinclude2 -Wno-thing
@@ -456,88 +456,11 @@ int main(int argc, char const** argv) {
     // XXX: Should replace this with a dedicated options struct
     if (bbl_context_compile_and_extract(ctx, clang_arg_count, argv) !=
         BBL_RESULT_Success) {
-        SPDLOG_ERROR("bbl compile and extract failed");
+        SPDLOG_ERROR("compilation failed");
         return 1;
     }
 
     size_t len;
-
-#if 0
-    // When compilation has completed successfully, we can now iterate over the modules to inspect
-    // the types, functions etc.
-    size_t num_modules = 0;
-    bbl_context_num_modules(ctx, &num_modules);
-    for (size_t m = 0; m < num_modules; ++m) {
-        bbl_module_t mod = nullptr;
-        bbl_context_get_module(ctx, m, &mod);
-
-        char const* mod_name;
-        bbl_module_get_name(mod, &mod_name, &len);
-
-        fmt::print("mod {}\n", std::string_view(mod_name, len));
-
-        size_t num_classes = 0;
-        bbl_module_num_classes(mod, &num_classes);
-        for (int i = 0; i < num_classes; ++i) {
-            bbl_classid_t classid = nullptr;
-            bbl_module_get_classid(mod, i, &classid);
-            bbl_class_t cls = nullptr;
-            bbl_context_get_class(ctx, classid, &cls);
-            fmt::print("  class {}\n", class_to_string(ctx, cls));
-
-            size_t num_constructors = 0;
-            bbl_class_num_constructors(cls, &num_constructors);
-            for (size_t m = 0; m < num_constructors; ++m) {
-                bbl_constructor_t constructor = nullptr;
-                bbl_class_get_constructor(cls, m, &constructor);
-                fmt::print("    ctor {}\n", constructor_to_string(ctx, constructor));
-            }
-
-            size_t num_methods = 0;
-            bbl_class_num_methods(cls, &num_methods);
-            for (size_t m = 0; m < num_methods; ++m) {
-                bbl_method_t method = nullptr;
-                bbl_class_get_method(cls, m, &method);
-                fmt::print("    method {}\n", method_to_string(ctx, method));
-            }
-            fmt::print("\n");
-        }
-
-        size_t num_functions = 0;
-        bbl_module_num_functions(mod, &num_functions);
-        for (int i = 0; i < num_functions; ++i) {
-            bbl_functionid_t functionid = nullptr;
-            bbl_module_get_functionid(mod, i, &functionid);
-            bbl_function_t fun = nullptr;
-            bbl_context_get_function(ctx, functionid, &fun);
-            fmt::print("  fun {}\n", function_to_string(ctx, fun));
-        }
-        fmt::print("\n");
-
-        size_t num_stdfunctions = 0;
-        bbl_module_num_stdfunctions(mod, &num_stdfunctions);
-        for (int i = 0; i < num_stdfunctions; ++i) {
-            bbl_stdfunctionid_t stdfunctionid = nullptr;
-            bbl_module_get_stdfunctionid(mod, i, &stdfunctionid);
-            bbl_stdfunction_t fun = nullptr;
-            bbl_context_get_stdfunction(ctx, stdfunctionid, &fun);
-            fmt::print("  stdfun {}\n", stdfunction_to_string(ctx, fun));
-        }
-        fmt::print("\n");
-
-        size_t num_enums = 0;
-        bbl_module_num_enums(mod, &num_enums);
-        for (int i = 0; i < num_enums; ++i) {
-            bbl_enumid_t enumid = nullptr;
-            bbl_module_get_enumid(mod, i, &enumid);
-            bbl_enum_t enm = nullptr;
-            bbl_context_get_enum(ctx, enumid, &enm);
-            fmt::print("  enum {}\n", enum_to_string(ctx, enm));
-        }
-        fmt::print("\n");
-    }
-#endif
-
     std::string path_out_cpp;
     std::string path_out_h;
     if (bbl_opts.size() == 2) {
@@ -600,6 +523,10 @@ int main(int argc, char const** argv) {
         os_cpp << source;
         os_h << header_str;
     }
+
+    // Create the plugin manager to load other language plugins
+    bbl::PluginManager plugin_manager;
+    plugin_manager.exec(ctx, capi, ".");
 
     // finally, be a good little boy and clean up
     bbl_capi_destroy(capi);

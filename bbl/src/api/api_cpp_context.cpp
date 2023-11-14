@@ -1,4 +1,4 @@
-#include "bbl_detail.h"
+#include "bbl-detail.h"
 
 #include "../cpp_context.hpp"
 
@@ -42,7 +42,7 @@ bbl_result_t bbl_context_compile_and_extract(bbl_context_t ctx, int argc,
         return BBL_RESULT_Success;
     } catch (std::exception& e) {
         SPDLOG_ERROR(e.what());
-        return BBL_RESULT_Success;
+        return BBL_RESULT_CompilationFailure;
     }
 }
 
@@ -1157,6 +1157,10 @@ bbl_result_t bbl_qtype_get_array_size(bbl_qtype_t qtype, size_t* size) {
     }
 
     return BBL_RESULT_WrongKind;
+}
+
+void bbl_hello(char const* msg) {
+    SPDLOG_INFO("Hello! {}", msg);
 }
 
 }

@@ -1,5 +1,5 @@
 #include "capi.hpp"
-#include "bbl_detail.h"
+#include "bbl-detail.h"
 #include "bblfmt.hpp"
 #include "spdlog/spdlog.h"
 #include "clang/AST/DeclCXX.h"

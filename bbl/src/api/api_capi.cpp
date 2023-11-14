@@ -1,5 +1,5 @@
 #include "../capi.hpp"
-#include "bbl_detail.h"
+#include "bbl-detail.h"
 #include "spdlog/spdlog.h"
 #include <exception>
 #include <variant>
@@ -77,7 +77,7 @@ bbl_result_t bbl_capi_get_source(bbl_capi_t capi, char const** str, size_t* len)
     return BBL_RESULT_Success;
 }
 
-bbl_result_t bbl_capi_get_num_modules(bbl_capi_t capi, size_t* num_modules) {
+bbl_result_t bbl_capi_num_modules(bbl_capi_t capi, size_t* num_modules) {
     if (capi == nullptr) {
         *num_modules = 0;
         return BBL_RESULT_ArgumentIsNull;
@@ -291,6 +291,17 @@ bbl_result_t bbl_capi_get_num_structs(bbl_capi_t capi, size_t* num_structs) {
     return BBL_RESULT_Success;
 }
 
+bbl_result_t bbl_capi_get_struct(bbl_capi_t capi, bbl_capi_structid_t id, bbl_capi_struct_t* strct) {
+    *strct = nullptr;
+
+    if (capi == nullptr) {
+        return BBL_RESULT_ArgumentIsNull;
+    }
+
+    *strct = &capi->get_structs().at(*id);
+    return BBL_RESULT_Success;
+}
+
 bbl_result_t bbl_capi_get_struct_at_index(bbl_capi_t capi, size_t index, bbl_capi_struct_t* strct) {
     *strct = nullptr;
 
@@ -331,6 +342,17 @@ bbl_result_t bbl_capi_get_function_at_index(bbl_capi_t capi, size_t index, bbl_c
     return BBL_RESULT_Success;
 }
 
+bbl_result_t bbl_capi_get_function(bbl_capi_t capi, bbl_capi_functionid_t id, bbl_capi_function_t* function) {
+    *function = nullptr;
+
+    if (capi == nullptr) {
+        return BBL_RESULT_ArgumentIsNull;
+    }
+
+    *function = &capi->get_functions().at(*id);
+    return BBL_RESULT_Success;
+}
+
 bbl_result_t bbl_capi_get_num_stdfunctions(bbl_capi_t capi, size_t* num_stdfunctions) {
     if (capi == nullptr) {
         *num_stdfunctions = 0;
@@ -356,6 +378,17 @@ bbl_result_t bbl_capi_get_stdfunction_at_index(bbl_capi_t capi, size_t index, bb
     return BBL_RESULT_Success;
 }
 
+bbl_result_t bbl_capi_get_stdfunction(bbl_capi_t capi, bbl_capi_stdfunctionid_t id, bbl_capi_stdfunction_t* stdfunction) {
+    *stdfunction = nullptr;
+
+    if (capi == nullptr) {
+        return BBL_RESULT_ArgumentIsNull;
+    }
+
+    *stdfunction = &capi->get_stdfunctions().at(*id);
+    return BBL_RESULT_Success;
+}
+
 bbl_result_t bbl_capi_get_num_enums(bbl_capi_t capi, size_t* num_enums) {
     if (capi == nullptr) {
         *num_enums = 0;
@@ -363,6 +396,17 @@ bbl_result_t bbl_capi_get_num_enums(bbl_capi_t capi, size_t* num_enums) {
     }
 
     *num_enums = capi->get_enums().size();
+    return BBL_RESULT_Success;
+}
+
+bbl_result_t bbl_capi_get_enum(bbl_capi_t capi, bbl_capi_enumid_t id, bbl_capi_enum_t* enm) {
+    *enm = nullptr;
+
+    if (capi == nullptr) {
+        return BBL_RESULT_ArgumentIsNull;
+    }
+
+    *enm = &capi->get_enums().at(*id);
     return BBL_RESULT_Success;
 }
 
@@ -389,6 +433,26 @@ bbl_result_t bbl_capi_struct_get_cpp(bbl_capi_struct_t strct, bbl_class_t* cls) 
     }
 
     *cls = &strct->cls;
+    return BBL_RESULT_Success;
+}
+
+bbl_result_t bbl_capi_struct_get_bind_kind(bbl_capi_struct_t strct, bbl_bind_kind_t* bind_kind) {
+    if (strct == nullptr) {
+        return BBL_RESULT_ArgumentIsNull;
+    }
+
+    switch (strct->cls.bind_kind) {
+    case bbl::BindKind::OpaquePtr:
+        *bind_kind = BBL_BIND_KIND_OpaquePtr;
+        break;
+    case bbl::BindKind::OpaqueBytes:
+        *bind_kind = BBL_BIND_KIND_OpaqueBytes;
+        break;
+    case bbl::BindKind::ValueType:
+        *bind_kind = BBL_BIND_KIND_ValueType;
+        break;
+    }
+
     return BBL_RESULT_Success;
 }
 
@@ -600,7 +664,7 @@ bbl_result_t bbl_capi_function_get_num_params(bbl_capi_function_t function, size
     }
 
     *num_params = function->params.size();
-    return BBL_RESULT_NotFound;
+    return BBL_RESULT_Success;
 }
 
 bbl_result_t bbl_capi_function_get_param(bbl_capi_function_t function, size_t index, bbl_capi_param_t* param) {
@@ -615,7 +679,7 @@ bbl_result_t bbl_capi_function_get_param(bbl_capi_function_t function, size_t in
     }
 
     *param = &function->params[index];
-    return BBL_RESULT_NotFound;
+    return BBL_RESULT_Success;
 }
 
 bbl_result_t bbl_capi_function_get_body(bbl_capi_function_t function, char const** ptr, size_t* len) {
@@ -632,6 +696,113 @@ bbl_result_t bbl_capi_function_get_body(bbl_capi_function_t function, char const
 
     *ptr = result_str.c_str();
     *len = result_str.size();
+    return BBL_RESULT_Success;
+}
+
+bbl_result_t bbl_capi_stdfunction_get_name(bbl_capi_stdfunction_t stdfunction, char const** ptr, size_t* len) {
+    *ptr = nullptr;
+    *len = 0;
+
+    if (stdfunction == nullptr) {
+        return BBL_RESULT_ArgumentIsNull;
+    }
+
+    *ptr = stdfunction->rename.c_str();
+    *len = stdfunction->rename.size();
+    return BBL_RESULT_Success;
+}
+
+bbl_result_t bbl_capi_stdfunction_get_result_param(bbl_capi_stdfunction_t stdfunction, bbl_capi_param_t* result_param) {
+    *result_param = nullptr;
+
+    if (stdfunction == nullptr) {
+        return BBL_RESULT_ArgumentIsNull;
+    }
+
+    if (stdfunction->return_type.has_value()) {
+        *result_param = &*stdfunction->return_type;
+        return BBL_RESULT_Success;
+    } else {
+        return BBL_RESULT_NotFound;
+    }
+}
+
+bbl_result_t bbl_capi_stdfunction_get_num_params(bbl_capi_stdfunction_t stdfunction, size_t* num_params) {
+    *num_params = 0;
+
+    if (stdfunction == nullptr) {
+        return BBL_RESULT_ArgumentIsNull;
+    }
+
+    *num_params = stdfunction->params.size();
+    return BBL_RESULT_Success;
+}
+
+bbl_result_t bbl_capi_stdfunction_get_param(bbl_capi_stdfunction_t stdfunction, size_t index, bbl_capi_param_t* param) {
+    *param = nullptr;
+
+    if (stdfunction == nullptr) {
+        return BBL_RESULT_ArgumentIsNull;
+    }
+
+    if (index >= stdfunction->params.size()) {
+        return BBL_RESULT_ArgumentOutOfRange;
+    }
+
+    *param = &stdfunction->params[index];
+    return BBL_RESULT_Success;
+}
+
+
+bbl_result_t bbl_capi_enum_get_name(bbl_capi_enum_t enm, char const** ptr, size_t* len) {
+    *ptr = nullptr;
+    *len = 0;
+
+    if (enm == nullptr) {
+        return BBL_RESULT_ArgumentIsNull;
+    }
+
+    *ptr = enm->name.c_str();
+    *len = enm->name.size();
+    return BBL_RESULT_Success;
+}
+
+bbl_result_t bbl_capi_enum_get_num_variants(bbl_capi_enum_t enm,
+                                            size_t* num_variants) {
+    *num_variants = 0;
+
+    if (enm == nullptr) {
+        return BBL_RESULT_ArgumentIsNull;
+    }
+
+    *num_variants = enm->variants.size();
+    return BBL_RESULT_Success;
+}
+
+bbl_result_t bbl_capi_enum_get_variant(bbl_capi_enum_t enm,
+                                       size_t index,
+                                       char const** name,
+                                       size_t* name_len,
+                                       char const** value,
+                                       size_t* value_len) {
+    *name = nullptr;
+    *name_len = 0;
+    *value = nullptr;
+    *value_len = 0;
+
+    if (enm == nullptr) {
+        return BBL_RESULT_ArgumentIsNull;
+    }
+
+    if (index >= enm->variants.size()) {
+        return BBL_RESULT_ArgumentOutOfRange;
+    }
+
+    *name = enm->variants[index].first.c_str();
+    *name_len = enm->variants[index].first.size();
+    *value = enm->variants[index].second.c_str();
+    *value_len = enm->variants[index].second.size();
+
     return BBL_RESULT_Success;
 }
 
@@ -778,7 +949,7 @@ bbl_result_t bbl_capi_qtype_get_array_element_type(bbl_capi_qtype_t qtype, bbl_c
     return BBL_RESULT_WrongKind;
 }
 
-bbl_result_t bbl_capi_qtype_get_array_element_size(bbl_capi_qtype_t qtype, size_t* size) {
+bbl_result_t bbl_capi_qtype_get_array_size(bbl_capi_qtype_t qtype, size_t* size) {
     *size = 0;
 
     if (qtype == nullptr) {

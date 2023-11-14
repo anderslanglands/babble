@@ -1,7 +1,7 @@
 #ifndef BBL_BBL_H
 #define BBL_BBL_H
 
-#include "bbl_detail.h"
+#include "bbl-detail.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -383,6 +383,8 @@ bbl_result_t bbl_qtype_get_pointee_type(bbl_qtype_t qtype, bbl_qtype_t* pointee_
 bbl_result_t bbl_qtype_get_array_element_type(bbl_qtype_t qtype, bbl_qtype_t* element_type);
 
 bbl_result_t bbl_qtype_get_array_size(bbl_qtype_t qtype, size_t* size);
+
+void bbl_hello(char const* msg);
 
 #ifdef __cplusplus
 }

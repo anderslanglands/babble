@@ -15,6 +15,7 @@ enum bbl_result_t {
     BBL_RESULT_UnknownKind,
     BBL_RESULT_WrongKind,
     BBL_RESULT_NotFound,
+    BBL_RESULT_CompilationFailure,
 };
 
 struct bbl_layout_t {

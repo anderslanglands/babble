@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bbl_detail.h"
+#include "bbl-detail.h"
 #include "cpp_context.hpp"
 #include "expr.hpp"
 

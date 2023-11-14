@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bbl_detail.h"
+#include "bbl-detail.h"
 
 #include "unordered_dense.h"
 
