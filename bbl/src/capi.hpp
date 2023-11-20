@@ -181,7 +181,9 @@ class C_API {
                                  C_FunctionMap& functions,
                                  std::vector<std::string>& mod_functions,
                                  std::set<std::string>& bound_methods,
-                                 std::set<std::string>& visited) -> void;
+                                 std::set<std::string>& visited,
+                                 bool is_smartptr_delegated,
+                                 bool only_const) -> void;
 
 public:
     C_API(Context const& cpp_ctx);

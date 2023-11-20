@@ -39,6 +39,8 @@ int test_std_pair_StdPairIntFloat_get1(test_std_pair_StdPairIntFloat_t* _Pr, flo
 
 int test_std_pair_StdPairIntFloat_get1_const(test_std_pair_StdPairIntFloat_t const* _Pr, float* _result);
 
+int test_std_pair_foo(int a);
+
 
 
 #ifdef __cplusplus

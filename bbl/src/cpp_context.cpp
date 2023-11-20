@@ -240,6 +240,42 @@ std::string to_string(TemplateArg const& arg, DeclMaps const& decl_maps) {
     }
 }
 
+static auto expr_to_string(clang::Expr const* expr, clang::ASTContext* ctx) -> std::string {
+    static clang::PrintingPolicy print_policy(ctx->getLangOpts());
+    // print_policy.FullyQualifiedName = 1;
+    // print_policy.SuppressScope = 0;
+    // print_policy.SuppressSpecifiers = 0;
+    // print_policy.SuppressElaboration = 0;
+    // print_policy.SuppressInitializers = 0;
+    // print_policy.PrintCanonicalTypes = 1;
+    // print_policy.SuppressTemplateArgsInCXXConstructors = 0;
+    // print_policy.SuppressDefaultTemplateArgs = 0;
+
+    std::string expr_string;
+    llvm::raw_string_ostream stream(expr_string);
+    expr->printPretty(stream, nullptr, print_policy);
+    stream.flush();
+    return expr_string;
+}
+
+static auto decl_to_string(clang::Decl const* decl, clang::ASTContext* ctx) -> std::string {
+    static clang::PrintingPolicy print_policy(ctx->getLangOpts());
+    print_policy.FullyQualifiedName = 1;
+    print_policy.SuppressScope = 0;
+    print_policy.SuppressSpecifiers = 0;
+    print_policy.SuppressElaboration = 0;
+    print_policy.SuppressInitializers = 0;
+    print_policy.PrintCanonicalTypes = 1;
+    print_policy.SuppressTemplateArgsInCXXConstructors = 0;
+    print_policy.SuppressDefaultTemplateArgs = 0;
+
+    std::string expr_string;
+    llvm::raw_string_ostream stream(expr_string);
+    decl->print(stream, print_policy);
+    stream.flush();
+    return expr_string;
+}
+
 auto extract_builtin_type(clang::BuiltinType const* btype) -> bbl_builtin_t {
 #define CASE(VAR)                                                              \
     case clang::BuiltinType::VAR:                                              \
@@ -1393,6 +1429,19 @@ extract_class_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
                                   clang::SourceManager const& sm,
                                   clang::MangleContext* mangle_context)
     -> void {
+    // SPDLOG_INFO("class print is {}", expr_to_string(construct_expr, ast_context));
+
+    // For some reason, when we pass a rename string to the Class() constructor,
+    // the pretty printer decides to only print that string. The full expression 
+    // can be got from the parent CXXFunctionCastExpr
+    std::string class_spelling;
+    if (auto const* fce = find_first_ancestor_of_type<clang::CXXFunctionalCastExpr>(construct_expr, ast_context)) {
+        // SPDLOG_INFO("fce {}", expr_to_string(fce, ast_context));
+        class_spelling = expr_to_string(fce, ast_context);
+    } else {
+        class_spelling = expr_to_string(construct_expr, ast_context);
+    }
+
     // Find the class decl that we're binding from the bbl::Class<Foo>()
     // constructor
     clang::CXXRecordDecl const* type_record_decl =
@@ -1461,10 +1510,12 @@ extract_class_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
 
     clang::SourceRange ctor_type_range = clang::SourceRange(loc_begin, loc_end);
 
-    std::string class_spelling = get_source_text(ctor_type_range, sm);
+    // std::string class_spelling = get_source_text(ctor_type_range, sm);
+    // class_spelling = get_source_text(ctor_type_range, sm);
+    // SPDLOG_INFO("class spelling {}", class_spelling);
     class_spelling =
         class_spelling.substr(class_spelling.find_first_of("<") + 1);
-    class_spelling = class_spelling.substr(0, class_spelling.length() - 2);
+    class_spelling = class_spelling.substr(0, class_spelling.find_last_of(">"));
 
     // finally grab the rename string the user's provided (if any)
     std::string rename_str;
@@ -1977,7 +2028,7 @@ extract_function_from_decl_ref_expr(clang::DeclRefExpr const* dre_fn,
         BBL_THROW("Got unexpected set of DeclRefExprs");
     }
 
-    std::string spelling = get_source_text(dre_target->getSourceRange(), sm);
+    std::string spelling = expr_to_string(dre_target, ast_context);
 
     auto const* fd = llvm::dyn_cast<clang::FunctionDecl>(dre_target->getDecl());
 
@@ -2417,8 +2468,10 @@ public:
         }
 
         // check that this bbl::Class is in a bbl module
-        if (find_containing_module_decl(cce, _ast_context) == nullptr) {
+        if (clang::FunctionDecl const* fd = find_containing_module_decl(cce, _ast_context); fd == nullptr) {
             return true;
+        } else {
+            // fd->dumpColor();
         }
 
         // check that this is a constructor for bbl::Class

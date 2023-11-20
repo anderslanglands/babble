@@ -209,9 +209,9 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
 
             std::string struct_name = fmt::format("{}_t", struct_namespace);
 
-            // keep track of all the signatures of methods generated from this class
-            // so when we add the base classes' methods we don't generate multiple
-            // versions of the same method due to overloads
+            // keep track of all the signatures of methods generated from this
+            // class so when we add the base classes' methods we don't generate
+            // multiple versions of the same method due to overloads
             std::set<std::string> bound_methods;
 
             // Translate all methods to functions
@@ -284,7 +284,10 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
                                         _functions,
                                         mod_functions,
                                         bound_methods,
-                                        visited);
+                                        visited,
+                                        false, // is_smartptr_delegated
+                                        false  // only_const
+                );
             }
 
             // If this class is a smart pointer to another class, then add the
@@ -346,7 +349,9 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
                                             _functions,
                                             mod_functions,
                                             bound_methods,
-                                            visited);
+                                            visited,
+                                            true,
+                                            cpp_cls->smartptr_is_const);
                 }
             }
         }
@@ -402,7 +407,9 @@ auto C_API::_add_base_class_methods(Context const& cpp_ctx,
                                     C_FunctionMap& functions,
                                     std::vector<std::string>& mod_functions,
                                     std::set<std::string>& bound_methods,
-                                    std::set<std::string>& visited) -> void {
+                                    std::set<std::string>& visited,
+                                    bool is_smartptr_delegated,
+                                    bool only_const) -> void {
     // guard against cycles - shouldn't happen, but you know...
     if (visited.find(base_id) != visited.end()) {
         return;
@@ -412,11 +419,12 @@ auto C_API::_add_base_class_methods(Context const& cpp_ctx,
 
     Class const* base_cls = cpp_ctx.get_class(base_id);
     if (base_cls == nullptr) {
-        // if the base class has not been extracted with bbl::Class just ignore it
-        // it's possible the user didn't intend this, in which case the methods from
-        // the base class will just not show up, but if the class is inheriting from 
-        // a bunch of random stuff we don't want to force the user to manually specify
-        // a bunch of utility bases to avoid a warning or an error here
+        // if the base class has not been extracted with bbl::Class just ignore
+        // it it's possible the user didn't intend this, in which case the
+        // methods from the base class will just not show up, but if the class
+        // is inheriting from a bunch of random stuff we don't want to force the
+        // user to manually specify a bunch of utility bases to avoid a warning
+        // or an error here
         return;
     }
 
@@ -429,7 +437,9 @@ auto C_API::_add_base_class_methods(Context const& cpp_ctx,
                                 functions,
                                 mod_functions,
                                 bound_methods,
-                                visited);
+                                visited,
+                                is_smartptr_delegated,
+                                only_const);
     }
 
     for (auto const& method_id : base_cls->methods) {
@@ -437,6 +447,10 @@ auto C_API::_add_base_class_methods(Context const& cpp_ctx,
         assert(method);
 
         if (method->is_static) {
+            continue;
+        }
+
+        if (only_const && !method->is_const) {
             continue;
         }
 
@@ -450,8 +464,8 @@ auto C_API::_add_base_class_methods(Context const& cpp_ctx,
         }
 
         try {
-            C_Function c_fun =
-                _translate_method(method, struct_namespace, derived->id, false);
+            C_Function c_fun = _translate_method(
+                method, struct_namespace, derived->id, is_smartptr_delegated);
 
             // we can have multiple instances of the "same" method
             // through inheritance, so make a new function id
