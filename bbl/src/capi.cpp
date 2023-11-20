@@ -715,19 +715,6 @@ static bool is_opaqueptr(QType const& qt, Context const& ctx) {
             if (cls->bind_kind == BindKind::OpaquePtr) {
                 return true;
             }
-        } else if (std::holds_alternative<ClassTemplateSpecializationId>(
-                       type.kind)) {
-            ClassTemplateSpecializationId const& id =
-                std::get<ClassTemplateSpecializationId>(type.kind);
-
-            Class const* cls = ctx.get_class(id.id);
-            if (cls == nullptr) {
-                BBL_THROW("class {} is not bound", id.id);
-            }
-
-            if (cls->bind_kind == BindKind::OpaquePtr) {
-                return true;
-            }
         }
     }
 
@@ -760,15 +747,6 @@ static bool is_opaque_ptr_by_value(QType const& qt, Context const& ctx) {
         Type const& type = std::get<Type>(qt.type);
         if (std::holds_alternative<ClassId>(type.kind)) {
             ClassId const& id = std::get<ClassId>(type.kind);
-            Class const* cls = ctx.get_class(id.id);
-            if (cls == nullptr) {
-                BBL_THROW("class {} is not bound", id.id);
-            }
-            return cls->bind_kind == BindKind::OpaquePtr;
-        } else if (std::holds_alternative<ClassTemplateSpecializationId>(
-                       type.kind)) {
-            ClassTemplateSpecializationId const& id =
-                std::get<ClassTemplateSpecializationId>(type.kind);
             Class const* cls = ctx.get_class(id.id);
             if (cls == nullptr) {
                 BBL_THROW("class {} is not bound", id.id);
@@ -1447,20 +1425,6 @@ auto C_API::_translate_qtype(QType const& qt) -> C_QType {
             };
         } else if (std::holds_alternative<ClassId>(type.kind)) {
             ClassId const& class_id = std::get<ClassId>(type.kind);
-
-            if (!_cpp_ctx.has_class(class_id.id)) {
-                BBL_THROW_MTBE("class {}", class_id.id);
-            }
-
-            return C_QType{
-                &qt,
-                qt.is_const,
-                C_Type{C_StructId{class_id.id}},
-            };
-        } else if (std::holds_alternative<ClassTemplateSpecializationId>(
-                       type.kind)) {
-            ClassTemplateSpecializationId const& class_id =
-                std::get<ClassTemplateSpecializationId>(type.kind);
 
             if (!_cpp_ctx.has_class(class_id.id)) {
                 BBL_THROW_MTBE("class {}", class_id.id);

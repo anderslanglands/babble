@@ -59,7 +59,6 @@ enum bbl_builtin_t {
 enum bbl_type_kind_t {
     BBL_TYPEKIND_Builtin,
     BBL_TYPEKIND_Class,
-    BBL_TYPEKIND_ClassTemplateSpecialization,
     BBL_TYPEKIND_Enum,
     BBL_TYPEKIND_StdFunction,
     BBL_TYPEKIND_Pointer,

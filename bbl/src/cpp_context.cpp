@@ -43,35 +43,48 @@
 using llvm::dyn_cast;
 
 namespace bbl {
-template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+template <class... Ts> struct overloaded : Ts... {
+    using Ts::operator()...;
+};
+template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 bool operator==(Type const& lhs, Type const& rhs) {
-    if (std::holds_alternative<bbl_builtin_t>(lhs.kind) && std::holds_alternative<bbl_builtin_t>(rhs.kind)) {
-        return std::get<bbl_builtin_t>(lhs.kind) == std::get<bbl_builtin_t>(rhs.kind);
-    } else if (std::holds_alternative<ClassId>(lhs.kind) && std::holds_alternative<ClassId>(rhs.kind)) {
+    if (std::holds_alternative<bbl_builtin_t>(lhs.kind) &&
+        std::holds_alternative<bbl_builtin_t>(rhs.kind)) {
+        return std::get<bbl_builtin_t>(lhs.kind) ==
+               std::get<bbl_builtin_t>(rhs.kind);
+    } else if (std::holds_alternative<ClassId>(lhs.kind) &&
+               std::holds_alternative<ClassId>(rhs.kind)) {
         return std::get<ClassId>(lhs.kind) == std::get<ClassId>(rhs.kind);
-    } else if (std::holds_alternative<ClassTemplateSpecializationId>(lhs.kind) && std::holds_alternative<ClassTemplateSpecializationId>(rhs.kind)) {
-        return std::get<ClassTemplateSpecializationId>(lhs.kind) == std::get<ClassTemplateSpecializationId>(rhs.kind);
-    } else if (std::holds_alternative<EnumId>(lhs.kind) && std::holds_alternative<EnumId>(rhs.kind)) {
+    } else if (std::holds_alternative<EnumId>(lhs.kind) &&
+               std::holds_alternative<EnumId>(rhs.kind)) {
         return std::get<EnumId>(lhs.kind) == std::get<EnumId>(rhs.kind);
-    } else if (std::holds_alternative<StdFunctionId>(lhs.kind) && std::holds_alternative<StdFunctionId>(rhs.kind)) {
-        return std::get<StdFunctionId>(lhs.kind) == std::get<StdFunctionId>(rhs.kind);
+    } else if (std::holds_alternative<StdFunctionId>(lhs.kind) &&
+               std::holds_alternative<StdFunctionId>(rhs.kind)) {
+        return std::get<StdFunctionId>(lhs.kind) ==
+               std::get<StdFunctionId>(rhs.kind);
     } else {
         return false;
     }
 }
 
 bool operator==(QType const& lhs, QType const& rhs) {
-    if (std::holds_alternative<Type>(lhs.type) && std::holds_alternative<Type>(rhs.type)) {
+    if (std::holds_alternative<Type>(lhs.type) &&
+        std::holds_alternative<Type>(rhs.type)) {
         return std::get<Type>(lhs.type) == std::get<Type>(rhs.type);
-    } else if (std::holds_alternative<Pointer>(lhs.type) && std::holds_alternative<Pointer>(rhs.type)) {
+    } else if (std::holds_alternative<Pointer>(lhs.type) &&
+               std::holds_alternative<Pointer>(rhs.type)) {
         return std::get<Pointer>(lhs.type) == std::get<Pointer>(rhs.type);
-    } else if (std::holds_alternative<LValueReference>(lhs.type) && std::holds_alternative<LValueReference>(rhs.type)) {
-        return std::get<LValueReference>(lhs.type) == std::get<LValueReference>(rhs.type);
-    } else if (std::holds_alternative<RValueReference>(lhs.type) && std::holds_alternative<RValueReference>(rhs.type)) {
-        return std::get<RValueReference>(lhs.type) == std::get<RValueReference>(rhs.type);
-    } else if (std::holds_alternative<Array>(lhs.type) && std::holds_alternative<Array>(rhs.type)) {
+    } else if (std::holds_alternative<LValueReference>(lhs.type) &&
+               std::holds_alternative<LValueReference>(rhs.type)) {
+        return std::get<LValueReference>(lhs.type) ==
+               std::get<LValueReference>(rhs.type);
+    } else if (std::holds_alternative<RValueReference>(lhs.type) &&
+               std::holds_alternative<RValueReference>(rhs.type)) {
+        return std::get<RValueReference>(lhs.type) ==
+               std::get<RValueReference>(rhs.type);
+    } else if (std::holds_alternative<Array>(lhs.type) &&
+               std::holds_alternative<Array>(rhs.type)) {
         return std::get<Array>(lhs.type) == std::get<Array>(rhs.type);
     } else {
         return false;
@@ -158,22 +171,6 @@ to_string(bbl::Type const& ty, char const* s_const, DeclMaps const& decl_maps) {
             name = it->second;
         }
         return fmt::format("Class({} \"{}\"){}", classid.id, name, s_const);
-    } else if (std::holds_alternative<bbl::ClassTemplateSpecializationId>(
-                   ty.kind)) {
-        bbl::ClassTemplateSpecializationId const& classid =
-            std::get<bbl::ClassTemplateSpecializationId>(ty.kind);
-        std::string name;
-        if (auto it = decl_maps.class_map.find(classid.id);
-            it != decl_maps.class_map.end()) {
-            return fmt::format("{}{}", it->second.spelling, s_const);
-        } else if (auto it = decl_maps.typename_map.find(classid.id);
-                   it != decl_maps.typename_map.end()) {
-            name = it->second;
-        }
-        return fmt::format("ClassTemplateSpecialization({} \"{}\"){}",
-                           classid.id,
-                           name,
-                           s_const);
     } else if (std::holds_alternative<bbl::EnumId>(ty.kind)) {
         bbl::EnumId const& enumid = std::get<bbl::EnumId>(ty.kind);
         std::string name;
@@ -240,7 +237,8 @@ std::string to_string(TemplateArg const& arg, DeclMaps const& decl_maps) {
     }
 }
 
-static auto expr_to_string(clang::Expr const* expr, clang::ASTContext* ctx) -> std::string {
+static auto expr_to_string(clang::Expr const* expr, clang::ASTContext* ctx)
+    -> std::string {
     static clang::PrintingPolicy print_policy(ctx->getLangOpts());
     // print_policy.FullyQualifiedName = 1;
     // print_policy.SuppressScope = 0;
@@ -258,7 +256,8 @@ static auto expr_to_string(clang::Expr const* expr, clang::ASTContext* ctx) -> s
     return expr_string;
 }
 
-static auto decl_to_string(clang::Decl const* decl, clang::ASTContext* ctx) -> std::string {
+static auto decl_to_string(clang::Decl const* decl, clang::ASTContext* ctx)
+    -> std::string {
     static clang::PrintingPolicy print_policy(ctx->getLangOpts());
     print_policy.FullyQualifiedName = 1;
     print_policy.SuppressScope = 0;
@@ -1369,7 +1368,8 @@ static BindKind search_for_bind_kind_calls(clang::Stmt const* stmt,
     return BindKind::OpaquePtr;
 }
 
-// recursively get all the bases of `crd` and append their mangled ids to `inherits_from`
+// recursively get all the bases of `crd` and append their mangled ids to
+// `inherits_from`
 static auto get_bases(clang::CXXRecordDecl const* crd,
                       std::vector<std::string>& inherits_from,
                       clang::MangleContext* mangle_context) -> void {
@@ -1453,10 +1453,12 @@ extract_class_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
 
     // Get a version of the spelling of the class by printing the expr
     // For some reason, when we pass a rename string to the Class() constructor,
-    // the pretty printer decides to only print that string. The full expression 
+    // the pretty printer decides to only print that string. The full expression
     // can be got from the parent CXXFunctionCastExpr
     std::string class_spelling;
-    if (auto const* fce = find_first_ancestor_of_type<clang::CXXFunctionalCastExpr>(construct_expr, ast_context)) {
+    if (auto const* fce =
+            find_first_ancestor_of_type<clang::CXXFunctionalCastExpr>(
+                construct_expr, ast_context)) {
         class_spelling = expr_to_string(fce, ast_context);
     } else {
         class_spelling = expr_to_string(construct_expr, ast_context);
@@ -1672,16 +1674,16 @@ extract_enum_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
                                                    *ast_context);
 
     std::string enum_spelling;
-    if (auto const* fce = find_first_ancestor_of_type<clang::CXXFunctionalCastExpr>(construct_expr, ast_context)) {
+    if (auto const* fce =
+            find_first_ancestor_of_type<clang::CXXFunctionalCastExpr>(
+                construct_expr, ast_context)) {
         enum_spelling = expr_to_string(fce, ast_context);
     } else {
         enum_spelling = expr_to_string(construct_expr, ast_context);
     }
 
-    enum_spelling =
-        enum_spelling.substr(enum_spelling.find_first_of("<") + 1);
+    enum_spelling = enum_spelling.substr(enum_spelling.find_first_of("<") + 1);
     enum_spelling = enum_spelling.substr(0, enum_spelling.find_last_of(">"));
-
 
     // finally grab the rename string the user's provided (if any)
     std::string rename_str;
@@ -2112,9 +2114,6 @@ static auto get_as_classid(QType const& qt) -> std::optional<std::string> {
         Type const& type = std::get<Type>(qt.type);
         if (std::holds_alternative<ClassId>(type.kind)) {
             return std::get<ClassId>(type.kind).id;
-        } else if (std::holds_alternative<ClassTemplateSpecializationId>(
-                       type.kind)) {
-            return std::get<ClassTemplateSpecializationId>(type.kind).id;
         }
     }
 
@@ -2414,7 +2413,9 @@ public:
         }
 
         // check that this bbl::Class is in a bbl module
-        if (clang::FunctionDecl const* fd = find_containing_module_decl(cce, _ast_context); fd == nullptr) {
+        if (clang::FunctionDecl const* fd =
+                find_containing_module_decl(cce, _ast_context);
+            fd == nullptr) {
             return true;
         } else {
             // fd->dumpColor();
@@ -2595,12 +2596,13 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
     }
 
     int num_errors = 0;
-    for (auto const& ast: ast_units) {
+    for (auto const& ast : ast_units) {
         num_errors += ast->getDiagnostics().getNumErrors();
     }
 
     if (num_errors > 0) {
-        BBL_THROW("compilation generated {} errors. Cannot continue", num_errors);
+        BBL_THROW("compilation generated {} errors. Cannot continue",
+                  num_errors);
     }
 
     // SPDLOG_INFO("finding modules");

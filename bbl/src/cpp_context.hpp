@@ -86,15 +86,6 @@ inline bool operator==(ClassId const& lhs, ClassId const& rhs) {
     return lhs.id == rhs.id;
 }
 
-struct ClassTemplateSpecializationId {
-    std::string id;
-};
-
-inline bool operator==(ClassTemplateSpecializationId const& lhs,
-                       ClassTemplateSpecializationId const& rhs) {
-    return lhs.id == rhs.id;
-}
-
 struct EnumId {
     std::string id;
 };
@@ -114,7 +105,6 @@ inline bool operator==(StdFunctionId const& lhs, StdFunctionId const& rhs) {
 struct Type {
     std::variant<bbl_builtin_t,
                  ClassId,
-                 ClassTemplateSpecializationId,
                  EnumId,
                  StdFunctionId>
         kind;

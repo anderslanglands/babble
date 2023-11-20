@@ -101,7 +101,6 @@ std::string qtype_to_string(bbl_context_t ctx, bbl_qtype_t qt) {
             "{}[{}]{}", qtype_to_string(ctx, pointee_type), len, s_const);
         break;
     case BBL_TYPEKIND_Class:
-    case BBL_TYPEKIND_ClassTemplateSpecialization:
         bbl_qtype_get_as_classid(qt, &classid);
         bbl_context_get_class(ctx, classid, &cls);
         bbl_class_get_spelling(cls, &spelling, &len);
@@ -560,19 +559,19 @@ int main(int argc, char const** argv) {
 
     // Create the plugin manager to load other language plugins
     bbl::PluginManager plugin_manager;
-    for (auto const& language: languages) {
+    for (auto const& language : languages) {
         if (plugin_manager.has_plugin(language)) {
             bbl::Plugin const& plugin = plugin_manager.plugins().at(language);
-            plugin.fn_exec(ctx, capi, project_name.c_str(), output_directory.c_str());
+            plugin.fn_exec(
+                ctx, capi, project_name.c_str(), output_directory.c_str());
         } else {
             SPDLOG_ERROR("could not find plugin for language \"{}\"", language);
             SPDLOG_ERROR("available plugins are:");
-            for (auto const& [name, plugin]: plugin_manager.plugins()) {
+            for (auto const& [name, plugin] : plugin_manager.plugins()) {
                 SPDLOG_ERROR("  \"{}\": {}", name, plugin.filename);
             }
         }
     }
-    
 
     // finally, be a good little boy and clean up
     bbl_capi_destroy(capi);
