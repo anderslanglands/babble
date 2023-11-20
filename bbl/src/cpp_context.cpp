@@ -547,12 +547,6 @@ auto Context::extract_class_binding(
     std::string name = crd->getNameAsString();
     std::vector<TemplateArg> template_args;
 
-    if (clang::ClassTemplateSpecializationDecl const* ctsd =
-            dyn_cast<clang::ClassTemplateSpecializationDecl>(crd)) {
-        // extract_template_arguments(ctsd, template_args,
-        // mangle_ctx);
-    }
-
     return Class{this,
                  qualified_name,
                  spelling,
@@ -946,30 +940,9 @@ std::string Context::get_class_as_string(Class const& cls) {
         break;
     }
 
-    /*
-    if (!cls.template_args.empty()) {
-        result = fmt::format("{}<", result);
-
-        bool first = true;
-        for (auto const& arg : cls.template_args) {
-            if (first) {
-                first = false;
-            } else {
-                result = fmt::format("{}, ", result);
-            }
-
-            result = fmt::format("{}{}", result, to_string(arg,
-    _class_map, _typename_map));
-        }
-        result = fmt::format("{}>", result);
-    }
-    */
-
     if (!cls.rename.empty()) {
         result = fmt::format("{} \"{}\"", result, cls.rename);
     }
-
-    // result = fmt::format("{} {}", result, cls.id);
 
     return result;
 }
@@ -1429,19 +1402,6 @@ extract_class_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
                                   clang::SourceManager const& sm,
                                   clang::MangleContext* mangle_context)
     -> void {
-    // SPDLOG_INFO("class print is {}", expr_to_string(construct_expr, ast_context));
-
-    // For some reason, when we pass a rename string to the Class() constructor,
-    // the pretty printer decides to only print that string. The full expression 
-    // can be got from the parent CXXFunctionCastExpr
-    std::string class_spelling;
-    if (auto const* fce = find_first_ancestor_of_type<clang::CXXFunctionalCastExpr>(construct_expr, ast_context)) {
-        // SPDLOG_INFO("fce {}", expr_to_string(fce, ast_context));
-        class_spelling = expr_to_string(fce, ast_context);
-    } else {
-        class_spelling = expr_to_string(construct_expr, ast_context);
-    }
-
     // Find the class decl that we're binding from the bbl::Class<Foo>()
     // constructor
     clang::CXXRecordDecl const* type_record_decl =
@@ -1491,28 +1451,17 @@ extract_class_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
     bool is_abstract =
         evaluate_field_expression_bool(bbl_ctsd, "is_abstract", *ast_context);
 
-    // Get the source range of the type part of the ctor expr
-    // for bbl::Class<Foo<float>>("FooFloat") this will be
-    //     bbl::Class<Foo<float>>(
-    // from there we can do regular string manipulation to get the
-    // spelling of the type we're binding
-    clang::SourceRange ctor_source_range = construct_expr->getSourceRange();
-    clang::SourceRange ctor_paren_range =
-        construct_expr->getParenOrBraceRange();
+    // Get a version of the spelling of the class by printing the expr
+    // For some reason, when we pass a rename string to the Class() constructor,
+    // the pretty printer decides to only print that string. The full expression 
+    // can be got from the parent CXXFunctionCastExpr
+    std::string class_spelling;
+    if (auto const* fce = find_first_ancestor_of_type<clang::CXXFunctionalCastExpr>(construct_expr, ast_context)) {
+        class_spelling = expr_to_string(fce, ast_context);
+    } else {
+        class_spelling = expr_to_string(construct_expr, ast_context);
+    }
 
-    clang::SourceLocation loc_begin = ctor_source_range.getBegin();
-    clang::SourceLocation loc_end = ctor_paren_range.getBegin();
-
-    /// XXX: got to figure out how to do the macro expansion properly
-    /// here
-    // loc_begin = sm.getSpellingLoc(loc_begin);
-    // loc_end = sm.getSpellingLoc(loc_end);
-
-    clang::SourceRange ctor_type_range = clang::SourceRange(loc_begin, loc_end);
-
-    // std::string class_spelling = get_source_text(ctor_type_range, sm);
-    // class_spelling = get_source_text(ctor_type_range, sm);
-    // SPDLOG_INFO("class spelling {}", class_spelling);
     class_spelling =
         class_spelling.substr(class_spelling.find_first_of("<") + 1);
     class_spelling = class_spelling.substr(0, class_spelling.find_last_of(">"));
@@ -1722,20 +1671,17 @@ extract_enum_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
         search_for_prefix_from_enum_construct_expr(construct_expr,
                                                    *ast_context);
 
-    // Get the source range of the type part of the ctor expr
-    // for bbl::Class<Foo<float>>("FooFloat") this will be
-    //     bbl::Class<Foo<float>>(
-    // from there we can do regular string manipulation to get the
-    // spelling of the type we're binding
-    clang::SourceRange ctor_source_range = construct_expr->getSourceRange();
-    clang::SourceRange ctor_paren_range =
-        construct_expr->getParenOrBraceRange();
-    clang::SourceRange ctor_type_range = clang::SourceRange(
-        ctor_source_range.getBegin(), ctor_paren_range.getBegin());
-    std::string class_spelling = get_source_text(ctor_type_range, sm);
-    class_spelling =
-        class_spelling.substr(class_spelling.find_first_of("<") + 1);
-    class_spelling = class_spelling.substr(0, class_spelling.length() - 2);
+    std::string enum_spelling;
+    if (auto const* fce = find_first_ancestor_of_type<clang::CXXFunctionalCastExpr>(construct_expr, ast_context)) {
+        enum_spelling = expr_to_string(fce, ast_context);
+    } else {
+        enum_spelling = expr_to_string(construct_expr, ast_context);
+    }
+
+    enum_spelling =
+        enum_spelling.substr(enum_spelling.find_first_of("<") + 1);
+    enum_spelling = enum_spelling.substr(0, enum_spelling.find_last_of(">"));
+
 
     // finally grab the rename string the user's provided (if any)
     std::string rename_str;
@@ -1748,7 +1694,7 @@ extract_enum_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
     std::string comment = get_comment_from_decl(enum_decl, ast_context);
 
     Enum enm = bbl_ctx->extract_enum_binding(enum_decl,
-                                             class_spelling,
+                                             enum_spelling,
                                              enum_decl->getNameAsString(),
                                              rename_str,
                                              comment,
