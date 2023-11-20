@@ -6,6 +6,7 @@
 
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -30,13 +31,21 @@ public:
     PluginExec fn_exec;
 };
 
+using PluginMap = std::unordered_map<std::string, Plugin>;
+
 class PluginManager {
-    std::vector<Plugin> _plugins;
+    PluginMap _plugins;
 
 public:
     PluginManager();
 
-    void exec(bbl_context_t cpp_ctx, bbl_capi_t capi, char const* output_path);
+    bool has_plugin(std::string const& name) {
+        return _plugins.find(name) != _plugins.end();
+    }
+
+    PluginMap const& plugins() const {
+        return _plugins;
+    }
 };
 
 }

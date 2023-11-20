@@ -17,7 +17,7 @@ extern "C" {
 #define BBL_PLUGIN_API_VERSION 1
 
 typedef void (*PluginInit)(char const** name, int* version);
-typedef int (*PluginExec)(bbl_context_t cpp_ctx, bbl_capi_t capi, char const* output_path);
+typedef int (*PluginExec)(bbl_context_t cpp_ctx, bbl_capi_t capi, char const* project_name, char const* output_path);
 
 
 #ifdef __cplusplus

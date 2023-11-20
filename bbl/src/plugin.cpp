@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include "plugin.hpp"
 #include "bbl-plugin.h"
 
@@ -33,9 +34,9 @@ Plugin::~Plugin() {
 }
 
 #ifdef _WIN32
-static std::vector<Plugin>
+static PluginMap
 get_plugins(std::vector<std::string> const& plugin_paths) {
-    std::vector<Plugin> result;
+    PluginMap result;
 
     WIN32_FIND_DATA file_data;
     for (auto const& path : plugin_paths) {
@@ -79,14 +80,15 @@ get_plugins(std::vector<std::string> const& plugin_paths) {
                 continue;
             }
 
-            PluginExec fn_exec = (PluginExec)GetProcAddress(handle, "bbl_plugin_exec");
+            PluginExec fn_exec =
+                (PluginExec)GetProcAddress(handle, "bbl_plugin_exec");
             if (fn_exec == nullptr) {
                 SPDLOG_ERROR("could not load bbl_plugin_exec function from {}",
                              filename);
                 continue;
             }
 
-            result.emplace_back(Plugin(handle, filename, name, fn_exec));
+            result.emplace(name, Plugin(handle, filename, name, fn_exec));
 
         } while (FindNextFile(file_handle, &file_data));
     }
@@ -107,7 +109,6 @@ get_plugins(std::vector<std::string> const& plugin_paths) {
 #endif
 
 PluginManager::PluginManager() {
-#define _CRT_SECURE_NO_WARNINGS
     // parse BBL_PLUGIN_PATH env var and load all plugins found within
     char* plugin_path_ev = std::getenv("BBL_PLUGIN_PATH");
 
@@ -125,18 +126,11 @@ PluginManager::PluginManager() {
 
     char* token = strtok(plugin_path_ev, delim);
     while (token != nullptr) {
-        SPDLOG_INFO("{}", token);
         plugin_paths.push_back(std::string(token));
         token = strtok(NULL, delim);
     }
 
     _plugins = get_plugins(plugin_paths);
-}
-
-void PluginManager::exec(bbl_context_t cpp_ctx, bbl_capi_t capi, char const* output_path) {
-    for (auto const& plugin: _plugins) {
-        plugin.fn_exec(cpp_ctx, capi, output_path);
-    }
 }
 
 } // namespace bbl
