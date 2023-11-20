@@ -712,6 +712,14 @@ TODO...
 # Language Plugins
 babble has a plugin architecture to allow generating wrappers for other languages that call the generated C bindings. This is currently WIP. See `plugins/rust` for an example.
 
+# Using Babble as a Library
+The target `babble::bbl` is a static, C library that can be used both to write new language plugins, as well as perform the same inspection on the target C++ and generated C APIs of a given target library. `include/bbl-context.h` and `include/bbl-capi.h` are the C API and `include/bbl-context.hpp` and `include/bbl-capi.hpp` are a C++ API wrapping the underlying C API.
+
+See the `bbl-translate` source and the language plugins for how to use it.
+
+TODO: proper docs
+
+
 # Building babble From Source
 
 ## Prerequisites
