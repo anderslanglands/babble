@@ -290,47 +290,384 @@ bbl_result_t bbl_module_num_functions(bbl_module_t module, size_t* num_functions
  * @return bbl_result_t 
  */
 bbl_result_t bbl_module_get_functionid(bbl_module_t module, size_t index, bbl_functionid_t* fun);
+
+/**
+ * @brief Get the number of stdfunctions bound in this module
+ * 
+ * @param module 
+ * @param num_stdfunctions 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_module_num_stdfunctions(bbl_module_t module, size_t* num_stdfunctions);
+
+/**
+ * @brief Get the id of the index'th stdfunction in this module
+ * 
+ * @param module 
+ * @param index 
+ * @param fun 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_module_get_stdfunctionid(bbl_module_t module, size_t index, bbl_stdfunctionid_t* fun);
+
+/**
+ * @brief Get the number of enums bound in this module
+ * 
+ * @param module 
+ * @param num_enums 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_module_num_enums(bbl_module_t module, size_t* num_enums);
+
+/**
+ * @brief Get the id of the index'th enum in this module
+ * 
+ * @param module 
+ * @param index 
+ * @param enm 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_module_get_enumid(bbl_module_t module, size_t index, bbl_enumid_t* enm);
 
+/**
+ * @brief Get the qualified name of this class, i.e. foo::Bar
+ * 
+ * @param cls 
+ * @param ptr 
+ * @param len 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_class_get_qualified_name(bbl_class_t cls, char const** ptr, size_t* len);
+
+/**
+ * @brief Get the spelling of this class. 
+ *
+ * This is not actually how it was spelt by the user, but how clang prints it
+ * 
+ * @param cls 
+ * @param ptr 
+ * @param len 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_class_get_spelling(bbl_class_t cls, char const** ptr, size_t* len);
+
+/**
+ * @brief Get the name of this class, i.e. "Bar" for "foo::Bar"
+ * 
+ * @param cls 
+ * @param ptr 
+ * @param len 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_class_get_name(bbl_class_t cls, char const** ptr, size_t* len);
+
+/**
+ * @brief Get the rename string provided for this class by the user, if any
+ * 
+ * @param cls 
+ * @param ptr Pointer to a char* to receive the string. Will be set to NULL if no rename string provided
+ * @param len Length of the string, provided for convenience
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_class_get_rename(bbl_class_t cls, char const** ptr, size_t* len);
+
+/**
+ * @brief Get the doc comment attached to this class if there is one
+ * 
+ * @param cls 
+ * @param ptr Pointer to a char* to receive the comment string. Will be set to NULL if no comment string provided
+ * @param len Length of the string, provided for convenience
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_class_get_comment(bbl_class_t cls, char const** ptr, size_t* len);
+
+/**
+ * @brief Get the memory layout of this class, i.e. its size and alignment
+ * 
+ * @param cls 
+ * @param layout 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_class_get_layout(bbl_class_t cls, bbl_layout_t* layout);
+
+/**
+ * @brief Get the bind kind of this class
+ * 
+ * @param cls 
+ * @param bind_kind 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_class_get_bind_kind(bbl_class_t cls, bbl_bind_kind_t* bind_kind);
+
+/**
+ * @brief Get the number of methods bound on this class
+ * 
+ * @param cls 
+ * @param num_methods 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_class_num_methods(bbl_class_t cls, size_t* num_methods);
+
+/**
+ * @brief Get the index'th method bound on this class
+ * 
+ * @param cls 
+ * @param index 
+ * @param method 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_class_get_method(bbl_class_t cls, size_t index, bbl_method_t* method);
+
+/**
+ * @brief Get the number of constructors on this class
+ * 
+ * @param cls 
+ * @param num_constructors 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_class_num_constructors(bbl_class_t cls, size_t* num_constructors);
+
+/**
+ * @brief Get the index'th constructor on this class
+ * 
+ * @param cls 
+ * @param index 
+ * @param constructor 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_class_get_constructor(bbl_class_t cls, size_t index, bbl_constructor_t* constructor);
+
+/**
+ * @brief Query whether this class is copy constructible
+ * 
+ * @param cls 
+ * @param is_copy_constructible 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_class_is_copy_constructible(bbl_class_t cls, bool* is_copy_constructible);
+
+/**
+ * @brief Query whether this class's copy constructor is noexcept
+ * 
+ * @param cls 
+ * @param is_nothrow_copy_constructible 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_class_is_nothrow_copy_constructible(bbl_class_t cls, bool* is_nothrow_copy_constructible);
+
+/**
+ * @brief Query whether this class is move-constructible
+ * 
+ * @param cls 
+ * @param is_move_constructible 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_class_is_move_constructible(bbl_class_t cls, bool* is_move_constructible);
+
+/**
+ * @brief Query whether this class's move constructor is noexcept
+ * 
+ * @param cls 
+ * @param is_nothrow_move_constructible 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_class_is_nothrow_move_constructible(bbl_class_t cls, bool* is_nothrow_move_constructible);
+
+/**
+ * @brief Query whether this class is copy assignable
+ * 
+ * @param cls 
+ * @param is_copy_assignable 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_class_is_copy_assignable(bbl_class_t cls, bool* is_copy_assignable);
+
+/**
+ * @brief Query whether this class's copy assignment operator is noexcept
+ * 
+ * @param cls 
+ * @param is_nothrow_copy_assignable 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_class_is_nothrow_copy_assignable(bbl_class_t cls, bool* is_nothrow_copy_assignable);
+
+/**
+ * @brief Query whether this class is move assignable
+ * 
+ * @param cls 
+ * @param is_move_assignable 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_class_is_move_assignable(bbl_class_t cls, bool* is_move_assignable);
+
+/**
+ * @brief Query whether this class's move assignment operator is noexcept
+ * 
+ * @param cls 
+ * @param is_nothrow_move_assignable 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_class_is_nothrow_move_assignable(bbl_class_t cls, bool* is_nothrow_move_assignable);
+
+/**
+ * @brief Query whether this class has a destructor
+ * 
+ * @param cls 
+ * @param is_destructible 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_class_is_destructible(bbl_class_t cls, bool* is_destructible);
+
+/**
+ * @brief Query whether this class has a virtual destructor
+ * 
+ * @param cls 
+ * @param has_virtual_destructor 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_class_has_virtual_destructor(bbl_class_t cls, bool* has_virtual_destructor);
+
+/**
+ * @brief Query whether this class is abstract
+ * 
+ * @param cls 
+ * @param is_abstract 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_class_is_abstract(bbl_class_t cls, bool* is_abstract);
 
+/**
+ * @brief Get this method's qualified name, i.e. "foo::Bar::baz"
+ * 
+ * @param method 
+ * @param ptr 
+ * @param len 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_method_get_qualified_name(bbl_method_t method, char const** ptr, size_t* len);
+
+/**
+ * @brief Get this method's name, i.e. for "foo::Bar::baz" return "baz"
+ * 
+ * @param method 
+ * @param ptr 
+ * @param len 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_method_get_name(bbl_method_t method, char const** ptr, size_t* len);
+
+/**
+ * @brief Get this method's rename string, if one was provided
+ * 
+ * @param method 
+ * @param ptr 
+ * @param len 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_method_get_rename(bbl_method_t method, char const** ptr, size_t* len);
+
+/**
+ * @brief Get the template argument string required for a call to this method
+ *
+ * For foo::do_thing<int, float>() this would return "<int, float>"
+ * 
+ * @param method 
+ * @param ptr 
+ * @param len 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_method_get_template_call(bbl_method_t method, char const** ptr, size_t* len);
+
+/**
+ * @brief Get the doc comment on this method, if there is one
+ * 
+ * @param method 
+ * @param ptr 
+ * @param len 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_method_get_comment(bbl_method_t method, char const** ptr, size_t* len);
+
+/**
+ * @brief Query whether this method is noexcept
+ * 
+ * @param method 
+ * @param is_noexcept 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_method_get_is_noexcept(bbl_method_t method, bool* is_noexcept);
+
+/**
+ * @brief Get this method's return type
+ * 
+ * @param method 
+ * @param return_type 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_method_get_return_type(bbl_method_t method, bbl_qtype_t* return_type);
+
+/**
+ * @brief Get the number of parameters on this method
+ * 
+ * @param method 
+ * @param num_params 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_method_num_params(bbl_method_t method, size_t* num_params);
+
+/**
+ * @brief Get the index'th parameter on this method
+ * 
+ * @param method 
+ * @param index 
+ * @param param 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_method_get_param(bbl_method_t method, size_t index, bbl_param_t* param);
+
+/**
+ * @brief Query whether this method is const
+ * 
+ * @param method 
+ * @param is_const 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_method_get_is_const(bbl_method_t method, bool* is_const);
+
+/**
+ * @brief Query whether this method is static
+ * 
+ * @param method 
+ * @param is_static 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_method_get_is_static(bbl_method_t method, bool* is_static);
+
+/**
+ * @brief Get the underlying function description from this method
+ * 
+ * @param method 
+ * @param function 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_method_get_function(bbl_method_t method, bbl_function_t* function);
+
+/**
+ * @brief Query whether this method is virtual
+ * 
+ * @param method 
+ * @param is_virtual 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_method_get_is_virtual(bbl_method_t method, bool* is_virtual);
+
+/**
+ * @brief Query whether this method is pure
+ * 
+ * @param method 
+ * @param is_pure 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_method_get_is_pure(bbl_method_t method, bool* is_pure);
 
 bbl_result_t bbl_constructor_get_rename(bbl_constructor_t constructor, char const** ptr, size_t* len);
