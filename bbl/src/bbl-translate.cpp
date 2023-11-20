@@ -1,8 +1,8 @@
+#include "argparse.hpp"
 #include "bbl-capi.h"
 #include "bbl-context.h"
 #include "bbl-detail.h"
 #include "plugin.hpp"
-
 
 #include <algorithm>
 #include <filesystem>
@@ -81,24 +81,24 @@ std::string qtype_to_string(bbl_context_t ctx, bbl_qtype_t qt) {
         break;
     case BBL_TYPEKIND_Pointer:
         bbl_qtype_get_pointee_type(qt, &pointee_type);
-        return fmt::format("{}*{}", qtype_to_string(ctx, pointee_type),
-                           s_const);
+        return fmt::format(
+            "{}*{}", qtype_to_string(ctx, pointee_type), s_const);
         break;
     case BBL_TYPEKIND_LValueReference:
         bbl_qtype_get_pointee_type(qt, &pointee_type);
-        return fmt::format("{}&{}", qtype_to_string(ctx, pointee_type),
-                           s_const);
+        return fmt::format(
+            "{}&{}", qtype_to_string(ctx, pointee_type), s_const);
         break;
     case BBL_TYPEKIND_RValueReference:
         bbl_qtype_get_pointee_type(qt, &pointee_type);
-        return fmt::format("{}&&{}", qtype_to_string(ctx, pointee_type),
-                           s_const);
+        return fmt::format(
+            "{}&&{}", qtype_to_string(ctx, pointee_type), s_const);
         break;
     case BBL_TYPEKIND_Array:
         bbl_qtype_get_array_element_type(qt, &pointee_type);
         bbl_qtype_get_array_size(qt, &len);
-        return fmt::format("{}[{}]{}", qtype_to_string(ctx, pointee_type), len,
-                           s_const);
+        return fmt::format(
+            "{}[{}]{}", qtype_to_string(ctx, pointee_type), len, s_const);
         break;
     case BBL_TYPEKIND_Class:
     case BBL_TYPEKIND_ClassTemplateSpecialization:
@@ -154,7 +154,9 @@ std::string function_to_string(bbl_context_t ctx, bbl_function_t fun) {
         bbl_param_get_name(param, &name, &len);
         bbl_param_get_type(param, &qt);
 
-        result = fmt::format("{}{} {}", result, qtype_to_string(ctx, qt),
+        result = fmt::format("{}{} {}",
+                             result,
+                             qtype_to_string(ctx, qt),
                              std::string_view(name, len));
     }
 
@@ -212,7 +214,9 @@ std::string constructor_to_string(bbl_context_t ctx, bbl_constructor_t ctor) {
         bbl_param_get_name(param, &name, &len);
         bbl_param_get_type(param, &qt);
 
-        result = fmt::format("{}{} {}", result, qtype_to_string(ctx, qt),
+        result = fmt::format("{}{} {}",
+                             result,
+                             qtype_to_string(ctx, qt),
                              std::string_view(name, len));
     }
     result = fmt::format("{})", result);
@@ -271,9 +275,10 @@ std::string class_to_string(bbl_context_t ctx, bbl_class_t cls) {
     bbl_class_get_layout(cls, &layout);
     bbl_class_get_bind_kind(cls, &bind_kind);
 
-    std::string result =
-        fmt::format("{} [{}:{}]", std::string_view(spelling, len),
-                    layout.size_bytes, layout.align_bytes);
+    std::string result = fmt::format("{} [{}:{}]",
+                                     std::string_view(spelling, len),
+                                     layout.size_bytes,
+                                     layout.align_bytes);
 
     bool is_abstract = false;
     bbl_class_is_abstract(cls, &is_abstract);
@@ -361,9 +366,9 @@ std::string stdfunction_to_string(bbl_context_t ctx, bbl_stdfunction_t fun) {
     bbl_stdfunction_get_spelling(fun, &spelling, &len);
     bbl_stdfunction_get_return_type(fun, &return_type);
 
-    result =
-        fmt::format("{} std::function<{} (", std::string_view(spelling, len),
-                    qtype_to_string(ctx, return_type));
+    result = fmt::format("{} std::function<{} (",
+                         std::string_view(spelling, len),
+                         qtype_to_string(ctx, return_type));
 
     bool first = true;
     size_t num_params = 0;
@@ -395,9 +400,9 @@ std::string enum_to_string(bbl_context_t ctx, bbl_enum_t enm) {
     bbl_qtype_t type;
     bbl_enum_get_type(enm, &type);
 
-    std::string result =
-        fmt::format("{}: {} {{", std::string_view(spelling, len),
-                    qtype_to_string(ctx, type));
+    std::string result = fmt::format("{}: {} {{",
+                                     std::string_view(spelling, len),
+                                     qtype_to_string(ctx, type));
 
     bool first = true;
 
@@ -417,9 +422,10 @@ std::string enum_to_string(bbl_context_t ctx, bbl_enum_t enm) {
         size_t len_value = 0;
         bbl_enum_get_variant(enm, i, &name, &len_name, &value, &len_value);
 
-        result =
-            fmt::format("{}{} = {}", result, std::string_view(name, len_name),
-                        std::string_view(value, len_value));
+        result = fmt::format("{}{} = {}",
+                             result,
+                             std::string_view(name, len_name),
+                             std::string_view(value, len_value));
     }
 
     result = fmt::format("{}}}", result);
@@ -433,7 +439,7 @@ int main(int argc, char const** argv) {
     //     source.cpp -- -Iinclude1 -Iinclude2 -Wno-thing
     // so we'll take options like the output path behind a second `--`.
 
-    std::vector<std::string> bbl_opts;
+    std::vector<char const*> bbl_opts;
     int clang_arg_count = argc;
     int double_dash_count = 0;
     for (int i = 1; i < argc; ++i) {
@@ -460,13 +466,39 @@ int main(int argc, char const** argv) {
         return 1;
     }
 
-    size_t len;
-    std::string path_out_cpp;
-    std::string path_out_h;
-    if (bbl_opts.size() == 2) {
-        path_out_cpp = bbl_opts[0];
-        path_out_h = bbl_opts[1];
+    bbl_opts.insert(bbl_opts.begin(), argv[0]);
+    int bbl_argc = bbl_opts.size();
+    argparse::ArgumentParser bblargs("bbl-translate");
+    bblargs.add_argument("project-name")
+        .help("Name of the project. Will determine the naming of generated "
+              "source files");
+    bblargs.add_argument("-o", "--output-directory")
+        .default_value(std::string())
+        .help("Output directory under which to place the generated code. Each "
+              "language will get its own named subdirectory under this path");
+    bblargs.add_argument("-l", "--language")
+        .append()
+        .help("Enable a language output. C is always enabled, other languages "
+              "are supplied by plugins found in BBL_PLUGIN_PATH");
+
+    try {
+        bblargs.parse_args(bbl_argc, bbl_opts.data());
+    } catch (std::exception& e) {
+        SPDLOG_ERROR("failed to parse babble command-line arguments");
+        SPDLOG_ERROR(e.what());
+        // SPDLOG_ERROR("{}", bblargs);
+        return 2;
     }
+
+    auto project_name = bblargs.get<std::string>("project-name");
+    auto output_directory = bblargs.get<std::string>("output-directory");
+    auto languages = bblargs.get<std::vector<std::string>>("language");
+
+    std::string c_project_name = fmt::format("{}-c", project_name);
+    std::string path_out_cpp =
+        fmt::format("{}/{}.cpp", output_directory, c_project_name);
+    std::string path_out_h =
+        fmt::format("{}/{}.h", output_directory, c_project_name);
 
     // or just translate to C using the built-in functionality
     bbl_capi_t capi = nullptr;
@@ -475,7 +507,7 @@ int main(int argc, char const** argv) {
         return 1;
     }
     char const* header;
-    len = 0;
+    size_t len = 0;
     if (bbl_capi_get_header(capi, &header, &len) != BBL_RESULT_Success) {
         SPDLOG_ERROR("could not get header");
         return 2;
@@ -490,8 +522,10 @@ int main(int argc, char const** argv) {
     // generate header guard
     std::filesystem::path fs_out_h(path_out_h);
     std::string header_guard = fs_out_h.filename().string();
-    std::transform(header_guard.begin(), header_guard.end(),
-                   header_guard.begin(), [](unsigned char c) {
+    std::transform(header_guard.begin(),
+                   header_guard.end(),
+                   header_guard.begin(),
+                   [](unsigned char c) {
                        if (c == '.' || c == '-') {
                            return '_';
                        } else {
@@ -502,7 +536,7 @@ int main(int argc, char const** argv) {
     std::string header_str = fmt::format(
         "#ifndef {0}\n#define {0}\n{1}\n\n#endif\n", header_guard, header);
 
-    if (path_out_cpp.empty() || path_out_h.empty()) {
+    if (output_directory.empty()) {
         fmt::print("--- HEADER ---\n{}--- END HEADER ---\n\n", header_str);
         fmt::print("--- SOURCE ---\n{}--- END SOURCE ---\n", source);
     } else {
@@ -526,7 +560,19 @@ int main(int argc, char const** argv) {
 
     // Create the plugin manager to load other language plugins
     bbl::PluginManager plugin_manager;
-    plugin_manager.exec(ctx, capi, ".");
+    for (auto const& language: languages) {
+        if (plugin_manager.has_plugin(language)) {
+            bbl::Plugin const& plugin = plugin_manager.plugins().at(language);
+            plugin.fn_exec(ctx, capi, project_name.c_str(), output_directory.c_str());
+        } else {
+            SPDLOG_ERROR("could not find plugin for language \"{}\"", language);
+            SPDLOG_ERROR("available plugins are:");
+            for (auto const& [name, plugin]: plugin_manager.plugins()) {
+                SPDLOG_ERROR("  \"{}\": {}", name, plugin.filename);
+            }
+        }
+    }
+    
 
     // finally, be a good little boy and clean up
     bbl_capi_destroy(capi);

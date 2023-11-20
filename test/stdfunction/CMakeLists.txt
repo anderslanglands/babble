@@ -10,7 +10,7 @@ set(bindfiles
 )
 
 bbl_translate_binding(
-    stdfunction-c
+    stdfunction
     BINDFILES 
         ${bindfiles}
 )

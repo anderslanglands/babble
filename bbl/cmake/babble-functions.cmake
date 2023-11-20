@@ -1,7 +1,7 @@
-function(BBL_TRANSLATE_BINDING TARGET_NAME)
+function(BBL_TRANSLATE_BINDING PROJECT_NAME)
     # God, I hate CMake so much...
     set(bindfiles)
-    set(list_args BINDFILES COMPILE_ARGS)
+    set(list_args BINDFILES COMPILE_ARGS LANGUAGES)
 
     cmake_parse_arguments(arg "${flags}" "${args}" "${list_args}" ${ARGN})
 
@@ -12,6 +12,8 @@ function(BBL_TRANSLATE_BINDING TARGET_NAME)
     if(BINDFILES IN_LIST arg_KEYWORDS_MISSING_VALUES)
         message(FATAL_ERROR "[translate_binding]: BINDFILES required at least one value")
     endif()
+
+    set(TARGET_NAME "${PROJECT_NAME}-c")
 
     set(BBL_TRANSLATED_SOURCE "${TARGET_NAME}.cpp")
     set(BBL_TRANSLATED_HEADER "${TARGET_NAME}.h")
@@ -40,7 +42,8 @@ function(BBL_TRANSLATE_BINDING TARGET_NAME)
                 "-I$<JOIN:$<TARGET_PROPERTY:${TARGET_NAME},INCLUDE_DIRECTORIES>,;-I>" 
                 ${arg_COMPILE_ARGS}
                 -- 
-                ${BBL_TRANSLATED_SOURCE} ${BBL_TRANSLATED_HEADER}
+                ${PROJECT_NAME} 
+                -o ${CMAKE_CURRENT_BINARY_DIR}
         COMMAND_EXPAND_LISTS
     )
 

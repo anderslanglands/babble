@@ -33,9 +33,11 @@ set(
     bind/vt.cpp 
 )
 
-# bbl_translate_binding sets up the invocation of bbl-translate to generate the wrapper library source and creates the target called `usd-c`, which we can then add definitions, links etc to as a normal CMake library target
+# bbl_translate_binding sets up the invocation of bbl-translate to generate the wrapper library source and creates the target called `usd-c`, which we can then add definitions, links etc to as a normal CMake library target.
+# The first argument is the project name, from which the names of all the generated libraries will be created
+# by appending the language name as `usd-c`, `usd-rust` etc.
 bbl_translate_binding(
-    usd-c
+    openusd
     BINDFILES 
         ${bindfiles}
     COMPILE_ARGS 
@@ -46,9 +48,9 @@ bbl_translate_binding(
         -D__TBB_show_deprecation_message_task_H 
 )
 
-target_link_libraries(usd-c PUBLIC usd sdf js usdGeom)
+target_link_libraries(openusd-c PUBLIC usd sdf js usdGeom)
 target_compile_definitions(
-  usd-c 
+  openusd-c 
     PRIVATE 
       NOMINMAX 
       BOOST_ALL_NO_LIB 
@@ -57,12 +59,12 @@ target_compile_definitions(
 
 if (MSVC)
     # OpenUSD is a pretty big library...
-    target_compile_options(usd-c PRIVATE /bigobj)
+    target_compile_options(openusd-c PRIVATE /bigobj)
 endif()
 
 # Compile a simple test program to exercise the generated library
 add_executable(usd-c-test01 usd-c-test01.c)
-target_link_libraries(usd-c-test01 PUBLIC usd-c)
+target_link_libraries(usd-c-test01 PUBLIC openusd-c)
 target_include_directories(usd-c-test01 PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 set_property(TARGET usd-c-test01 PROPERTY C_STANDARD 99)
 
@@ -70,7 +72,7 @@ set_property(TARGET usd-c-test01 PROPERTY C_STANDARD 99)
 # LSP completion of function names can be a huge time saver when authoring bindfiles.
 add_library(bind-dummy ${bindfiles})
 target_link_libraries(bind-dummy babble::bind)
-target_include_directories(bind-dummy PRIVATE $<TARGET_PROPERTY:usd-c,INCLUDE_DIRECTORIES>)
+target_include_directories(bind-dummy PRIVATE $<TARGET_PROPERTY:openusd-c,INCLUDE_DIRECTORIES>)
 ```
 
 Then when CMake is run as usual:
