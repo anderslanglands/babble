@@ -1,5 +1,7 @@
 #include "babble"
 
+#include <stdint.h>
+
 
 namespace qux {
 enum class Bar: int64_t {

@@ -1,6 +1,7 @@
 import os
 import sys
 import difflib
+import shutil
 
 TESTS = [
     "test001",
@@ -36,7 +37,13 @@ TESTS = [
 ]
 
 TEST_OUTPUT_PATH = os.path.join("build", "test", "out")
-TEST_REF_PATH = os.path.join("test", "ref")
+
+if os.name == "nt":
+    TEST_REF_PATH = os.path.join("test", "ref", "windows")
+else:
+    TEST_REF_PATH = os.path.join("test", "ref", "linux")
+
+shutil.rmtree(TEST_OUTPUT_PATH)
 os.makedirs(TEST_OUTPUT_PATH, exist_ok=True)
 
 for test in TESTS:
@@ -47,15 +54,15 @@ for test in TESTS:
     out_cpp_path = os.path.join(TEST_OUTPUT_PATH, f"{test}.cpp")
     out_h_path = os.path.join("build", "test", "out", f"{test}.h")
 
-    os.system(f"{exe_path} {bindfile_path} -- --std=c++17 -Ibbl/include -- {test} -o {TEST_OUTPUT_PATH}")
+    os.system(f"{exe_path} {bindfile_path} -- --std=c++17 -Ibbl/include -Ibuild/include -- {test} -o {TEST_OUTPUT_PATH}")
 
 failed_tests = []
 
 for test in TESTS:
-    tst_c_p = os.path.join(TEST_OUTPUT_PATH, f"{test}.cpp")
-    tst_h_p = os.path.join(TEST_OUTPUT_PATH, f"{test}.cpp")
-    ref_c_p = os.path.join(TEST_REF_PATH, f"{test}.cpp")
-    ref_h_p = os.path.join(TEST_REF_PATH, f"{test}.cpp")
+    tst_c_p = os.path.join(TEST_OUTPUT_PATH, f"{test}-c.cpp")
+    tst_h_p = os.path.join(TEST_OUTPUT_PATH, f"{test}-c.cpp")
+    ref_c_p = os.path.join(TEST_REF_PATH, f"{test}-c.cpp")
+    ref_h_p = os.path.join(TEST_REF_PATH, f"{test}-c.cpp")
 
     tst_c_f = open(tst_c_p)
     tst_h_f = open(tst_h_p)

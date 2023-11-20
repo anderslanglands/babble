@@ -20,6 +20,7 @@ if(MSVC)
   target_sources(bbl PRIVATE src/process_win.cpp)
 else()
   target_sources(bbl PRIVATE src/process_unix.cpp)
+  target_compile_options(bbl PRIVATE -fPIC)
 endif()
 
 
@@ -137,4 +138,12 @@ install(
     ${CLANG_INSTALL_PREFIX}/lib/clang/${LLVM_VERSION_MAJOR}/include
     DESTINATION
       ${CMAKE_INSTALL_LIBDIR}/resource
+)
+
+# also copy it to the binary dir so we can pick it up in the test runner
+file(
+  COPY 
+    ${CLANG_INSTALL_PREFIX}/lib/clang/${LLVM_VERSION_MAJOR}/include
+  DESTINATION
+    ${CMAKE_BINARY_DIR}
 )

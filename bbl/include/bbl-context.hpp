@@ -2,7 +2,6 @@
 #include "bbl-detail.hpp"
 
 #include <string_view>
-#include <vcruntime.h>
 
 namespace babble {
 

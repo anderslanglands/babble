@@ -5,6 +5,7 @@
 #include <spdlog/spdlog.h>
 
 #include <cstdlib>
+#include <filesystem>
 
 namespace bbl {
 
@@ -28,8 +29,12 @@ Plugin::Plugin(Plugin&& rhs) {
 Plugin::~Plugin() {
 #ifdef _WIN32
     FreeLibrary(_handle);
+    _handle = NULL;
 #else
-
+    if (_handle != NULL) {
+        dlclose(_handle);
+        _handle = NULL;
+    }
 #endif
 }
 
@@ -98,10 +103,55 @@ get_plugins(std::vector<std::string> const& plugin_paths) {
 
 #else
 
-static std::vector<Plugin>
+static PluginMap
 get_plugins(std::vector<std::string> const& plugin_paths) {
-    std::vector<Plugin> result;
+    namespace fs = std::filesystem;
+
+    PluginMap result;
     for (auto const& path : plugin_paths) {
+        for (auto const& entry: fs::directory_iterator(fs::path(path), fs::directory_options::follow_directory_symlink)) {
+            if (!entry.is_directory() && entry.path().extension() == ".so") {
+                std::string const& filename = entry.path().string();
+
+                void* handle = dlopen(filename.c_str(), RTLD_NOW);
+                if (handle == NULL) {
+                    SPDLOG_ERROR("could not load {}", filename);
+                    continue;
+                }
+
+                PluginInit fn_init =
+                    (PluginInit)dlsym(handle, "bbl_plugin_init");
+
+                if (fn_init == nullptr) {
+                    SPDLOG_ERROR("could not load bbl_plugin_init function from {}",
+                                filename);
+                    continue;
+                }
+
+                char const* name = "";
+                int version = 0;
+                fn_init(&name, &version);
+
+                if (version != BBL_PLUGIN_API_VERSION) {
+                    SPDLOG_ERROR("plugin {} has API version {}, which is not "
+                                "compatible with {}",
+                                filename,
+                                version,
+                                BBL_PLUGIN_API_VERSION);
+                    continue;
+                }
+
+                PluginExec fn_exec =
+                    (PluginExec)dlsym(handle, "bbl_plugin_exec");
+                if (fn_exec == nullptr) {
+                    SPDLOG_ERROR("could not load bbl_plugin_exec function from {}",
+                                filename);
+                    continue;
+                }
+
+                result.emplace(name, Plugin(handle, filename, name, fn_exec));
+            }
+        }
     }
     return result;
 }

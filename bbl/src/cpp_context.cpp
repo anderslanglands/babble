@@ -262,7 +262,7 @@ static auto decl_to_string(clang::Decl const* decl, clang::ASTContext* ctx)
     print_policy.FullyQualifiedName = 1;
     print_policy.SuppressScope = 0;
     print_policy.SuppressSpecifiers = 0;
-    print_policy.SuppressElaboration = 0;
+    // print_policy.SuppressElaboration = 0;
     print_policy.SuppressInitializers = 0;
     print_policy.PrintCanonicalTypes = 1;
     print_policy.SuppressTemplateArgsInCXXConstructors = 0;

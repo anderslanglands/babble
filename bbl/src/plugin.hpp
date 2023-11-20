@@ -12,6 +12,9 @@
 #include <Windows.h>
 #include <libloaderapi.h>
 using PluginHandle =  HINSTANCE;
+#else
+#include <dlfcn.h>
+using PluginHandle = void*;
 #endif
 
 namespace bbl {
