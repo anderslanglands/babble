@@ -6,8 +6,10 @@
 #include <spdlog/fmt/fmt.h>
 #include <spdlog/spdlog.h>
 
+#include <fstream>
 #include <set>
 #include <stdio.h>
+
 
 using namespace babble;
 
@@ -197,7 +199,8 @@ static auto qtype_to_string(C_API capi,
             qtype_to_string(capi, qt.get_array_element_type().value(), imports),
             qt.get_array_element_size().value());
     case bbl_capi_typekind_StdFunction:
-        return stdfunction_to_string(capi, qt.get_as_stdfunctionid().value(), imports);
+        return stdfunction_to_string(
+            capi, qt.get_as_stdfunctionid().value(), imports);
     default:
         throw std::runtime_error(fmt::format("unknown qtype kind {}", kind));
     }
@@ -212,14 +215,15 @@ BBL_PLUGIN_API void bbl_plugin_init(char const** name, int* version) {
 
 BBL_PLUGIN_API int bbl_plugin_exec(bbl_context_t cpp_ctx,
                                    bbl_capi_t capi_,
+                                   char const* project_name,
                                    char const* output_path) {
     printf("running bbl rust\n");
 
     C_API capi(capi_);
 
+    std::string source = "";
+    std::set<std::string> imports;
     for (auto mod : capi.modules()) {
-        std::string source = "";
-        std::set<std::string> imports;
 
         for (auto enum_id : mod.enums()) {
             try {
@@ -284,24 +288,32 @@ BBL_PLUGIN_API int bbl_plugin_exec(bbl_context_t cpp_ctx,
                     parameter_list_to_string(capi,
                                              fun.params(),
                                              fun.get_receiver_param(),
-                                             fun.get_result_param(), imports));
+                                             fun.get_result_param(),
+                                             imports));
             } catch (std::exception& e) {
                 SPDLOG_ERROR("could not translate function: {}", e.what());
                 continue;
             }
         }
+    }
 
-        std::string import_str;
-        for (auto const& import: imports) {
-            import_str = fmt::format("{}use {};\n", import_str, import);
-        }
+    std::string import_str;
+    for (auto const& import : imports) {
+        import_str = fmt::format("{}use {};\n", import_str, import);
+    }
 
-        if (!import_str.empty()) {
-            source = fmt::format("{}\n{}", import_str, source);
-        }
+    if (!import_str.empty()) {
+        source = fmt::format("{}\n{}", import_str, source);
+    }
 
-        // fmt::print(source);
-        printf("%s", source.c_str());
+    printf("%s", source.c_str());
+
+    if (!std::string(output_path).empty()) {
+        std::string filename = fmt::format("{}/{}.rs", project_name);
+        std::ofstream file;
+        file.open(filename);
+        file << source;
+        file.close();
     }
 
     return 0;
