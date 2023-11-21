@@ -24,6 +24,12 @@ function(BBL_TRANSLATE_BINDING PROJECT_NAME)
         list(APPEND bindfile_abs_args ${_abs})
     endforeach()
 
+    set(languages "")
+    foreach(lang ${arg_LANGUAGES})
+        list(APPEND languages "-l")
+        list(APPEND languages "${lang}")
+    endforeach()
+
     add_library(${TARGET_NAME} STATIC ${BBL_TRANSLATED_SOURCE})
     target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -44,6 +50,7 @@ function(BBL_TRANSLATE_BINDING PROJECT_NAME)
                 -- 
                 ${PROJECT_NAME} 
                 -o ${CMAKE_CURRENT_BINARY_DIR}
+                ${languages}
         COMMAND_EXPAND_LISTS
     )
 
