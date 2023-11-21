@@ -498,6 +498,13 @@ class C_Module {
 public:
     C_Module(bbl_capi_module_t mod) : _mod(mod) {}
 
+    auto get_name() const -> std::string_view {
+        char const* ptr = nullptr;
+        size_t len = 0;
+        bbl_capi_module_get_name(_mod, &ptr, &len);
+        return {ptr, len};
+    }
+
     auto num_inclusions() const -> size_t {
         size_t result = 0;
         bbl_capi_module_get_num_inclusions(_mod, &result);
