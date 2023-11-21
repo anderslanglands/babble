@@ -151,8 +151,12 @@ static auto parameter_list_to_string(C_API capi,
     }
 
     if (result_param.has_value()) {
+        if (!first) {
+            result = fmt::format("{}, ", result);
+        }
+
         result = fmt::format(
-            "{}, {}: {}",
+            "{}{}: {}",
             result,
             sanitize_word(result_param->get_name()),
             qtype_to_string(capi, result_param->get_type(), imports));
@@ -221,10 +225,10 @@ BBL_PLUGIN_API int bbl_plugin_exec(bbl_context_t cpp_ctx,
 
     C_API capi(capi_);
 
-    std::string source = "";
+    std::string source = ""; 
+
     std::set<std::string> imports;
     for (auto mod : capi.modules()) {
-
         for (auto enum_id : mod.enums()) {
             try {
                 C_Enum enm = capi.get_enum(enum_id);
@@ -248,7 +252,7 @@ BBL_PLUGIN_API int bbl_plugin_exec(bbl_context_t cpp_ctx,
                 C_Struct strct = capi.get_struct(struct_id);
                 if (strct.get_bind_kind() == BBL_BIND_KIND_OpaquePtr) {
                     source = fmt::format(
-                        "{}pub struct {} {{\n", source, strct.get_name());
+                        "{}#[repr(C)]\npub struct {} {{\n", source, strct.get_name());
                     source = fmt::format("{}    _unused: [u8; 0],\n", source);
                     source = fmt::format("{}}}\n\n", source);
                 } else if (strct.get_bind_kind() == BBL_BIND_KIND_ValueType) {
@@ -276,6 +280,8 @@ BBL_PLUGIN_API int bbl_plugin_exec(bbl_context_t cpp_ctx,
             }
         }
 
+        source = fmt::format("{}extern \"C\" {{\n\n", source);
+
         for (auto fun_id : mod.functions()) {
             try {
                 C_Function fun = capi.get_function(fun_id);
@@ -295,9 +301,16 @@ BBL_PLUGIN_API int bbl_plugin_exec(bbl_context_t cpp_ctx,
                 continue;
             }
         }
+
+        source  = fmt::format("{}}}\n\n", source);
     }
 
-    std::string import_str;
+    std::string import_str = R"(#![allow(non_upper_case_globals)]
+#![allow(non_camel_case_types)]
+#![allow(non_snake_case)]
+
+)";
+
     for (auto const& import : imports) {
         import_str = fmt::format("{}use {};\n", import_str, import);
     }
@@ -306,10 +319,10 @@ BBL_PLUGIN_API int bbl_plugin_exec(bbl_context_t cpp_ctx,
         source = fmt::format("{}\n{}", import_str, source);
     }
 
-    printf("%s", source.c_str());
+    // printf("%s", source.c_str());
 
     if (!std::string(output_path).empty()) {
-        std::string filename = fmt::format("{}/{}.rs", project_name);
+        std::string filename = fmt::format("{}/{}.rs", output_path, project_name);
         std::ofstream file;
         file.open(filename);
         file << source;
