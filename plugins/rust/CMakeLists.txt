@@ -5,3 +5,12 @@ target_include_directories(
     PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}/../../ext/spdlog/include
 )
+
+install(
+  TARGETS
+    bbl-rust
+  LIBRARY
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/plugins
+  RUNTIME
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/plugins
+)
