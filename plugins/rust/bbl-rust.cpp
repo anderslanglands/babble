@@ -172,7 +172,7 @@ static auto stdfunction_to_string(C_API capi,
     C_StdFunction fun = capi.get_stdfunction(id);
 
     return fmt::format(
-        "fn{}",
+        "extern fn{}",
         parameter_list_to_string(
             capi, fun.params(), {}, fun.get_result_param(), imports));
 }
@@ -235,9 +235,14 @@ BBL_PLUGIN_API int bbl_plugin_exec(bbl_context_t cpp_ctx,
                 source = fmt::format(
                     "{}#[repr(C)]\npub enum {} {{\n", source, enm.get_name());
 
+                std::set<std::string> values;
                 for (auto var : enm.variants()) {
-                    source = fmt::format(
-                        "{}    {} = {},\n", source, var.name, var.value);
+                    if (values.find(std::string(var.value)) == values.end()) {
+                        source = fmt::format(
+                            "{}    {} = {},\n", source, var.name, var.value);
+
+                        values.insert(std::string(var.value));
+                    }
                 }
 
                 source = fmt::format("{}}}\n\n", source);
@@ -305,12 +310,7 @@ BBL_PLUGIN_API int bbl_plugin_exec(bbl_context_t cpp_ctx,
         source  = fmt::format("{}}}\n\n", source);
     }
 
-    std::string import_str = R"(#![allow(non_upper_case_globals)]
-#![allow(non_camel_case_types)]
-#![allow(non_snake_case)]
-
-)";
-
+    std::string import_str;
     for (auto const& import : imports) {
         import_str = fmt::format("{}use {};\n", import_str, import);
     }
