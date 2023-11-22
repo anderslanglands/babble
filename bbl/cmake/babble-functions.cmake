@@ -54,5 +54,18 @@ function(BBL_TRANSLATE_BINDING PROJECT_NAME)
         COMMAND_EXPAND_LISTS
     )
 
+    # Ouptut the link libraries to a text file we can read downstream
+    add_executable(${PROJECT_NAME}-link-libraries ${BBL_TRANSLATED_SOURCE})
+    target_link_libraries(${PROJECT_NAME}-link-libraries ${TARGET_NAME})
+
+    set_target_properties(
+        ${PROJECT_NAME}-link-libraries 
+            PROPERTIES
+                LINKER_LANGUAGE 
+                    ECHO
+                SUFFIX          
+                    ".txt"
+    )
+
 endfunction()
 
