@@ -24,6 +24,10 @@ function(BBL_TRANSLATE_BINDING PROJECT_NAME)
         list(APPEND bindfile_abs_args ${_abs})
     endforeach()
 
+    # Allow adding languages via cmake variable or env var
+    list(APPEND arg_LANGUAGES ${BBL_LANGUAGES})
+    list(APPEND arg_LANGUAGES $ENV{BBL_LANGUAGES})
+
     set(languages "")
     foreach(lang ${arg_LANGUAGES})
         list(APPEND languages "-l")
@@ -55,7 +59,10 @@ function(BBL_TRANSLATE_BINDING PROJECT_NAME)
     )
 
     # Ouptut the link libraries to a text file we can read downstream
-    add_executable(${PROJECT_NAME}-link-libraries ${BBL_TRANSLATED_SOURCE})
+    # First generate a stub main source file, then compile and link it with our
+    # echo linker
+    file(GENERATE OUTPUT ${PROJECT_NAME}-link-libraries.cpp CONTENT "int main() {return 0;}")
+    add_executable(${PROJECT_NAME}-link-libraries ${PROJECT_NAME}-link-libraries.cpp)
     target_link_libraries(${PROJECT_NAME}-link-libraries ${TARGET_NAME})
 
     set_target_properties(
