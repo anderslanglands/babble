@@ -122,9 +122,16 @@ configure_package_config_file(
     INCLUDE_INSTALL_DIR
 )
 
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/babble-config-version.cmake
+  COMPATIBILITY 
+    SameMinorVersion # change this to SameMajorVersion when we hit 1.0
+)
+
 install(
   FILES
     ${CMAKE_CURRENT_BINARY_DIR}/babble-config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/babble-config-version.cmake
     cmake/babble-functions.cmake
   DESTINATION
     ${CMAKE_INSTALL_LIBDIR}/cmake/babble
