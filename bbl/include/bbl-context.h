@@ -670,44 +670,333 @@ bbl_result_t bbl_method_get_is_virtual(bbl_method_t method, bool* is_virtual);
  */
 bbl_result_t bbl_method_get_is_pure(bbl_method_t method, bool* is_pure);
 
+/**
+ * @brief Get the rename string for this constructor
+ * 
+ * @param constructor 
+ * @param ptr 
+ * @param len 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_constructor_get_rename(bbl_constructor_t constructor, char const** ptr, size_t* len);
+
+/**
+ * @brief Get the doc comment for this constructor
+ * 
+ * @param constructor 
+ * @param ptr 
+ * @param len 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_constructor_get_comment(bbl_constructor_t constructor, char const** ptr, size_t* len);
+
+/**
+ * @brief Get whether this constructor is noexcept
+ * 
+ * @param constructor 
+ * @param is_noexcept 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_constructor_get_is_noexcept(bbl_constructor_t constructor, bool* is_noexcept);
+
+/**
+ * @brief Get the number of parameters to this constructor
+ * 
+ * @param constructor 
+ * @param num_params 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_constructor_num_params(bbl_constructor_t constructor, size_t* num_params);
+
+/**
+ * @brief Get the index'th parameter to this constructor
+ * 
+ * @param constructor 
+ * @param index 
+ * @param param 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_constructor_get_param(bbl_constructor_t constructor, size_t index, bbl_param_t* param);
 
+/**
+ * @brief Get the qualified name of this function, i.e. "namespace::function"
+ * 
+ * @param function 
+ * @param ptr 
+ * @param len 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_function_get_qualified_name(bbl_function_t function, char const** ptr, size_t* len);
+
+/**
+ * @brief Get the name of this function, i.e. "function" for "namespace::function"
+ * 
+ * @param function 
+ * @param ptr 
+ * @param len 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_function_get_name(bbl_function_t function, char const** ptr, size_t* len);
+
+/**
+ * @brief Get the rename for this function
+ * 
+ * @param function 
+ * @param ptr 
+ * @param len 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_function_get_rename(bbl_function_t function, char const** ptr, size_t* len);
+
+/**
+ * @brief Get the doc comment for this function
+ * 
+ * @param function 
+ * @param ptr 
+ * @param len 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_function_get_comment(bbl_function_t function, char const** ptr, size_t* len);
+
+/**
+ * @brief Get the template call for this function, i.e. "<int>" given "foo<int>()"
+ * 
+ * @param function 
+ * @param ptr 
+ * @param len 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_function_get_template_call(bbl_function_t function, char const** ptr, size_t* len);
+
+/**
+ * @brief Get whether this function is noexcept
+ * 
+ * @param function 
+ * @param is_noexcept 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_function_get_is_noexcept(bbl_function_t function, bool* is_noexcept);
+
+/**
+ * @brief Get the return type of this function
+ * 
+ * @param function 
+ * @param return_type 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_function_get_return_type(bbl_function_t function, bbl_qtype_t* return_type);
+
+/**
+ * @brief Get the number of parameters to this function
+ * 
+ * @param function 
+ * @param num_params 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_function_num_params(bbl_function_t function, size_t* num_params);
+
+/**
+ * @brief Get the index'th parameter to this function
+ * 
+ * @param function 
+ * @param index 
+ * @param param 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_function_get_param(bbl_function_t function, size_t index, bbl_param_t* param);
 
+/**
+ * @brief Get the spelling of this stdfunction.
+ * This is not how the user wrote it in the source, but instead how clang prints it
+ * 
+ * @param function 
+ * @param ptr 
+ * @param len 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_stdfunction_get_spelling(bbl_stdfunction_t function, char const** ptr, size_t* len);
+
+/**
+ * @brief Get the doc comment of this stdfunction
+ * 
+ * @param function 
+ * @param ptr 
+ * @param len 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_stdfunction_get_comment(bbl_stdfunction_t function, char const** ptr, size_t* len);
+
+/**
+ * @brief Get the return type of this stdfunction
+ * 
+ * @param function 
+ * @param return_type 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_stdfunction_get_return_type(bbl_stdfunction_t function, bbl_qtype_t* return_type);
+
+/**
+ * @brief Get the number of parameters to this stdfunction
+ * 
+ * @param function 
+ * @param num_params 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_stdfunction_num_params(bbl_stdfunction_t function, size_t* num_params);
+
+/**
+ * @brief Get the index'th parameter to this stdfunction
+ * 
+ * @param function 
+ * @param index 
+ * @param param 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_stdfunction_get_param(bbl_stdfunction_t function, size_t index, bbl_qtype_t* param);
 
+/**
+ * @brief Get the spelling of this enum.
+ *
+ * This is not how the user actually spelt it, but how clang prints it
+ * 
+ * @param enm 
+ * @param ptr 
+ * @param len 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_enum_get_spelling(bbl_enum_t enm, char const** ptr, size_t* len);
+
+/**
+ * @brief Get the rename of this enum
+ * 
+ * @param enm 
+ * @param ptr 
+ * @param len 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_enum_get_rename(bbl_enum_t enm, char const** ptr, size_t* len);
+
+/**
+ * @brief Get the doc comment of this enum
+ * 
+ * @param enm 
+ * @param ptr 
+ * @param len 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_enum_get_comment(bbl_enum_t enm, char const** ptr, size_t* len);
+
+/**
+ * @brief Get the number of variants in this enum
+ * 
+ * @param enm 
+ * @param num_variants 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_enum_num_variants(bbl_enum_t enm, size_t* num_variants);
+
+/**
+ * @brief Get the index'th variant in this enum
+ * 
+ * @param enm 
+ * @param index 
+ * @param name_ptr 
+ * @param name_len 
+ * @param value_ptr 
+ * @param value_len 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_enum_get_variant(bbl_enum_t enm, size_t index, char const** name_ptr, size_t* name_len, char const** value_ptr, size_t* value_len);
+
+/**
+ * @brief Get the underlying type of this enum
+ * 
+ * @param enm 
+ * @param type 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_enum_get_type(bbl_enum_t enm, bbl_qtype_t* type);
 
+/**
+ * @brief Get the name of this param
+ * 
+ * @param param 
+ * @param ptr 
+ * @param len 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_param_get_name(bbl_param_t param, char const** ptr, size_t* len);
+
+/**
+ * @brief Get the type of this param
+ * 
+ * @param param 
+ * @param type 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_param_get_type(bbl_param_t param, bbl_qtype_t* type);
 
+/**
+ * @brief Get whether this qtype is const-qualified
+ * 
+ * @param qtype 
+ * @param is_const 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_qtype_is_const(bbl_qtype_t qtype, bool* is_const);
+
+/**
+ * @brief Get the kind of this qtype
+ * 
+ * @param qtype 
+ * @param type_kind 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_qtype_get_type_kind(bbl_qtype_t qtype, bbl_type_kind_t* type_kind);
+
+/**
+ * @brief Get the builtin this qtype represents, if it does so
+ * 
+ * @param qtype 
+ * @param builtin 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_qtype_get_as_builtin(bbl_qtype_t qtype, bbl_builtin_t* builtin);
+
+/**
+ * @brief Get the id of the class this qtype represents, if it does so
+ * 
+ * @param qtype 
+ * @param classid 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_qtype_get_as_classid(bbl_qtype_t qtype, bbl_classid_t* classid);
+
+/**
+ * @brief Get the id of the stdfunction this qtype represents, if it does so
+ * 
+ * @param qtype 
+ * @param stdfunctionid 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_qtype_get_as_stdfunctionid(bbl_qtype_t qtype, bbl_stdfunctionid_t* stdfunctionid);
+
+/**
+ * @brief Get the id of the enum this qtype represents, if it does so
+ * 
+ * @param qtype 
+ * @param enumid 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_qtype_get_as_enumid(bbl_qtype_t qtype, bbl_enumid_t* enumid);
+
+/**
+ * @brief Get the pointee qtype of this qtype, if it is a pointer
+ * 
+ * @param qtype 
+ * @param pointee_type 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_qtype_get_pointee_type(bbl_qtype_t qtype, bbl_qtype_t* pointee_type);
 
 /**
@@ -719,6 +1008,13 @@ bbl_result_t bbl_qtype_get_pointee_type(bbl_qtype_t qtype, bbl_qtype_t* pointee_
  */
 bbl_result_t bbl_qtype_get_array_element_type(bbl_qtype_t qtype, bbl_qtype_t* element_type);
 
+/**
+ * @brief Get the size of the array represented by this `qtype` if it is an array
+ * 
+ * @param qtype 
+ * @param size 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_qtype_get_array_size(bbl_qtype_t qtype, size_t* size);
 
 void bbl_hello(char const* msg);

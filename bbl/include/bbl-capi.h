@@ -103,38 +103,148 @@ bbl_result_t bbl_capi_module_get_name(bbl_capi_module_t module,
                                       char const** str,
                                       size_t* len);
 
+/**
+ * @brief Get the number of inclusions in this module
+ * 
+ * @param module 
+ * @param num_inclusions 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_capi_module_get_num_inclusions(bbl_capi_module_t module,
                                                 size_t* num_inclusions);
+
+/**
+ * @brief Get the id of the index'th inclusion from this module
+ * 
+ * @param module 
+ * @param index 
+ * @param inclusion 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_capi_module_get_inclusion(bbl_capi_module_t module,
                                            size_t index,
                                            bbl_capi_inclusion_t* inclusion);
+
+/**
+ * @brief Get the number of structs in this module
+ * 
+ * @param module 
+ * @param num_structs 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_capi_module_get_num_structs(bbl_capi_module_t module,
                                              size_t* num_structs);
+
+/**
+ * @brief Get the id of the index'th struct from this module
+ * 
+ * @param module 
+ * @param index 
+ * @param structid 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_capi_module_get_struct(bbl_capi_module_t module,
                                         size_t index,
                                         bbl_capi_structid_t* structid);
+
+/**
+ * @brief Get the number of functions in this module
+ * 
+ * @param module 
+ * @param num_functions 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_capi_module_get_num_functions(bbl_capi_module_t module,
                                                size_t* num_functions);
+
+/**
+ * @brief Get the id of the index'th function from this module
+ * 
+ * @param module 
+ * @param index 
+ * @param funid 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_capi_module_get_function(bbl_capi_module_t module,
                                           size_t index,
                                           bbl_capi_functionid_t* funid);
+
+/**
+ * @brief Get the number of stdfunctions in this module
+ * 
+ * @param module 
+ * @param num_stdfunctions 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_capi_module_get_num_stdfunctions(bbl_capi_module_t module,
                                                   size_t* num_stdfunctions);
+
+/**
+ * @brief Get the id of the index'th stdfunction in this module
+ * 
+ * @param module 
+ * @param index 
+ * @param funid 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_capi_module_get_stdfunction(bbl_capi_module_t module,
                                              size_t index,
                                              bbl_capi_stdfunctionid_t* funid);
+
+/**
+ * @brief Get the number of enums in this module
+ * 
+ * @param module 
+ * @param num_enums 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_capi_module_get_num_enums(bbl_capi_module_t module,
                                            size_t* num_enums);
+
+/**
+ * @brief Get the id of the index'th enum in this module
+ * 
+ * @param module 
+ * @param index 
+ * @param enumid 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_capi_module_get_enum(bbl_capi_module_t module,
                                       size_t index,
                                       bbl_capi_enumid_t* enumid);
 
+/**
+ * @brief Get the full include directive of this inclusion, i.e. "#include <foo/foo.h>"
+ * 
+ * @param inclusion 
+ * @param str 
+ * @param len 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_capi_inclusion_get_directive(bbl_capi_inclusion_t inclusion,
                                               char const** str,
                                               size_t* len);
+
+/**
+ * @brief Get the filename of this inclusion, i.e. "foo/foo.h"
+ * 
+ * @param inclusion 
+ * @param str 
+ * @param len 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_capi_inclusion_get_filename(bbl_capi_inclusion_t inclusion,
                                              char const** str,
                                              size_t* len);
+
+/**
+ * @brief Get whether this inclusion is local or not, i.e. whether it is included
+ * with '"' as opposed to '<'
+ * 
+ * @param inclusion 
+ * @param is_local 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_capi_inclusion_is_local(bbl_capi_inclusion_t inclusion,
                                          bool* is_local);
 
@@ -573,16 +683,72 @@ bbl_result_t bbl_capi_enum_get_variant(bbl_capi_enum_t enm,
                                        char const** value,
                                        size_t* value_len);
 
+/**
+ * @brief Get whether this qtype is const-qualified
+ * 
+ * @param qtype 
+ * @param is_const will be assigned true if `qtype` is const, false otherwise
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_capi_qtype_is_const(bbl_capi_qtype_t qtype, bool* is_const);
+
+/**
+ * @brief Get the kind of this qtype
+ * 
+ * @param qtype 
+ * @param type_kind 
+ * @return bbl_result_t 
+ */
 bbl_result_t bbl_capi_qtype_get_type_kind(bbl_capi_qtype_t qtype,
                                           bbl_capi_type_kind_t* type_kind);
+
+/**
+ * @brief Get the builtin this qtype contains, if it does so
+ * 
+ * @param qtype 
+ * @param builtin Will be assigned the value of the builtin this qtype contains, 
+ *        if the return value is BBL_RESULT_Success
+ * @return bbl_result_t - BBL_RESULT_Success if `qtype` is valid and contains a builtin
+ * - BBL_RESULT_ArgumentIsNull if `qtype` is NULL
+ * - BBL_RESULT_WrongKind otherwise
+ */
 bbl_result_t bbl_capi_qtype_get_as_builtin(bbl_capi_qtype_t qtype,
                                            bbl_builtin_t* builtin);
+
+/**
+ * @brief Get the id of the struct this qtype contains, if it does so
+ * 
+ * @param qtype 
+ * @param structid Will be assigned the id of the struct this qtype contains
+ * @return bbl_result_t - BBL_RESULT_Success if `qtype` is valid and contains a struct
+ * - BBL_RESULT_ArgumentIsNull if `qtype` is NULL
+ * - BBL_RESULT_WrongKind otherwise
+ */
 bbl_result_t bbl_capi_qtype_get_as_structid(bbl_capi_qtype_t qtype,
                                             bbl_capi_structid_t* structid);
+
+/**
+ * @brief Get the id of the stdfunction this qtype contains, if it does so
+ * 
+ * @param qtype 
+ * @param stdfunctionid Will be assigned the id of the stdfunction this qtype contains
+ * @return bbl_result_t - BBL_RESULT_Success if `qtype` is valid and contains a stdfunction
+ * - BBL_RESULT_ArgumentIsNull if `qtype` is NULL
+ * - BBL_RESULT_WrongKind otherwise
+ */
 bbl_result_t
 bbl_capi_qtype_get_as_stdfunctionid(bbl_capi_qtype_t qtype,
                                     bbl_capi_stdfunctionid_t* stdfunctionid);
+
+/**
+ * @brief Get the id of the enum this qtype contains, if it does so
+ * 
+ * @param qtype 
+ * @param enumid  Will be assigned the id of the enum this qtype contains
+ * @return bbl_result_t - BBL_RESULT_Success if `qtype` is valid and contains a stdfunction
+ * - BBL_RESULT_ArgumentIsNull if `qtype` is NULL
+ * - BBL_RESULT_WrongKind otherwise
+ */
 bbl_result_t bbl_capi_qtype_get_as_enumid(bbl_capi_qtype_t qtype,
                                           bbl_capi_enumid_t* enumid);
 
