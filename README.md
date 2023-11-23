@@ -12,7 +12,8 @@ A wrapper library's CMakeLists.txt looks like the below. This is the CMakeLists.
 cmake_minimum_required(VERSION 3.15)
 project(bbl-usd VERSION 0.1 LANGUAGES C CXX)
 
-# babble should be found by adding the directory where you installed babble to to the CMAKE_PREFIX_PATH variable
+# babble should be found by adding the directory where you installed babble to 
+# the CMAKE_PREFIX_PATH variable
 find_package(babble CONFIG REQUIRED)
 find_package(pxr REQUIRED)
 
@@ -33,8 +34,11 @@ set(
     bind/vt.cpp 
 )
 
-# bbl_translate_binding sets up the invocation of bbl-translate to generate the wrapper library source and creates the target called `usd-c`, which we can then add definitions, links etc to as a normal CMake library target.
-# The first argument is the project name, from which the names of all the generated libraries will be created
+# bbl_translate_binding sets up the invocation of bbl-translate to generate the 
+# wrapper library source and creates the target called `usd-c`, which we can then 
+# add definitions, links etc to as a normal CMake library target.
+# The first argument is the project name, from which the names of all the generated 
+# libraries will be created
 # by appending the language name as `usd-c`, `usd-rust` etc.
 bbl_translate_binding(
     openusd
@@ -48,6 +52,9 @@ bbl_translate_binding(
         -D__TBB_show_deprecation_message_task_H 
 )
 
+# bbl_translate_binding creates a library target in the form ${PROJECT_NAME}-c 
+# where PROJECT_NAME is the first argument to the function.
+# We then add links, defs etc to the target as usual
 target_link_libraries(openusd-c PUBLIC usd sdf js usdGeom)
 target_compile_definitions(
   openusd-c 
@@ -58,7 +65,7 @@ target_compile_definitions(
 )
 
 if (MSVC)
-    # OpenUSD is a pretty big library...
+    # OpenUSD is a pretty big library so we need bigobj on windows
     target_compile_options(openusd-c PRIVATE /bigobj)
 endif()
 
@@ -68,8 +75,9 @@ target_link_libraries(usd-c-test01 PUBLIC openusd-c)
 target_include_directories(usd-c-test01 PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 set_property(TARGET usd-c-test01 PROPERTY C_STANDARD 99)
 
-# This is just here to trigger generation of compile commands for the bindfile so we get LSP functionality in the bind file.
-# LSP completion of function names can be a huge time saver when authoring bindfiles.
+# This is just here to trigger generation of compile commands for the bindfile so 
+# we get LSP functionality in the bind file. LSP completion of function names can 
+# be a huge time saver when authoring bindfiles.
 add_library(bind-dummy ${bindfiles})
 target_link_libraries(bind-dummy babble::bind)
 target_include_directories(bind-dummy PRIVATE $<TARGET_PROPERTY:openusd-c,INCLUDE_DIRECTORIES>)
@@ -84,14 +92,14 @@ The wrapper library will be built as well as in this case the C99 test program t
 
 ## Bindfiles
 
-Bindfiles are C++ source files that contain definitions that allow `bbl-translate` to extract all the necessary information about types that are to be bound using clang. Their structure is somewhat similar to pybind. 
+Bindfiles are C++ source files that contain definitions that allow `bbl-translate` to extract all the necessary information about types that are to be bound using clang. Their structure is somewhat similar to pybind, but they work very differently as instead of compiling an actual library that is then loaded in some other application, the bindfiles are just used to contstruct the AST in clang, and the AST is then translated to a C API by code generation.
 
 ### Simple example
 For example, given a simple C++ library:
 
 ```c++
 namespace foo {
-  /// \brief Vary Barry
+  /// \brief Very Barry
   class Bar {
   public:
     /// \brief set a baz value
@@ -109,8 +117,8 @@ a bindfile for it would look like:
 
 BBL_MODULE(foo) {
   bbl::Class<foo::Bar>()
-  .m(&foo::Bar::set_baz)
-  .m(&foo::Bar::get_baz)
+    .m(&foo::Bar::set_baz)
+    .m(&foo::Bar::get_baz)
   ;
 }
 ```
@@ -191,8 +199,8 @@ struct Point2D {
 BBL_MODULE(math) {
   bbl::Class<foo::Point2D>()
     .value_type()
-    .f(&foo::Point2D:x)
-    .f(&foo::Point2D:y)
+    .f(&foo::Point2D::x)
+    .f(&foo::Point2D::y)
   ;
 }
 ```
@@ -546,7 +554,7 @@ which is annoying, when what you really want to do is simply:
 foo_hello("World!");
 ```
 
-We can provide this API by not binding `foo::hello` directly, but by binding an extension function instead that just takes the `char const*`:
+We can provide this API by not binding `foo::hello()` directly, but by binding an extension function instead that just takes the `char const*` and calls `foo::hello()` with it:
 ```c++
 // bindfile
 namespace bblext {
@@ -615,7 +623,7 @@ Passing an empty string to `prefix()` will remove the prefix completely.
 
 
 ## std::function callbacks
-Functions that take a callback in the form of a `std::function` can be bound by binding the `std::function` explicitly with `bbl::Class`:
+Functions that take a callback in the form of a `std::function` can be bound by binding the `std::function` explicitly with `bbl::Class`. Consider this library that defines a class, `Foo` with member accessors, and another class `Bar`, which has a member `adjust_foo()` that takes a `FooFn` callback in order to modify an internal `Foo` object:
 ```c++
 // target library header
 namespace tst {
