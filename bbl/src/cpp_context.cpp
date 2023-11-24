@@ -2,7 +2,6 @@
 #include "astutil.hpp"
 #include "bbl-detail.h"
 #include "bblfmt.hpp"
-#include "process.hpp"
 #include "clang/AST/Expr.h"
 #include "clang/AST/Stmt.h"
 #include "clang/Basic/Specifiers.h"
