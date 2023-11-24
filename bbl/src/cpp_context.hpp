@@ -102,6 +102,7 @@ inline bool operator==(StdFunctionId const& lhs, StdFunctionId const& rhs) {
     return lhs.id == rhs.id;
 }
 
+/// A reference to a type, which is itself contained in a QType
 struct Type {
     std::variant<bbl_builtin_t,
                  ClassId,
@@ -118,6 +119,7 @@ inline bool operator!=(QType const& lhs, QType const& rhs) {
     return !(lhs == rhs);
 }
 
+/// Represents a pointer to another (qualified) type
 struct Pointer {
     std::unique_ptr<QType> pointee;
 };
@@ -126,6 +128,7 @@ inline bool operator==(Pointer const& lhs, Pointer const& rhs) {
     return *lhs.pointee == *rhs.pointee;
 }
 
+/// Represents an l-value reference to another (qualified) type
 struct LValueReference {
     std::unique_ptr<QType> pointee;
 };
@@ -134,6 +137,7 @@ inline bool operator==(LValueReference const& lhs, LValueReference const& rhs) {
     return *lhs.pointee == *rhs.pointee;
 }
 
+/// Represents an r-value reference to another (qualified) type
 struct RValueReference {
     std::unique_ptr<QType> pointee;
 };
@@ -142,6 +146,7 @@ inline bool operator==(RValueReference const& lhs, RValueReference const& rhs) {
     return *lhs.pointee == *rhs.pointee;
 }
 
+/// Represents an array 
 struct Array {
     std::unique_ptr<QType> element_type;
     size_t size;
@@ -180,20 +185,34 @@ inline bool is_equivalent(Param const& lhs, Param const& rhs) {
 
 /// A function, as bound by `bbl::fn()`
 struct Function {
+    /// The qualified name of the function, including the leading namespace
     std::string qualified_name;
+    /// The name of the function
     std::string name;
+    /// The user-provided rename for this function. Empty if none provided
     std::string rename;
+    /// The spelling of this function (per clang)
     std::string spelling;
+    /// The template call for this function
+    ///
+    /// i.e. given a function called as "fn<int>()", this will be "<int>"
     std::string template_call;
+    /// The doc comment for this function if there is one, empty otherwise
     std::string comment;
 
+    /// The return type of this function
     QType return_type;
+    /// The parameters of this function
     std::vector<Param> params;
 
     /// is explicitly declared (or evaluated) not to throw
     bool is_noexcept;
 };
 
+/// Returns true if these two functions are equivalent.
+///
+/// Two functions are equivalent if their template calls, return type and noexcept
+/// status match, and all their parameters are equivalent
 inline bool is_equivalent(Function const& lhs, Function const& rhs) {
     if (lhs.name != rhs.name || lhs.template_call != rhs.template_call ||
         lhs.return_type != rhs.return_type ||
@@ -220,6 +239,10 @@ struct Method {
     bool is_pure;
 };
 
+/// Returns true if these two methods are equivalent
+///
+/// Two methods are equivalent if their template calls, return type and noexcept
+/// status match, and all their parameters are equivalent
 inline bool is_equivalent(Method const& lhs, Method const& rhs) {
     return is_equivalent(lhs.function, rhs.function) &&
            lhs.is_const == rhs.is_const && lhs.is_static == rhs.is_static;
@@ -373,6 +396,7 @@ struct Inclusion {
     bool is_local;
 };
 
+/// A single source bindfile
 struct SourceFile {
     std::vector<Inclusion> inclusions;
     std::vector<std::string> modules;
@@ -422,16 +446,37 @@ public:
 
     /// Extract the template arguments from `ctsd` and push them onto
     /// `template_args`.
+    /// @param ctsd The ClassTemplateSpecializationDecl to extract template args
+    ///             from
+    /// @param template_args vector to hold the extracted `TemplateArg`s
+    /// @param mangle_ctx MangleContext used to create ids from decls
     auto extract_template_arguments(
         clang::ClassTemplateSpecializationDecl const* ctsd,
         std::vector<TemplateArg>& template_args,
         clang::MangleContext* mangle_ctx) -> void;
 
     /// Extract the given qualified type, `qt`
+    /// @param qt QualType to convert to a QType
+    /// @param mangle_ctx MangleContext used to create ids from decls
+    /// @return The extracted QType
     auto extract_qualtype(clang::QualType const& qt,
                           clang::MangleContext* mangle_ctx) -> QType;
 
-    /// Extract the class (or class template specialization) `crd`.
+    /// Extract the class (or class template specialization) from the given 
+    /// CXXRecordDecl
+    /// @param crd The decl to extract this class from
+    /// @param spelling A spelling that can be used to refer to this class in C++
+    ///                 code.
+    /// @param rename The user-provided rename string that will be used to name 
+    ///               the struct in generated C API. If empty, no renaming will
+    ///               be performed.
+    /// @param comment The doc comment attached to the decl, if any.
+    /// @param bind_kind The bind kind the user selected for this class with `bbl::Class::bind_kind()`
+    /// @param rule_of_seven
+    /// @param is_abstract True if the class is abstract
+    /// @param inherits_from List of ids referring to classes that this class directly
+    ///                      or indirectly inherits from.
+    /// @param mangle_ctx MangleContext used to create ids from decls
     [[nodiscard]] auto
     extract_class_binding(clang::CXXRecordDecl const* crd,
                           std::string const& spelling,
@@ -594,6 +639,7 @@ public:
     std::string get_enum_as_string(Enum const& enm);
 };
 
+/// Evaluate the value of the constexpr boolean field with name `name` on `rd`
 auto evaluate_field_expression_bool(clang::RecordDecl const* rd,
                                     char const* name,
                                     clang::ASTContext& ast_context) -> bool;

@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 /**
- * @brief Opaque context type representing the babble context object.
+ * @brief Opaque context type representing the babble C++ context object.
  *
  * The context object is responsible for parsing the binding sources and
  * extracting information about the bound classes and functions.
