@@ -29,6 +29,7 @@ if (MSVC)
 endif()
 
 set(BUILD_SHARED_LIBS OFF)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 add_subdirectory(bbl)
 
