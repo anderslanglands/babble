@@ -2,7 +2,6 @@
 #include "astutil.hpp"
 #include "bbl-detail.h"
 #include "bblfmt.hpp"
-#include "process.hpp"
 #include "clang/AST/Expr.h"
 #include "clang/AST/Stmt.h"
 #include "clang/Basic/Specifiers.h"
@@ -91,6 +90,7 @@ bool operator==(QType const& lhs, QType const& rhs) {
     }
 }
 
+// Deep copies the given QType
 QType clone(QType const& qt) {
     if (std::holds_alternative<Type>(qt.type)) {
         const auto& type = std::get<Type>(qt.type);
@@ -121,10 +121,13 @@ QType clone(QType const& qt) {
     }
 }
 
+// Return a copy of this QType wrapped in a pointer, effectively turning a 
+// T into a T*
 QType wrap_in_pointer(QType const& qt) {
     return QType{false, Pointer{std::make_unique<QType>(clone(qt))}};
 }
 
+// If the given QType is a T&, return T. Throws otherwise
 static QType unwrap_reference(QType const& qt) {
     if (std::holds_alternative<LValueReference>(qt.type)) {
         LValueReference const& ref = std::get<LValueReference>(qt.type);
@@ -134,6 +137,7 @@ static QType unwrap_reference(QType const& qt) {
     }
 }
 
+/// Simple steady timer
 class Timer {
     using time_point = std::chrono::time_point<std::chrono::steady_clock>;
 
@@ -155,12 +159,16 @@ public:
     }
 };
 
+// Convert the given Type into a string suitable for debug printing
 std::string
 to_string(bbl::Type const& ty, char const* s_const, DeclMaps const& decl_maps) {
+    // Unwrap the kind variant holding the actual type kind
     if (std::holds_alternative<bbl_builtin_t>(ty.kind)) {
         bbl_builtin_t const& builtin = std::get<bbl_builtin_t>(ty.kind);
         return fmt::format("{}{}", builtin, s_const);
     } else if (std::holds_alternative<bbl::ClassId>(ty.kind)) {
+        // Get the class id that this variant holds and use it to look up the 
+        // corresponding class in the given decl_maps.
         bbl::ClassId const& classid = std::get<bbl::ClassId>(ty.kind);
         std::string name;
         if (auto it = decl_maps.class_map.find(classid.id);
@@ -198,6 +206,7 @@ to_string(bbl::Type const& ty, char const* s_const, DeclMaps const& decl_maps) {
     }
 }
 
+// Convert the given type into a string suitable for debug printing
 std::string to_string(QType const& qt, DeclMaps const& decl_maps) {
     char const* s_const = qt.is_const ? " const" : "";
 
@@ -237,6 +246,11 @@ std::string to_string(TemplateArg const& arg, DeclMaps const& decl_maps) {
     }
 }
 
+// Use clang's pretty printing to get a usable "spelling" for a given expression.
+// We use this instead of grabbing the actual source text because navigating the 
+// complexities of the preprocessor for macro expansion is too hard.
+// The resulting name will not necessarily be exactly what the user wrote, but
+// should work fine to feed back to compile, which is what we need
 static auto expr_to_string(clang::Expr const* expr, clang::ASTContext* ctx)
     -> std::string {
     static clang::PrintingPolicy print_policy(ctx->getLangOpts());
@@ -275,6 +289,8 @@ static auto decl_to_string(clang::Decl const* decl, clang::ASTContext* ctx)
     return expr_string;
 }
 
+// Convert clang's BuiltinType to a bbl_builtin_t
+// Throws on an unknown builtin
 auto extract_builtin_type(clang::BuiltinType const* btype) -> bbl_builtin_t {
 #define CASE(VAR)                                                              \
     case clang::BuiltinType::VAR:                                              \
@@ -300,6 +316,8 @@ auto extract_builtin_type(clang::BuiltinType const* btype) -> bbl_builtin_t {
     }
 }
 
+// Convert the given clang::QualType to a QType
+// Throws when the QualType represents a type we don't handle yet
 auto Context::extract_qualtype(clang::QualType const& qt,
                                clang::MangleContext* mangle_ctx) -> QType {
     bool is_const = qt.isConstQualified();
@@ -461,6 +479,9 @@ auto Context::extract_qualtype(clang::QualType const& qt,
     }
 }
 
+// Convert a TemplateArgument to one or many TemplateArgs. 
+// A single TemplateArgument may expand to many in the case that it is a 
+// parameter pack
 auto Context::extract_single_template_arg(
     clang::TemplateArgument const& arg,
     std::vector<TemplateArg>& template_args,
@@ -482,6 +503,7 @@ auto Context::extract_single_template_arg(
     }
 }
 
+// Extract all the template arguments used to specialize this ClassTemplateSpeicalizationDecl
 auto Context::extract_template_arguments(
     clang::ClassTemplateSpecializationDecl const* ctsd,
     std::vector<TemplateArg>& template_args,
@@ -500,6 +522,10 @@ auto Context::extract_template_arguments(
     }
 }
 
+// Evaluate the a constexpr boolean expression on the variable named `name` on 
+// the given RecordDecl.
+// Throws if the field `name` doesn't exist, if the expression cannot be found, or
+// it cannot be evaluated
 auto evaluate_field_expression_bool(clang::RecordDecl const* rd,
                                     char const* name,
                                     clang::ASTContext& ast_context) -> bool {
