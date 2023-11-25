@@ -769,8 +769,8 @@ python ./run_tests.py
 ```
 
 Run individual tests with:
-`./build/bbl/bbl-translate test/test001.cpp -- -std=c++17 -Ibbl/include`
-`./build/bbl/bbl-translate test/test002.cpp -- -std=c++17 -Ibbl/include`
+`./build/bbl/bbl-translate test/test001.cpp -- -std=c++17 -Ibbl/include -- test001 -o build/test/out`
+`./build/bbl/bbl-translate test/test002.cpp -- -std=c++17 -Ibbl/include -- test002 -o build/test/out`
 ...
-`./build/bbl/bbl-translate test/test020.cpp -- -std=c++17 -Ibbl/include`
+`./build/bbl/bbl-translate test/test020.cpp -- -std=c++17 -Ibbl/include -- test020 -o build/test/out`
 ...etc.
