@@ -1,7 +1,12 @@
 import os
+import argparse
 import sys
 import difflib
 import shutil
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-v', '--verbose', action='store_true', help='increase verbosity')
+args = parser.parse_args()
 
 TESTS = [
     "test001",
@@ -43,8 +48,9 @@ if os.name == "nt":
 else:
     TEST_REF_PATH = os.path.join("test", "ref", "linux")
 
-shutil.rmtree(TEST_OUTPUT_PATH)
-os.makedirs(TEST_OUTPUT_PATH, exist_ok=True)
+if os.path.isdir(TEST_OUTPUT_PATH):
+    shutil.rmtree(TEST_OUTPUT_PATH)
+os.makedirs(TEST_OUTPUT_PATH)
 
 for test in TESTS:
     print(test)
@@ -54,7 +60,10 @@ for test in TESTS:
     out_cpp_path = os.path.join(TEST_OUTPUT_PATH, f"{test}.cpp")
     out_h_path = os.path.join("build", "test", "out", f"{test}.h")
 
-    os.system(f"{exe_path} {bindfile_path} -- --std=c++17 -Ibbl/include -Ibuild/include -- {test} -o {TEST_OUTPUT_PATH}")
+    cmd = f"{exe_path} {bindfile_path} -- --std=c++17 -Ibbl/include -- {test} -o {TEST_OUTPUT_PATH}"
+    if args.verbose:
+        print(f"# {cmd}")
+    os.system(cmd)
 
 failed_tests = []
 
@@ -64,8 +73,12 @@ for test in TESTS:
     ref_c_p = os.path.join(TEST_REF_PATH, f"{test}-c.cpp")
     ref_h_p = os.path.join(TEST_REF_PATH, f"{test}-c.cpp")
 
-    tst_c_f = open(tst_c_p)
-    tst_h_f = open(tst_h_p)
+    try:
+        tst_c_f = open(tst_c_p)
+        tst_h_f = open(tst_h_p)
+    except FileNotFoundError:
+        failed_tests.append(test)
+        continue
     tst_c = tst_c_f.readlines()
     tst_h = tst_h_f.readlines()
 
