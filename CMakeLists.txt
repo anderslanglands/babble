@@ -45,3 +45,7 @@ add_subdirectory(test/stdfunction)
 
 # plugins
 add_subdirectory(plugins)
+
+# configure and install rez package file
+configure_file(package.py.in ${CMAKE_BINARY_DIR}/package.py)
+install(FILES ${CMAKE_BINARY_DIR}/package.py DESTINATION ${CMAKE_INSTALL_PREFIX})

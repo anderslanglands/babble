@@ -1,0 +1,8 @@
+name = "babble"
+version = "@PROJECT_VERSION@"
+
+def commands():
+    env.PATH.append("{root}/bin")
+    env.BABBLE_ROOT = "{root}"
+    env.CMAKE_PREFIX_PATH.append("{root}")
+    env.BBL_PLUGIN_PATH.append("{root}/plugins")
