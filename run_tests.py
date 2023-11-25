@@ -65,8 +65,12 @@ for test in TESTS:
     ref_c_p = os.path.join(TEST_REF_PATH, f"{test}-c.cpp")
     ref_h_p = os.path.join(TEST_REF_PATH, f"{test}-c.cpp")
 
-    tst_c_f = open(tst_c_p)
-    tst_h_f = open(tst_h_p)
+    try:
+        tst_c_f = open(tst_c_p)
+        tst_h_f = open(tst_h_p)
+    except FileNotFoundError:
+        failed_tests.append(test)
+        continue
     tst_c = tst_c_f.readlines()
     tst_h = tst_h_f.readlines()
 
