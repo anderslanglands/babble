@@ -43,8 +43,9 @@ if os.name == "nt":
 else:
     TEST_REF_PATH = os.path.join("test", "ref", "linux")
 
-shutil.rmtree(TEST_OUTPUT_PATH)
-os.makedirs(TEST_OUTPUT_PATH, exist_ok=True)
+if os.path.isdir(TEST_OUTPUT_PATH):
+    shutil.rmtree(TEST_OUTPUT_PATH)
+os.makedirs(TEST_OUTPUT_PATH)
 
 for test in TESTS:
     print(test)
