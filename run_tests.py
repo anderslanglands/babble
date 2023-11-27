@@ -61,13 +61,7 @@ for test in TESTS:
     out_cpp_path = os.path.join(TEST_OUTPUT_PATH, f"{test}.cpp")
     out_h_path = os.path.join("build", "test", "out", f"{test}.h")
 
-    # On WSL, GCC will not find the standard headers when running tests, so we 
-    # need to point it to our local copy
-    build_include = ""
-    if "microsoft-standard-WSL" in platform.uname().release:
-        build_include = "-Ibuild/include"
-
-    cmd = f"{exe_path} {bindfile_path} -- --std=c++17 -Ibbl/include {build_include} -- {test} -o {TEST_OUTPUT_PATH}"
+    cmd = f"{exe_path} {bindfile_path} -- --std=c++17 -Ibbl/include -idirafter build/include -- {test} -o {TEST_OUTPUT_PATH}"
     if args.verbose:
         print(f"# {cmd}")
     os.system(cmd)
