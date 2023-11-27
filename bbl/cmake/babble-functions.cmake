@@ -73,6 +73,28 @@ function(BBL_TRANSLATE_BINDING PROJECT_NAME)
                 SUFFIX          
                     ".txt"
     )
+endfunction()
 
+function(BBL_GENERATE_BINDING PROJECT_NAME SOURCE_FILE)
+    add_library(${PROJECT_NAME} ${SOURCE_FILE})
+
+    add_custom_command(
+        OUTPUT ${CMAKE_BINARY_DIR}/${SOURCE_FILE}
+        DEPENDS ${SOURCE_FILE}
+        COMMAND 
+            bbl-genbind
+                ${SOURCE_FILE} 
+                -- 
+                -std=c++17
+                -fsyntax-only
+                -fno-spell-checking
+                -I${BABBLE_RESOURCE_DIR}/include
+                "-I$<JOIN:$<TARGET_PROPERTY:babble::bind,INTERFACE_INCLUDE_DIRECTORIES>,;-I>" 
+                "-I$<JOIN:$<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>,;-I>" 
+                -- 
+                ${PROJECT_NAME} 
+                -o ${CMAKE_CURRENT_BINARY_DIR}
+        COMMAND_EXPAND_LISTS
+    )
 endfunction()
 

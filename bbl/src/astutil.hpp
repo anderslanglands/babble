@@ -15,7 +15,6 @@
 #include <clang/Basic/SourceManager.h>
 #include <clang/Lex/Preprocessor.h>
 
-
 #if defined(WIN32)
 #pragma warning(pop)
 #endif
@@ -52,7 +51,12 @@ std::string get_source_text(clang::SourceRange range,
 std::string get_spelling_text(clang::SourceRange range,
                               const clang::SourceManager& sm);
 
-std::string get_source_and_location(clang::Stmt const* stmt, clang::SourceManager const& sm);
+std::string get_source_and_location(clang::Stmt const* stmt,
+                                    clang::SourceManager const& sm);
+std::string get_source_and_location(clang::Decl const* decl,
+                                    clang::SourceManager const& sm);
+std::string location_to_string(clang::Decl const* decl,
+                               clang::SourceManager const& sm);
 
 namespace clang {
 class MangleContext;
@@ -67,6 +71,12 @@ class MangleContext;
 /// anywhere in our test suite, so probably best to avoid that.
 std::string get_mangled_name(clang::NamedDecl const* nd,
                              clang::MangleContext* ctx);
+
+/// Create a MangleContext to use
+///
+/// Always uses the Microsoft ABI, regardless of platform, for consistency
+auto create_mangle_context(clang::ASTContext& ast_context)
+    -> std::unique_ptr<clang::MangleContext>;
 
 /// Depth-first search of the subtree under (and including) `stmt`
 /// @return The first descendent found with type `T`
@@ -132,7 +142,8 @@ auto visit_subtree(clang::Stmt const* stmt, F fun) -> bool {
 /// F should have signature (Stmt const*) -> bool
 /// if F returns true, then the search is stopped.
 template <typename F>
-auto visit_ancestors(clang::Stmt const* stmt, clang::ASTContext* ctx, F fun) -> bool {
+auto visit_ancestors(clang::Stmt const* stmt, clang::ASTContext* ctx, F fun)
+    -> bool {
     if (stmt == nullptr) {
         return false;
     }
@@ -194,7 +205,8 @@ inline auto get_parent(clang::Stmt const* stmt, clang::ASTContext* ctx)
 /// Walk up the AST node graph and find a bbl module, returning true as soon as
 /// one is found
 inline auto walk_to_module(clang::DynTypedNode const& node,
-                           clang::ASTContext& ctx, clang::MangleContext* mctx,
+                           clang::ASTContext& ctx,
+                           clang::MangleContext* mctx,
                            std::string& id) -> bool {
     if (auto const* fd = node.get<clang::FunctionDecl>()) {
         if (fd->getNameAsString().find("bbl_bind_") == 0) {
@@ -235,8 +247,8 @@ inline auto walk_to_module_decl(clang::DynTypedNode const& node,
 /// @return true if a module is found, false otherwise
 inline auto find_containing_module(clang::Stmt const* stmt,
                                    clang::ASTContext* ctx,
-                                   clang::MangleContext* mctx, std::string& id)
-    -> bool {
+                                   clang::MangleContext* mctx,
+                                   std::string& id) -> bool {
     for (auto const& parent : ctx->getParents(*stmt)) {
         if (walk_to_module(parent, *ctx, mctx, id)) {
             return true;
@@ -382,3 +394,9 @@ inline auto get_comment_from_decl(clang::Decl const* decl,
     return result;
 }
 
+auto expr_to_string(clang::Expr const* expr, clang::ASTContext* ctx)
+    -> std::string;
+
+
+auto decl_to_string(clang::Decl const* decl, clang::ASTContext* ctx)
+    -> std::string;

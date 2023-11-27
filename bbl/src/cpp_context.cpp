@@ -246,49 +246,6 @@ std::string to_string(TemplateArg const& arg, DeclMaps const& decl_maps) {
     }
 }
 
-// Use clang's pretty printing to get a usable "spelling" for a given expression.
-// We use this instead of grabbing the actual source text because navigating the 
-// complexities of the preprocessor for macro expansion is too hard.
-// The resulting name will not necessarily be exactly what the user wrote, but
-// should work fine to feed back to compile, which is what we need
-static auto expr_to_string(clang::Expr const* expr, clang::ASTContext* ctx)
-    -> std::string {
-    static clang::PrintingPolicy print_policy(ctx->getLangOpts());
-    // print_policy.FullyQualifiedName = 1;
-    // print_policy.SuppressScope = 0;
-    // print_policy.SuppressSpecifiers = 0;
-    // print_policy.SuppressElaboration = 0;
-    // print_policy.SuppressInitializers = 0;
-    // print_policy.PrintCanonicalTypes = 1;
-    // print_policy.SuppressTemplateArgsInCXXConstructors = 0;
-    // print_policy.SuppressDefaultTemplateArgs = 0;
-
-    std::string expr_string;
-    llvm::raw_string_ostream stream(expr_string);
-    expr->printPretty(stream, nullptr, print_policy);
-    stream.flush();
-    return expr_string;
-}
-
-static auto decl_to_string(clang::Decl const* decl, clang::ASTContext* ctx)
-    -> std::string {
-    static clang::PrintingPolicy print_policy(ctx->getLangOpts());
-    print_policy.FullyQualifiedName = 1;
-    print_policy.SuppressScope = 0;
-    print_policy.SuppressSpecifiers = 0;
-    // print_policy.SuppressElaboration = 0;
-    print_policy.SuppressInitializers = 0;
-    print_policy.PrintCanonicalTypes = 1;
-    print_policy.SuppressTemplateArgsInCXXConstructors = 0;
-    print_policy.SuppressDefaultTemplateArgs = 0;
-
-    std::string expr_string;
-    llvm::raw_string_ostream stream(expr_string);
-    decl->print(stream, print_policy);
-    stream.flush();
-    return expr_string;
-}
-
 // Convert clang's BuiltinType to a bbl_builtin_t
 // Throws on an unknown builtin
 auto extract_builtin_type(clang::BuiltinType const* btype) -> bbl_builtin_t {
@@ -1187,14 +1144,6 @@ auto Context::insert_function_impl(std::string const& mod_id,
         BBL_THROW("tried to insert function impl to non-existent module {}",
                   mod_id);
     }
-}
-
-static auto create_mangle_context(clang::ASTContext& ast_context)
-    -> std::unique_ptr<clang::MangleContext> {
-    // Use the microsoft mangling always for consistency
-    return std::unique_ptr<clang::MangleContext>(
-        clang::MicrosoftMangleContext::create(ast_context,
-                                              ast_context.getDiagnostics()));
 }
 
 static auto

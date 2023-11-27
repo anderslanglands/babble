@@ -46,6 +46,23 @@ std::string get_source_and_location(clang::Stmt const* stmt, clang::SourceManage
         return fmt::format("{} - {}:{}\n{}", filename, line, col, source_text);
 }
 
+std::string get_source_and_location(clang::Decl const* decl, clang::SourceManager const& sm) {
+        std::string filename = sm.getFilename(decl->getSourceRange().getBegin()).str();
+        std::string source_text = get_spelling_text(decl->getSourceRange(), sm);
+        int line = sm.getExpansionLineNumber(decl->getSourceRange().getBegin());
+        int col = sm.getExpansionColumnNumber(decl->getSourceRange().getBegin());
+
+        return fmt::format("{} - {}:{}\n{}", filename, line, col, source_text);
+}
+
+std::string location_to_string(clang::Decl const* decl, clang::SourceManager const& sm) {
+        std::string filename = sm.getFilename(decl->getSourceRange().getBegin()).str();
+        int line = sm.getExpansionLineNumber(decl->getSourceRange().getBegin());
+        int col = sm.getExpansionColumnNumber(decl->getSourceRange().getBegin());
+
+        return fmt::format("{} - {}:{}", filename, line, col);
+}
+
 std::string get_spelling_text(clang::SourceRange range,
                             const clang::SourceManager& sm) {
     clang::LangOptions lo;
@@ -97,4 +114,55 @@ std::string get_mangled_name(clang::NamedDecl const* nd, clang::MangleContext* c
     } else {
         return nd->getQualifiedNameAsString();
     }
+}
+
+auto create_mangle_context(clang::ASTContext& ast_context)
+    -> std::unique_ptr<clang::MangleContext> {
+    // Use the microsoft mangling always for consistency
+    return std::unique_ptr<clang::MangleContext>(
+        clang::MicrosoftMangleContext::create(ast_context,
+                                              ast_context.getDiagnostics()));
+}
+
+// Use clang's pretty printing to get a usable "spelling" for a given expression.
+// We use this instead of grabbing the actual source text because navigating the 
+// complexities of the preprocessor for macro expansion is too hard.
+// The resulting name will not necessarily be exactly what the user wrote, but
+// should work fine to feed back to compile, which is what we need
+auto expr_to_string(clang::Expr const* expr, clang::ASTContext* ctx)
+    -> std::string {
+    static clang::PrintingPolicy print_policy(ctx->getLangOpts());
+    // print_policy.FullyQualifiedName = 1;
+    // print_policy.SuppressScope = 0;
+    // print_policy.SuppressSpecifiers = 0;
+    // print_policy.SuppressElaboration = 0;
+    // print_policy.SuppressInitializers = 0;
+    // print_policy.PrintCanonicalTypes = 1;
+    // print_policy.SuppressTemplateArgsInCXXConstructors = 0;
+    // print_policy.SuppressDefaultTemplateArgs = 0;
+
+    std::string expr_string;
+    llvm::raw_string_ostream stream(expr_string);
+    expr->printPretty(stream, nullptr, print_policy);
+    stream.flush();
+    return expr_string;
+}
+
+auto decl_to_string(clang::Decl const* decl, clang::ASTContext* ctx)
+    -> std::string {
+    static clang::PrintingPolicy print_policy(ctx->getLangOpts());
+    print_policy.FullyQualifiedName = 1;
+    // print_policy.SuppressScope = 0;
+    // print_policy.SuppressSpecifiers = 0;
+    // print_policy.SuppressElaboration = 0;
+    // print_policy.SuppressInitializers = 0;
+    // print_policy.PrintCanonicalTypes = 1;
+    // print_policy.SuppressTemplateArgsInCXXConstructors = 0;
+    // print_policy.SuppressDefaultTemplateArgs = 0;
+
+    std::string expr_string;
+    llvm::raw_string_ostream stream(expr_string);
+    decl->print(stream, print_policy);
+    stream.flush();
+    return expr_string;
 }
