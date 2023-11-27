@@ -181,7 +181,7 @@ public:
 
             std::string rename = get_operator_rename(fd->getQualifiedNameAsString());
             if (!rename.empty()) {
-                _result = fmt::format("{}, \"{}\"", _result, rename);
+                _result = fmt::format("{}, {}", _result, rename);
             }
             _result = fmt::format("{});\n\n", _result);
         }
