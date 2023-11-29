@@ -74,6 +74,8 @@ target_link_libraries(bbl-genbind
 if(UNIX)
   target_compile_options(bbl PUBLIC -Wno-deprecated-declarations)
   target_compile_options(bbl-genbind PUBLIC -Wno-deprecated-declarations)
+else()
+  target_compile_options(bbl PUBLIC /bigobj)
 endif()
 
 # LLVM is normally built without RTTI. Be consistent with that.

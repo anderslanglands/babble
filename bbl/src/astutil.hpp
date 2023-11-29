@@ -55,8 +55,11 @@ std::string get_source_and_location(clang::Stmt const* stmt,
                                     clang::SourceManager const& sm);
 std::string get_source_and_location(clang::Decl const* decl,
                                     clang::SourceManager const& sm);
+
 std::string location_to_string(clang::Decl const* decl,
                                clang::SourceManager const& sm);
+
+std::string get_filename(clang::Decl const* decl, clang::SourceManager const& sm);
 
 namespace clang {
 class MangleContext;
@@ -110,6 +113,40 @@ auto find_all_descendents_of_type(clang::Stmt const* stmt,
 
     for (auto const* child : stmt->children()) {
         find_all_descendents_of_type(child, result);
+    }
+}
+
+template <typename T>
+auto find_all_context_members_of_type(clang::DeclContext const* dc, std::vector<T const*>& result) -> void {
+    if (dc == nullptr) {
+        return;
+    }
+
+    for (auto const* child: dc->decls()) {
+        if (T const* ptr = llvm::dyn_cast<T>(dc); ptr != nullptr) {
+            result.push_back(ptr);
+        }
+
+        if (auto const* child_dc = llvm::dyn_cast<clang::DeclContext>(child)) {
+            find_all_context_members_of_type(child_dc, result);
+        }
+    }
+}
+
+template <typename T>
+auto find_all_defining_context_members_of_type(clang::DeclContext const* dc, std::vector<T const*>& result) -> void {
+    if (dc == nullptr) {
+        return;
+    }
+
+    for (auto const* child: dc->decls()) {
+        if (T const* ptr = llvm::dyn_cast<T>(dc); ptr != nullptr && ptr->isThisDeclarationADefinition()) {
+            result.push_back(ptr);
+        }
+
+        if (auto const* child_dc = llvm::dyn_cast<clang::DeclContext>(child)) {
+            find_all_context_members_of_type(child_dc, result);
+        }
     }
 }
 

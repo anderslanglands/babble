@@ -19,7 +19,8 @@ using llvm::dyn_cast;
 std::string get_source_text_raw(clang::SourceRange range,
                                 const clang::SourceManager& sm) {
     return clang::Lexer::getSourceText(
-               clang::CharSourceRange::getCharRange(range), sm,
+               clang::CharSourceRange::getCharRange(range),
+               sm,
                clang::LangOptions())
         .str();
 }
@@ -37,34 +38,45 @@ std::string get_source_text(clang::SourceRange range,
     return get_source_text_raw(printable_range, sm);
 }
 
-std::string get_source_and_location(clang::Stmt const* stmt, clang::SourceManager const& sm) {
-        std::string filename = sm.getFilename(stmt->getSourceRange().getBegin()).str();
-        std::string source_text = get_spelling_text(stmt->getSourceRange(), sm);
-        int line = sm.getExpansionLineNumber(stmt->getSourceRange().getBegin());
-        int col = sm.getExpansionColumnNumber(stmt->getSourceRange().getBegin());
+std::string get_source_and_location(clang::Stmt const* stmt,
+                                    clang::SourceManager const& sm) {
+    std::string filename =
+        sm.getFilename(stmt->getSourceRange().getBegin()).str();
+    std::string source_text = get_spelling_text(stmt->getSourceRange(), sm);
+    int line = sm.getExpansionLineNumber(stmt->getSourceRange().getBegin());
+    int col = sm.getExpansionColumnNumber(stmt->getSourceRange().getBegin());
 
-        return fmt::format("{} - {}:{}\n{}", filename, line, col, source_text);
+    return fmt::format("{} - {}:{}\n{}", filename, line, col, source_text);
 }
 
-std::string get_source_and_location(clang::Decl const* decl, clang::SourceManager const& sm) {
-        std::string filename = sm.getFilename(decl->getSourceRange().getBegin()).str();
-        std::string source_text = get_spelling_text(decl->getSourceRange(), sm);
-        int line = sm.getExpansionLineNumber(decl->getSourceRange().getBegin());
-        int col = sm.getExpansionColumnNumber(decl->getSourceRange().getBegin());
+std::string get_source_and_location(clang::Decl const* decl,
+                                    clang::SourceManager const& sm) {
+    std::string filename =
+        sm.getFilename(decl->getSourceRange().getBegin()).str();
+    std::string source_text = get_spelling_text(decl->getSourceRange(), sm);
+    int line = sm.getExpansionLineNumber(decl->getSourceRange().getBegin());
+    int col = sm.getExpansionColumnNumber(decl->getSourceRange().getBegin());
 
-        return fmt::format("{} - {}:{}\n{}", filename, line, col, source_text);
+    return fmt::format("{} - {}:{}\n{}", filename, line, col, source_text);
 }
 
-std::string location_to_string(clang::Decl const* decl, clang::SourceManager const& sm) {
-        std::string filename = sm.getFilename(decl->getSourceRange().getBegin()).str();
-        int line = sm.getExpansionLineNumber(decl->getSourceRange().getBegin());
-        int col = sm.getExpansionColumnNumber(decl->getSourceRange().getBegin());
+std::string location_to_string(clang::Decl const* decl,
+                               clang::SourceManager const& sm) {
+    std::string filename =
+        sm.getFilename(decl->getSourceRange().getBegin()).str();
+    int line = sm.getExpansionLineNumber(decl->getSourceRange().getBegin());
+    int col = sm.getExpansionColumnNumber(decl->getSourceRange().getBegin());
 
-        return fmt::format("{} - {}:{}", filename, line, col);
+    return fmt::format("{} - {}:{}", filename, line, col);
+}
+
+std::string get_filename(clang::Decl const* decl,
+                         clang::SourceManager const& sm) {
+    return sm.getFilename(decl->getSourceRange().getBegin()).str();
 }
 
 std::string get_spelling_text(clang::SourceRange range,
-                            const clang::SourceManager& sm) {
+                              const clang::SourceManager& sm) {
     clang::LangOptions lo;
 
     // NOTE: sm.getSpellingLoc() used in case the range corresponds to a
@@ -90,7 +102,8 @@ auto is_in_std_namespace(clang::DeclContext const* dc) -> bool {
     return is_in_std_namespace(dc->getParent());
 }
 
-auto is_in_namespace(clang::DeclContext const* dc, std::string const& name) -> bool {
+auto is_in_namespace(clang::DeclContext const* dc, std::string const& name)
+    -> bool {
     if (dc == nullptr) {
         return false;
     }
@@ -104,13 +117,18 @@ auto is_in_namespace(clang::DeclContext const* dc, std::string const& name) -> b
     return is_in_namespace(dc->getParent(), name);
 }
 
-std::string get_mangled_name(clang::NamedDecl const* nd, clang::MangleContext* ctx) {
+std::string get_mangled_name(clang::NamedDecl const* nd,
+                             clang::MangleContext* ctx) {
     if (ctx->shouldMangleDeclName(nd)) {
         std::string mangled_name;
         llvm::raw_string_ostream ostr(mangled_name);
         ctx->mangleName(nd, ostr);
         ostr.flush();
-        return mangled_name;
+        if (mangled_name.empty()) {
+            return nd->getQualifiedNameAsString().c_str();
+        } else {
+            return mangled_name;
+        }
     } else {
         return nd->getQualifiedNameAsString();
     }
@@ -124,11 +142,11 @@ auto create_mangle_context(clang::ASTContext& ast_context)
                                               ast_context.getDiagnostics()));
 }
 
-// Use clang's pretty printing to get a usable "spelling" for a given expression.
-// We use this instead of grabbing the actual source text because navigating the 
-// complexities of the preprocessor for macro expansion is too hard.
-// The resulting name will not necessarily be exactly what the user wrote, but
-// should work fine to feed back to compile, which is what we need
+// Use clang's pretty printing to get a usable "spelling" for a given
+// expression. We use this instead of grabbing the actual source text because
+// navigating the complexities of the preprocessor for macro expansion is too
+// hard. The resulting name will not necessarily be exactly what the user wrote,
+// but should work fine to feed back to compile, which is what we need
 auto expr_to_string(clang::Expr const* expr, clang::ASTContext* ctx)
     -> std::string {
     static clang::PrintingPolicy print_policy(ctx->getLangOpts());
