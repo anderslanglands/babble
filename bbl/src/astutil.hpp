@@ -59,7 +59,7 @@ std::string get_source_and_location(clang::Decl const* decl,
 std::string location_to_string(clang::Decl const* decl,
                                clang::SourceManager const& sm);
 
-std::string get_filename(clang::Decl const* decl, clang::SourceManager const& sm);
+std::string get_filename(clang::NamedDecl const* decl, clang::SourceManager const& sm);
 
 namespace clang {
 class MangleContext;

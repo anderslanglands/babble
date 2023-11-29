@@ -60,14 +60,12 @@ auto find_all_class_decls(clang::DeclContext const* dc,
     }
 
     for (auto const* child : dc->decls()) {
-        if (auto const* crd = dyn_cast<CXXRecordDecl>(child);
-            crd != nullptr && crd->isThisDeclarationADefinition()) {
-            std::string mangled_name = get_mangled_name(crd, mangle_context);
-            if (classes.find(mangled_name) == classes.end()) {
-                classes.insert(std::pair(mangled_name, crd));
-            }
-
-            find_all_class_decls(crd, classes, class_templates, mangle_context);
+        if (auto const* ctpsd =
+                dyn_cast<ClassTemplatePartialSpecializationDecl>(child)) {
+            /// XXX: Some partial specializations break the mangler. 
+            /// we could switch to pointers as keys, but we also need to think
+            /// about how we represent them too, or if we do...
+            continue;
         } else if (auto const* ctd = dyn_cast<ClassTemplateDecl>(child);
                    ctd != nullptr && ctd->isThisDeclarationADefinition()) {
             std::string mangled_name = get_mangled_name(ctd, mangle_context);
@@ -79,6 +77,14 @@ auto find_all_class_decls(clang::DeclContext const* dc,
                                  classes,
                                  class_templates,
                                  mangle_context);
+        } else if (auto const* crd = dyn_cast<CXXRecordDecl>(child);
+                   crd != nullptr && crd->isThisDeclarationADefinition()) {
+            std::string mangled_name = get_mangled_name(crd, mangle_context);
+            if (classes.find(mangled_name) == classes.end()) {
+                classes.insert(std::pair(mangled_name, crd));
+            }
+
+            find_all_class_decls(crd, classes, class_templates, mangle_context);
         } else if (auto const* nd = dyn_cast<NamespaceDecl>(child)) {
             find_all_class_decls(nd, classes, class_templates, mangle_context);
         }
@@ -94,7 +100,11 @@ auto find_all_function_decls(clang::DeclContext const* dc,
     }
 
     for (auto const* child : dc->decls()) {
-        if (auto const* fd = dyn_cast<FunctionDecl>(child)) {
+        if (dyn_cast<CXXMethodDecl>(child) ||
+            dyn_cast<CXXConstructorDecl>(child) ||
+            dyn_cast<CXXDestructorDecl>(child)) {
+            continue;
+        } else if (auto const* fd = dyn_cast<FunctionDecl>(child)) {
             std::string mangled_name = get_mangled_name(fd, mangle_context);
             if (functions.find(mangled_name) == functions.end()) {
                 functions.insert(std::pair(mangled_name, fd));
@@ -255,12 +265,12 @@ auto create_constructor_from_ccd(CXXConstructorDecl const* ccd,
     bool first = true;
     int param_index = 0;
     for (auto const& param : ccd->parameters()) {
-        types = fmt::format(", {}", param->getType().getAsString());
+        types = fmt::format("{}, {}", types, param->getType().getAsString());
 
         if (first) {
             first = false;
         } else {
-            names = fmt::format(", ");
+            names = fmt::format("{}, ", names);
         }
         std::string param_name = param->getNameAsString();
         names = param_name.empty() ? fmt::format("\"param_{:02}\"", param_index)
@@ -321,6 +331,7 @@ auto create_class_from_crd(CXXRecordDecl const* crd,
 }
 
 auto longest_common_prefix(std::set<std::string> const& set) -> std::string {
+    // set is already sorted, so we can do it this way
     std::string const& first = *set.begin();
     std::string const& last = *set.rbegin();
 
@@ -552,7 +563,7 @@ int main(int argc, char const** argv) {
 
         /// XXX: There's definitely a way to do this with the
         /// preprocessor, but I can't figure out how to invoke it
-        /// correctly in our context This will do for now, but note
+        /// correctly in our context. This will do for now, but note
         /// that it will fail if the user #if's out any includes (it
         /// will still include them)
         std::ifstream infile(absolute_path);
@@ -623,7 +634,9 @@ int main(int argc, char const** argv) {
     std::vector<Class> classes;
     for (auto const& [mangled_name, crd] : class_decls.values()) {
         Class cls = create_class_from_crd(crd, ppolicy);
-        decl_filenames.insert(cls.filename);
+        if (!cls.filename.empty()) {
+            decl_filenames.insert(cls.filename);
+        }
         classes.emplace_back(std::move(cls));
     }
 
@@ -631,7 +644,9 @@ int main(int argc, char const** argv) {
     for (auto const& [mangled_name, ctd] : class_template_decls.values()) {
         Class cls = create_class_from_crd(ctd->getTemplatedDecl(), ppolicy);
         cls.is_template = true;
-        decl_filenames.insert(cls.filename);
+        if (!cls.filename.empty()) {
+            decl_filenames.insert(cls.filename);
+        }
         classes.emplace_back(std::move(cls));
     }
 
@@ -650,7 +665,9 @@ int main(int argc, char const** argv) {
         Function function;
         function.filename =
             get_filename(fd, fd->getASTContext().getSourceManager());
-        decl_filenames.insert(function.filename);
+        if (!function.filename.empty()) {
+            decl_filenames.insert(function.filename);
+        }
         function.name = fd->getNameAsString();
         function.qualified_name = fd->getQualifiedNameAsString();
         function.cast = get_function_cast_string(fd, "", false, ppolicy);
@@ -664,7 +681,9 @@ int main(int argc, char const** argv) {
         Function function;
         function.filename =
             get_filename(ftd, ftd->getASTContext().getSourceManager());
-        decl_filenames.insert(function.filename);
+        if (!function.filename.empty()) {
+            decl_filenames.insert(function.filename);
+        }
         function.name = ftd->getNameAsString();
         function.qualified_name = ftd->getQualifiedNameAsString();
         function.cast = get_function_cast_string(
@@ -694,7 +713,9 @@ int main(int argc, char const** argv) {
     for (auto const& [mangled_name, ed] : enum_decls) {
         Enum enm;
         enm.filename = get_filename(ed, ed->getASTContext().getSourceManager());
-        decl_filenames.insert(enm.filename);
+        if (!enm.filename.empty()) {
+            decl_filenames.insert(enm.filename);
+        }
         enm.qualified_name = ed->getQualifiedNameAsString();
         enums.emplace_back(std::move(enm));
     }
@@ -715,6 +736,10 @@ int main(int argc, char const** argv) {
     // that contain the decls we've extracted
     std::string prefix = longest_common_prefix(decl_filenames);
 
+    // This seems brittle. It might be possible to have decls not in a common
+    // include tree (although unlikely?)
+    // we already hit issues where some functions just don't have a filename 
+    // associated in the source manager
     if (prefix.empty()) {
         SPDLOG_ERROR("no common prefix on:");
         for (std::string const& filename : decl_filenames) {
@@ -727,6 +752,10 @@ int main(int argc, char const** argv) {
     // create out bindfile paths
     ankerl::unordered_dense::map<std::string, BindFile> bindfiles;
     fs::path bindfile_root = fs::path(output_directory) / "bind";
+    // insert a "misc" bindfile for the empty decl filename case - for some reason
+    // some decls don't give a filename in clang
+    /// XXX: figure out why
+    bindfiles.insert(std::pair("", BindFile{bindfile_root/"bbl-misc.cpp", inclusions, {}}));
     for (std::string const& absolute_path : decl_filenames) {
         if (absolute_path.find(prefix) != 0) {
             SPDLOG_ERROR(
@@ -803,9 +832,8 @@ int main(int argc, char const** argv) {
                                           bindfile.content);
 
         out_file << content;
-        std::string bindfile_relpath =
-            replace_all(fs::relative(bindfile.path, output_directory)
-                .string(), "\\", "/");
+        std::string bindfile_relpath = replace_all(
+            fs::relative(bindfile.path, output_directory).string(), "\\", "/");
         cmakelists = fmt::format("{}  {}\n", cmakelists, bindfile_relpath);
     }
 
@@ -867,10 +895,12 @@ install(
 }
 
 auto get_operator_rename(std::string const& name) -> std::string {
-    if (name.rfind("operator=") != std::string::npos) {
-        return "op_assign";
-    } else if (name.rfind("operator==") != std::string::npos) {
+    if (name.rfind("operator==") != std::string::npos) {
         return "op_eq";
+    } else if (name.rfind("operator[]") != std::string::npos) {
+        return "op_index";
+    } else if (name.rfind("operator=") != std::string::npos) {
+        return "op_assign";
     } else if (name.rfind("operator<<=") != std::string::npos) {
         return "op_lshift_assign";
     } else if (name.rfind("operator<<") != std::string::npos) {
@@ -910,7 +940,7 @@ auto get_operator_rename(std::string const& name) -> std::string {
     } else if (name.rfind("operator^") != std::string::npos) {
         return "op_xor";
     } else if (name.rfind("operator!=") != std::string::npos) {
-        return "op_not_assign";
+        return "op_neq";
     } else if (name.rfind("operator!") != std::string::npos) {
         return "op_not";
     } else if (name.rfind("operator|=") != std::string::npos) {

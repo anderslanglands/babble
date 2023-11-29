@@ -70,9 +70,11 @@ std::string location_to_string(clang::Decl const* decl,
     return fmt::format("{} - {}:{}", filename, line, col);
 }
 
-std::string get_filename(clang::Decl const* decl,
+std::string get_filename(clang::NamedDecl const* decl,
                          clang::SourceManager const& sm) {
-    return sm.getFilename(decl->getSourceRange().getBegin()).str();
+    
+    std::string filename = sm.getFilename(decl->getSourceRange().getBegin()).str();
+    return filename;
 }
 
 std::string get_spelling_text(clang::SourceRange range,
@@ -120,6 +122,9 @@ auto is_in_namespace(clang::DeclContext const* dc, std::string const& name)
 std::string get_mangled_name(clang::NamedDecl const* nd,
                              clang::MangleContext* ctx) {
     if (ctx->shouldMangleDeclName(nd)) {
+        std::string source = get_source_and_location(nd, nd->getASTContext().getSourceManager());
+        std::string kind = nd->getDeclKindName();
+        std::string qname = nd->getQualifiedNameAsString();
         std::string mangled_name;
         llvm::raw_string_ostream ostr(mangled_name);
         ctx->mangleName(nd, ostr);
