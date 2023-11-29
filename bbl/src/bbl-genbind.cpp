@@ -387,7 +387,7 @@ auto write_class_to_string(Class const& cls) -> std::string {
         std::string rename_str =
             ctor.is_default ? "default" : fmt::format("ctor_{:02}", ctor_index);
 
-        result = fmt::format("{}    .ctor(bbl::Ctor<{}>({}), \"{}\")\n",
+        result = fmt::format("{}        .ctor(bbl::Ctor<{}>({}), \"{}\")\n",
                              result,
                              ctor.types,
                              ctor.names,
@@ -413,7 +413,7 @@ auto write_class_to_string(Class const& cls) -> std::string {
                               ", \"{}_{:02}\"", method.rename, overload_index);
 
                 // overloaded functions must be cast
-                result = fmt::format("{}        .m({}\n           &{}{})\n",
+                result = fmt::format("{}        .m({}\n            &{}{})\n",
                                      result,
                                      method.cast,
                                      method.qualified_name,
