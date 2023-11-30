@@ -214,8 +214,8 @@ public:
 template <typename Result, typename... Args>
 void fn(Result (*fun)(Args...), const char* rename = "") {}
 
-void rename_namespace(const char* from, const char* to) {}
-void prepend_module_name(bool enable) {}
+inline void rename_namespace(const char* from, const char* to) {}
+inline void prepend_module_name(bool enable) {}
 
 template <typename E> class Enum {
 public:
