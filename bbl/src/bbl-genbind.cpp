@@ -139,6 +139,8 @@ auto find_all_enum_decls(clang::DeclContext const* dc,
             }
         } else if (auto const* nd = dyn_cast<NamespaceDecl>(child)) {
             find_all_enum_decls(nd, enums, mangle_context);
+        } else if (auto const* crd = dyn_cast<CXXRecordDecl>(child)) {
+            find_all_enum_decls(crd, enums, mangle_context);
         }
     }
 }
@@ -260,21 +262,22 @@ auto create_constructor_from_ccd(CXXConstructorDecl const* ccd,
                                  CXXRecordDecl const* crd,
                                  PrintingPolicy const& ppolicy) -> Constructor {
 
-    std::string types = crd->getQualifiedNameAsString();
+    std::string types;
     std::string names;
     bool first = true;
     int param_index = 0;
     for (auto const& param : ccd->parameters()) {
-        types = fmt::format("{}, {}", types, param->getType().getAsString());
-
         if (first) {
             first = false;
         } else {
             names = fmt::format("{}, ", names);
+            types = fmt::format("{}, ", types);
         }
+        types = fmt::format("{}{}", types, param->getType().getAsString());
+
         std::string param_name = param->getNameAsString();
-        names = param_name.empty() ? fmt::format("\"param_{:02}\"", param_index)
-                                   : fmt::format("\"{}\"", param_name);
+        names = param_name.empty() ? fmt::format("{}\"param_{:02}\"", names, param_index)
+                                   : fmt::format("{}\"{}\"", names, param_name);
 
         param_index++;
     }
@@ -369,7 +372,7 @@ auto write_class_to_string(Class const& cls) -> std::string {
     std::string result;
     if (cls.is_template) {
         result =
-            fmt::format("{}    /** TODO: instantiate this template\n", result);
+            fmt::format("{}#if 0\n    /// TODO: instantiate this template\n", result);
     }
 
     result =
@@ -442,7 +445,7 @@ auto write_class_to_string(Class const& cls) -> std::string {
     result = fmt::format("{}    ;\n", result);
 
     if (cls.is_template) {
-        result = fmt::format("{}    */\n", result);
+        result = fmt::format("{}#endif\n", result);
     }
 
     return result;
