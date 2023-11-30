@@ -35,7 +35,7 @@ public:
 BBL_MODULE(test017) {
     bbl::Class<qux::Vec3f>()
         .value_type()
-        .ctor(bbl::Ctor<qux::Vec3f>())
+        .ctor(bbl::Class<qux::Vec3f>::Ctor<>())
         .m(&qux::Vec3f::length)
         .m(&qux::Vec3f::dist)
         .f(&qux::Vec3f::x)
@@ -44,12 +44,12 @@ BBL_MODULE(test017) {
         ;
 
     bbl::Class<qux::Foo>()
-        .ctor(bbl::Ctor<qux::Foo, int, float>("a", "b"))
+        .ctor(bbl::Class<qux::Foo>::Ctor<int, float>("a", "b"))
         .m(&qux::Foo::do_foo)
         .m(&qux::Foo::do_foo2)
         ;
 
     bbl::Class<qux::Bar>()
-        .ctor(bbl::Ctor<qux::Bar, int, float>("a", "b"))
+        .ctor(bbl::Class<qux::Bar>::Ctor<int, float>("a", "b"))
         ;
 }

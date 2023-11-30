@@ -50,6 +50,8 @@ function(BBL_TRANSLATE_BINDING PROJECT_NAME)
                  -I${BABBLE_RESOURCE_DIR}/include
                 "-I$<JOIN:$<TARGET_PROPERTY:babble::bind,INTERFACE_INCLUDE_DIRECTORIES>,;-I>" 
                 "-I$<JOIN:$<TARGET_PROPERTY:${TARGET_NAME},INCLUDE_DIRECTORIES>,;-I>" 
+                "$<JOIN:$<TARGET_PROPERTY:${TARGET_NAME},COMPILE_DEFINITIONS>,;>" 
+                "$<JOIN:$<TARGET_PROPERTY:${TARGET_NAME},COMPILE_OPTIONS>,;>" 
                 ${arg_COMPILE_ARGS}
                 -- 
                 ${PROJECT_NAME} 
@@ -75,25 +77,36 @@ function(BBL_TRANSLATE_BINDING PROJECT_NAME)
     )
 endfunction()
 
-function(BBL_GENERATE_BINDING PROJECT_NAME SOURCE_FILE)
-    add_library(${PROJECT_NAME} ${SOURCE_FILE})
+function(BBL_GENERATE_BINDING PROJECT_NAME GENFILE NAMESPACE)
+    # God, I hate CMake so much...
+    set(TARGET_NAME "${PROJECT_NAME}-gen")
+    set(OUTPUT_PROJECT_PATH ${CMAKE_BINARY_DIR}/${PROJECT_NAME})
+    set(OUTPUT_DUMMY ${OUTPUT_PROJECT_PATH}/bbl-dummy-cpp)
+
+    add_library(${TARGET_NAME} STATIC ${GENFILE} ${OUTPUT_DUMMY})
+    target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+    set(genfile_path ${CMAKE_CURRENT_SOURCE_DIR}/${GENFILE})
 
     add_custom_command(
-        OUTPUT ${CMAKE_BINARY_DIR}/${SOURCE_FILE}
-        DEPENDS ${SOURCE_FILE}
+        OUTPUT ${OUTPUT_DUMMY}
+        DEPENDS ${genfile_path}
         COMMAND 
-            bbl-genbind
-                ${SOURCE_FILE} 
+            ${BABBLE_GENERATE}
+                ${genfile_path} 
                 -- 
                 -std=c++17
                 -fsyntax-only
                 -fno-spell-checking
-                -I${BABBLE_RESOURCE_DIR}/include
+                -idirafter ${BABBLE_RESOURCE_DIR}/include
                 "-I$<JOIN:$<TARGET_PROPERTY:babble::bind,INTERFACE_INCLUDE_DIRECTORIES>,;-I>" 
-                "-I$<JOIN:$<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>,;-I>" 
+                "-I$<JOIN:$<TARGET_PROPERTY:${TARGET_NAME},INCLUDE_DIRECTORIES>,;-I>" 
+                "$<JOIN:$<TARGET_PROPERTY:${TARGET_NAME},COMPILE_DEFINITIONS>,;>" 
+                "$<JOIN:$<TARGET_PROPERTY:${TARGET_NAME},COMPILE_OPTIONS>,;>" 
                 -- 
                 ${PROJECT_NAME} 
-                -o ${CMAKE_CURRENT_BINARY_DIR}
+                ${OUTPUT_PROJECT_PATH}
+                ${NAMESPACE}
         COMMAND_EXPAND_LISTS
     )
 endfunction()

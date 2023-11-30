@@ -24,7 +24,7 @@ public:
 };
 
 #define METHODS(TY, NAME) \
-    .ctor(bbl::Ctor<Foo, TY>("value"), "from_" NAME) \
+    .ctor(bbl::Class<Foo>::Ctor<TY const&>("value"), "from_" NAME) \
     .m((TY const& (Foo::*)())                        \
         &Foo::get<TY>, "get_" NAME)                  \
     .m((bool (Foo::*)())                             \

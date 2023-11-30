@@ -27,7 +27,7 @@ BBL_MODULE(test016) {
         ;
 
     bbl::Class<qux::Foo>()
-        .ctor(bbl::Ctor<qux::Foo>())
+        .ctor(bbl::Class<qux::Foo>::Ctor<>())
         .m(&qux::Foo::take_enum)
         .m(&qux::Foo::return_enum)
         ;

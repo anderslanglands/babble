@@ -14,21 +14,6 @@ template <typename...> struct Tuple {};
 template <typename T1, typename T2> struct Pair {};
 } // namespace detail
 
-template <typename C, typename... Args> struct Ctor {
-    template <typename... CtorArgs> Ctor(CtorArgs...) {
-        // Make sure length of provided name args matches the length of the type
-        // args
-        if constexpr (sizeof...(CtorArgs) > 0) {
-            static_assert(
-                sizeof...(CtorArgs) == sizeof...(Args),
-                "size of Ctor argument list (parameter names) must match the "
-                "size of the template argument list (parameter types)");
-        }
-    }
-
-    bool is_noexcept = std::is_nothrow_constructible<C, Args...>::value;
-};
-
 /// Bind a class in the current module.
 ///
 /// e.g. to bind a class `Foo`, do:
@@ -64,9 +49,24 @@ public:
 
     Class(const char* name) {}
 
+    template <typename... Args> struct Ctor {
+        template <typename... CtorArgs> Ctor(CtorArgs...) {
+            // Make sure length of provided name args matches the length of the type
+            // args
+            if constexpr (sizeof...(CtorArgs) > 0) {
+                static_assert(
+                    sizeof...(CtorArgs) == sizeof...(Args),
+                    "size of Ctor argument list (parameter names) must match the "
+                    "size of the template argument list (parameter types)");
+            }
+        }
+
+        bool is_noexcept = std::is_nothrow_constructible<C, Args...>::value;
+    };
+
     /// Bind a constructor
     template <typename T = C, typename... Args>
-    Class ctor(Ctor<C, Args...> ctor, const char* rename = "") {
+    Class ctor(Ctor<Args...> ctor, const char* rename = "") {
         static_assert(std::is_constructible<T, Args...>::value,
                       "can not construct class with these arguments");
 

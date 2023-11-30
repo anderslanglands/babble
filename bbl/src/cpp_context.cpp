@@ -121,7 +121,7 @@ QType clone(QType const& qt) {
     }
 }
 
-// Return a copy of this QType wrapped in a pointer, effectively turning a 
+// Return a copy of this QType wrapped in a pointer, effectively turning a
 // T into a T*
 QType wrap_in_pointer(QType const& qt) {
     return QType{false, Pointer{std::make_unique<QType>(clone(qt))}};
@@ -167,7 +167,7 @@ to_string(bbl::Type const& ty, char const* s_const, DeclMaps const& decl_maps) {
         bbl_builtin_t const& builtin = std::get<bbl_builtin_t>(ty.kind);
         return fmt::format("{}{}", builtin, s_const);
     } else if (std::holds_alternative<bbl::ClassId>(ty.kind)) {
-        // Get the class id that this variant holds and use it to look up the 
+        // Get the class id that this variant holds and use it to look up the
         // corresponding class in the given decl_maps.
         bbl::ClassId const& classid = std::get<bbl::ClassId>(ty.kind);
         std::string name;
@@ -436,8 +436,8 @@ auto Context::extract_qualtype(clang::QualType const& qt,
     }
 }
 
-// Convert a TemplateArgument to one or many TemplateArgs. 
-// A single TemplateArgument may expand to many in the case that it is a 
+// Convert a TemplateArgument to one or many TemplateArgs.
+// A single TemplateArgument may expand to many in the case that it is a
 // parameter pack
 auto Context::extract_single_template_arg(
     clang::TemplateArgument const& arg,
@@ -460,7 +460,8 @@ auto Context::extract_single_template_arg(
     }
 }
 
-// Extract all the template arguments used to specialize this ClassTemplateSpeicalizationDecl
+// Extract all the template arguments used to specialize this
+// ClassTemplateSpeicalizationDecl
 auto Context::extract_template_arguments(
     clang::ClassTemplateSpecializationDecl const* ctsd,
     std::vector<TemplateArg>& template_args,
@@ -479,10 +480,10 @@ auto Context::extract_template_arguments(
     }
 }
 
-// Evaluate the a constexpr boolean expression on the variable named `name` on 
+// Evaluate the a constexpr boolean expression on the variable named `name` on
 // the given RecordDecl.
-// Throws if the field `name` doesn't exist, if the expression cannot be found, or
-// it cannot be evaluated
+// Throws if the field `name` doesn't exist, if the expression cannot be found,
+// or it cannot be evaluated
 auto evaluate_field_expression_bool(clang::RecordDecl const* rd,
                                     char const* name,
                                     clang::ASTContext& ast_context) -> bool {
@@ -2134,19 +2135,17 @@ extract_ctor_from_construct_expr(clang::CXXConstructExpr const* cce,
             BBL_THROW("arg {} of constructor is not a type", i);
         }
 
-        if (i > 0) {
-            std::string param_name;
-            int param_name_index = i - 1;
-            if (param_name_index < param_names.size()) {
-                param_name = param_names[param_name_index]->getString().str();
-            } else {
-                // handle missing param names with auto-generated names
-                param_name = fmt::format("param{:02}", param_name_index);
-            }
-
-            parameters.push_back(
-                bbl::Param{param_name, std::move(std::get<QType>(arg))});
+        std::string param_name;
+        int param_name_index = i;
+        if (param_name_index < param_names.size()) {
+            param_name = param_names[param_name_index]->getString().str();
+        } else {
+            // handle missing param names with auto-generated names
+            param_name = fmt::format("param{:02}", param_name_index);
         }
+
+        parameters.push_back(
+            bbl::Param{param_name, std::move(std::get<QType>(arg))});
 
         ++i;
     }
@@ -2172,37 +2171,54 @@ extract_ctor_from_construct_expr(clang::CXXConstructExpr const* cce,
     // // find the CXXConstructExpr to get the class we're
     // // attaching to
     // // XXX: handle object instance not ctor
-    // auto const* cce_target =
-    //     find_first_descendent_of_type<clang::CXXConstructExpr>(mce);
-    // if (cce_target == nullptr) {
-    //     BBL_THROW("could not get CXXConstructExpr from "
-    //               "CXXMemberCallExpr {}",
-    //               get_source_text(mce->getSourceRange(), sm));
-    // }
-
-    // // And finally get the target class that we're going to add the
-    // // constructor to
-    // clang::CXXRecordDecl const* crd_target =
-    //     get_record_to_extract_from_construct_expr(cce_target);
-    // std::string target_class_id = get_mangled_name(crd_target,
-    // mangle_context);
-
-    // the target class to attach to will be the first template argument to the
-    // Ctor constructor
-    if (!std::holds_alternative<QType>(template_args[0])) {
-        BBL_THROW("first template argument to Ctor is not a qtype in {}",
-                  get_source_text(cce->getSourceRange(), sm));
-    }
-    QType const& qt_target = std::get<QType>(template_args[0]);
-    std::optional<std::string> opt_target_class_id = get_as_classid(qt_target);
-    if (!opt_target_class_id.has_value()) {
-        BBL_THROW("first template argument to Ctor is not a class in {}",
-                  get_source_text(cce->getSourceRange(), sm));
+    auto const* cce_target =
+        find_first_descendent_of_type<clang::CXXConstructExpr>(mce);
+    if (cce_target == nullptr) {
+        BBL_THROW("could not get CXXConstructExpr from "
+                  "CXXMemberCallExpr {}",
+                  get_source_text(mce->getSourceRange(), sm));
     }
 
-    std::string target_class_id = opt_target_class_id.value();
+    // And finally get the target class that we're going to add the
+    // constructor to
+    clang::CXXRecordDecl const* crd_target =
+        get_record_to_extract_from_construct_expr(cce_target);
+    std::string target_class_id = get_mangled_name(crd_target, mangle_context);
 
-    std::string comment = get_comment_from_decl(ccd, ast_context);
+    // Try and find the actual constructor decl on the target crd
+    clang::CXXConstructorDecl const* target_ccd = nullptr;
+    for (clang::CXXConstructorDecl const* cd : crd_target->ctors()) {
+        if (cd->getNumParams() != parameters.size()) {
+            continue;
+        }
+
+        if (parameters.empty()) {
+            // this is the default constructor
+            target_ccd = cd;
+            break;
+        }
+
+        bool match = true;
+        for (int i = 0; i < parameters.size(); ++i) {
+            if (parameters[i].type !=
+                bbl_ctx->extract_qualtype(cd->parameters()[i]->getType(),
+                                          mangle_context)) {
+                match = false;
+                break;
+            }
+        }
+
+        if (match) {
+            target_ccd = cd;
+            break;
+        }
+    }
+
+    // If we could find a matching constructor, then grab any doc comment from it
+    std::string comment;
+    if (target_ccd != nullptr) {
+        comment = get_comment_from_decl(target_ccd, ast_context);
+    }
 
     bbl::Class* cls = bbl_ctx->get_class(target_class_id);
     if (cls == nullptr) {
@@ -2213,8 +2229,6 @@ extract_ctor_from_construct_expr(clang::CXXConstructExpr const* cce,
 
     // We're not actually pointing to the constructor here, so we need
     // to create a made-up id
-    // XXX: figure a way to get to the actual constructor decl. Perhaps
-    // type-matching the parameters?
     std::string ctor_id =
         fmt::format("{}/ctor/{}", rename_str, target_class_id);
 

@@ -387,8 +387,9 @@ auto write_class_to_string(Class const& cls) -> std::string {
         std::string rename_str =
             ctor.is_default ? "default" : fmt::format("ctor_{:02}", ctor_index);
 
-        result = fmt::format("{}        .ctor(bbl::Ctor<{}>({}), \"{}\")\n",
+        result = fmt::format("{}        .ctor(bbl::Class<{}>::Ctor<{}>({}), \"{}\")\n",
                              result,
+                             cls.qualified_name,
                              ctor.types,
                              ctor.names,
                              rename_str);
@@ -888,8 +889,12 @@ install(
         SPDLOG_ERROR("could not open {}", cmakelists_path.string());
         return ERROR_FILE_OPEN;
     }
-
     out_cmakelists << cmakelists;
+
+    fs::path dummy_path = fs::path(output_directory) / "bbl-dummy.cpp";
+    std::ofstream out_dummy(dummy_path);
+    out_dummy << "// dummy file to create cmake dependency. ignore\n";
+
 
     return SUCCESS;
 }

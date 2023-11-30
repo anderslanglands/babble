@@ -9,7 +9,7 @@ BBL_MODULE(bar) {
     ;
 
     bbl::Class<FooPtr>("FooPtr")
-        .ctor(bbl::Ctor<FooPtr>(), "new")
+        .ctor(bbl::Class<FooPtr>::Ctor<>(), "new")
         .smartptr_to<Foo>()
         ;
 }

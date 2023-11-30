@@ -28,12 +28,12 @@ BBL_MODULE(test015) {
     using namespace bbl;
     
     bbl::Class<qux::Bar>()
-        .ctor(bbl::Ctor<qux::Bar>())
+        .ctor(bbl::Class<qux::Bar>::Ctor<>())
         .m(&qux::Bar::baz)
         ;
 
     bbl::Class<qux::Foo>()
-        .ctor(bbl::Ctor<qux::Foo>())
+        .ctor(bbl::Class<qux::Foo>::Ctor<>())
         .m(&qux::Foo::foo)
         .m(&qux::Foo::foo2)
         .m(&qux::Foo::foo3)

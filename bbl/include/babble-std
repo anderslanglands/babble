@@ -4,7 +4,7 @@
 
 // Bind std::vector<TY>
 #define BBL_STD_VECTOR_METHODS(TY)                                                                                                          \
-    .ctor(bbl::Ctor<std::vector<bbl::detail::argument_type<void(TY)>::type>>(), "default")                                                  \
+    .ctor(bbl::Class<std::vector<bbl::detail::argument_type<void(TY)>::type>>::Ctor<>(), "default")                                                  \
     .m((bbl::detail::argument_type<void(TY)>::type * (std::vector<bbl::detail::argument_type<void(TY)>::type>::*)()) &                      \
        std::vector<bbl::detail::argument_type<void(TY)>::type>::data)                                                                       \
     .m((bbl::detail::argument_type<void(TY)>::type const* (std::vector<bbl::detail::argument_type<void(TY)>::type>::*)() const) &           \

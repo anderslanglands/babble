@@ -454,8 +454,8 @@ namespace foo {
 // bindfile
 BBL_MODULE(foo) {
   bbl::Class<foo::Bar>()
-    .ctor(bbl::Ctor<foo::Bar>(), "default")
-    .ctor(bbl::Ctor<foo::Bar, float>("value"), "from_float")
+    .ctor(bbl::Class<foo::Bar>::Ctor<>(), "default")
+    .ctor(bbl::Class<foo::Bar>::Ctor<float>("value"), "from_float")
   ;
 }
 ```
@@ -465,11 +465,11 @@ typedef struct foo_Bar_t foo_Bar_t;
 int foo_Bar_default(foo_Bar_t** result);
 int foo_Bar_from_float(float value, foo_Bar_t** result);
 ```
-We bind constructors using the `ctor()` method on `bbl::Class`. The `ctor()` method takes an instance of `bbl::Ctor`.
+We bind constructors using the `ctor()` method on `bbl::Class`. The `ctor()` method takes an instance of `bbl::Class::Ctor`.
 
-The template arguments to `bbl::Ctor` define the types of the arguments to the constructor. The first argument must always be the type that this constructor is for.
+The template arguments to `bbl::Class::Ctor` define the types of the arguments to the constructor.
 
-The parameters to the `bbl::Ctor` constructor optionally define the names of the generated constructor parameters. These are optional and do not need to be the same as the parameter names in the target library.
+The parameters to the `bbl::Class::Ctor` constructor optionally define the names of the generated constructor parameters. These are optional and do not need to be the same as the parameter names in the target library, but if they are specified the number of names must match the number of arguments in the `Ctor` template argument list
 
 Finally, the last argument to `ctor()` is an optional rename for the constructor function itself.
 
@@ -532,7 +532,7 @@ BBL_MODULE(foo) {
   bbl::fn(&foo::hello);
 
   bbl::Class<std::string>("String")
-    .ctor(bbl::Ctor<std::string, char const*>("str"), "from_c_str")
+    .ctor(bbl::Class<std::string>::Ctor<char const*>("str"), "from_c_str")
   ;
 }
 ```
@@ -666,8 +666,8 @@ BBL_MODULE(tst) {
 
     // we'll need these to actually modify Foo on the C side in the callback
     bbl::Class<tst::Foo>("Foo")
-        .ctor(bbl::Ctor<tst::Foo, tst::Foo const&>("other"), "copy")
-        .ctor(bbl::Ctor<tst::Foo>(), "new")
+        .ctor(bbl::Class<tst::Foo>::Ctor<tst::Foo const&>("other"), "copy")
+        .ctor(bbl::Class<tst::Foo>::Ctor<>(), "new")
         .m((tst::Foo& (tst::Foo::*)(tst::Foo const&))
             &tst::Foo::operator=, "op_eq")
         .m(&tst::Foo::set_a)

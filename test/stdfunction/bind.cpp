@@ -5,8 +5,8 @@
 BBL_MODULE(stdfunction) {
 
     bbl::Class<tst::Foo>("Foo")
-        .ctor(bbl::Ctor<tst::Foo, tst::Foo const&>("other"), "copy")
-        .ctor(bbl::Ctor<tst::Foo>(), "new")
+        .ctor(bbl::Class<tst::Foo>::Ctor<>(), "new")
+        .ctor(bbl::Class<tst::Foo>::Ctor<tst::Foo const&>(), "copy")
         .m((tst::Foo& (tst::Foo::*)(tst::Foo const&))
             &tst::Foo::operator=, "op_eq")
         .m(&tst::Foo::set_a)

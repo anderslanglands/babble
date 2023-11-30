@@ -26,7 +26,7 @@ public:
 // std function
 BBL_MODULE(test018) {
     bbl::Class<qux::Foo>("Foo")
-        .ctor(bbl::Ctor<qux::Foo, int, float>("a", "b"))
+        .ctor(bbl::Class<qux::Foo>::Ctor<int, float>("a", "b"))
         .m(&qux::Foo::do_foo)
         .m(&qux::Foo::do_foo2)
         ;
