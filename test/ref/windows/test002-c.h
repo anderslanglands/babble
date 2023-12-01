@@ -33,9 +33,13 @@ typedef struct test002_FooInt_t test002_FooInt_t;
 
 int test002_FooFloat_bar(test002_FooFloat_t* _this, float const* a, float* _result);
 
+int test002_FooFloat_bar_r(test002_FooFloat_t* _this, float* a, float* _result);
+
 int test002_FooFloat_dtor(test002_FooFloat_t* _this);
 
 int test002_FooInt_bar(test002_FooInt_t* _this, int const* a, int* _result);
+
+int test002_FooInt_bar_r(test002_FooInt_t* _this, int* a, int* _result);
 
 int test002_FooInt_dtor(test002_FooInt_t* _this);
 

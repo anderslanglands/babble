@@ -1283,12 +1283,13 @@ auto C_API::_translate_parameter_list(std::vector<Param> const& params,
                 ex_reinterpret_cast(ex_token(fmt::format("{}*", enm->spelling)),
                                     ex_token(param_name)));
         } else if (is_lvalue_reference(param.type) ||
+                    is_rvalue_reference(param.type) ||
                    (is_by_value(param.type) &&
                     is_opaque_ptr_by_value(param.type, _cpp_ctx))) {
             expr_params.emplace_back(ex_deref(ExprToken::create(param_name)));
-        } else if (is_rvalue_reference(param.type)) {
-            BBL_THROW("cannot translate function rvalue reference parameter {}",
-                      param_name);
+        // } else if (is_rvalue_reference(param.type)) {
+        //     BBL_THROW("cannot translate function rvalue reference parameter {}",
+        //               param_name);
         } else if (is_enum(param.type)) {
             // enums need to be static_cast<>() from their underlying type to
             // the enum explicitly when passing to C++
