@@ -70,6 +70,16 @@ std::string location_to_string(clang::Decl const* decl,
     return fmt::format("{} - {}:{}", filename, line, col);
 }
 
+std::string location_to_string(clang::Stmt const* stmt,
+                               clang::SourceManager const& sm) {
+    std::string filename =
+        sm.getFilename(stmt->getSourceRange().getBegin()).str();
+    int line = sm.getExpansionLineNumber(stmt->getSourceRange().getBegin());
+    int col = sm.getExpansionColumnNumber(stmt->getSourceRange().getBegin());
+
+    return fmt::format("{} - {}:{}", filename, line, col);
+}
+
 std::string get_filename(clang::NamedDecl const* decl,
                          clang::SourceManager const& sm) {
     
@@ -167,6 +177,25 @@ auto expr_to_string(clang::Expr const* expr, clang::ASTContext* ctx)
     std::string expr_string;
     llvm::raw_string_ostream stream(expr_string);
     expr->printPretty(stream, nullptr, print_policy);
+    stream.flush();
+    return expr_string;
+}
+
+auto stmt_to_string(clang::Stmt const* stmt, clang::ASTContext* ctx)
+    -> std::string {
+    static clang::PrintingPolicy print_policy(ctx->getLangOpts());
+    // print_policy.FullyQualifiedName = 1;
+    // print_policy.SuppressScope = 0;
+    // print_policy.SuppressSpecifiers = 0;
+    // print_policy.SuppressElaboration = 0;
+    // print_policy.SuppressInitializers = 0;
+    // print_policy.PrintCanonicalTypes = 1;
+    // print_policy.SuppressTemplateArgsInCXXConstructors = 0;
+    // print_policy.SuppressDefaultTemplateArgs = 0;
+
+    std::string expr_string;
+    llvm::raw_string_ostream stream(expr_string);
+    stmt->printPretty(stream, nullptr, print_policy);
     stream.flush();
     return expr_string;
 }

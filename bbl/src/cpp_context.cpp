@@ -1751,6 +1751,119 @@ static auto get_target_record_decl_from_member_call_expr(
     }
 }
 
+// Given a DeclRefExpr that refers to a CXXMethodDecl and a LambdaExpr, insert
+// the body of the lambda as new function in bblext and generate a binding to
+// it, giving it the name the original method would have gotten. this allows us
+// to replace actual method bindings with lambdas, which is useful for shimming
+// functions with parameter types that are needlessly tiresome to work with in
+// C, for instance std::string_view, where we'd much rather just pass a char
+// const* instead
+static auto
+extract_wrapped_method_from_decl_ref_expr(clang::DeclRefExpr const* dre,
+                                          clang::LambdaExpr const* lambda_expr,
+                                          bbl::Context* bbl_ctx,
+                                          clang::ASTContext* ast_context,
+                                          clang::SourceManager& sm,
+                                          clang::MangleContext* mangle_context)
+    -> void {
+    auto const* cmd = llvm::dyn_cast<clang::CXXMethodDecl>(dre->getDecl());
+    if (!cmd) {
+        BBL_THROW("got decl ref expr but decl is not CXXMethodDecl");
+    }
+
+    // get the CXXMemberCallExpr in order to be able to find the rename string
+    // from the .m() call parameter list
+    clang::CXXMemberCallExpr const* mce =
+        find_first_ancestor_of_type<clang::CXXMemberCallExpr>(dre, ast_context);
+    if (!mce) {
+        SPDLOG_WARN("Could not get CXXMemberCallExpr from DeclRefExpr "
+                    "{}",
+                    get_source_text(dre->getSourceRange(),
+                                    ast_context->getSourceManager()));
+    }
+
+    // If there's a StringLiteral inside an ImplicitCastExpr,
+    // that will be our rename string
+    std::string rename_str;
+    if (auto const* ice =
+            find_first_child_of_type<clang::ImplicitCastExpr>(mce)) {
+        if (auto const* sl =
+                find_first_child_of_type<clang::StringLiteral>(ice)) {
+            rename_str = sl->getString().str();
+        }
+    }
+
+    // we need to know the class in order to get the class name to build the
+    // generated function name
+    /// XXX: this will not be correct in the case of nested classes, we'll need
+    /// to handle that
+    clang::CXXRecordDecl const* crd_target =
+        get_target_record_decl_from_member_call_expr(mce);
+
+    // get the comment from the original method decl
+    std::string comment = get_comment_from_decl(cmd, ast_context);
+
+    try {
+        // get the lambda source from the bindfile and take
+        // everything from the opening parentheses to get the impl
+        clang::CXXMethodDecl const* lambda_decl =
+            lambda_expr->getCallOperator();
+        std::string lambda_source =
+            get_source_text(lambda_expr->getSourceRange(), sm);
+        lambda_source =
+            lambda_source.substr(lambda_source.find("("), std::string::npos);
+
+        // the lambda name is just the class name and the wrapped method name
+        // concatenated
+        std::string lambda_name =
+            fmt::format("{}_{}", crd_target->getName(), cmd->getName());
+
+        // extract the lambda decl as a function
+        bbl::Function function = bbl_ctx->extract_function_binding(
+            lambda_decl,
+            rename_str,
+            // because we're converting our lambda to a direct function impl
+            // it will be placed in the bblext namespace
+            fmt::format("bblext::{}", lambda_name),
+            "",
+            // take the doc comment from the wrapped method decl
+            comment,
+            mangle_context);
+
+        // override the extracted function name with the lambda name because
+        // the lambda function itself is operator()
+        function.name = lambda_name;
+
+        // the lambda source has the parameter list, trailing return and body
+        // already, just add a prefixing "auto" and the name
+        std::string lambda_impl =
+            fmt::format("auto {}{}", lambda_name, lambda_source);
+
+        // figure out what module we're in
+        std::string mod_id;
+        if (!find_containing_module(dre, ast_context, mangle_context, mod_id)) {
+            BBL_THROW("could not find containing module for {}",
+                      get_source_text(dre->getSourceRange(), sm));
+        }
+
+        // mangle the lambda as an id
+        std::string mangled_name =
+            get_mangled_name(lambda_decl, mangle_context);
+
+        // insert the generated lambda function impl.
+        // this will go in the bblext namespace
+        bbl_ctx->insert_function_impl(mod_id, lambda_impl);
+
+        // insert the generated function binding
+        bbl_ctx->insert_function_binding(
+            mod_id, mangled_name, std::move(function));
+
+    } catch (std::exception& e) {
+        BBL_RETHROW(
+            e, "could not bind method {}", cmd->getQualifiedNameAsString());
+    }
+}
+
 static auto
 extract_method_from_decl_ref_expr(clang::DeclRefExpr const* dre,
                                   bbl::Context* bbl_ctx,
@@ -1771,10 +1884,6 @@ extract_method_from_decl_ref_expr(clang::DeclRefExpr const* dre,
     std::string template_call;
     if (cmd->isFunctionTemplateSpecialization()) {
         std::string dre_text = get_source_text(dre->getSourceRange(), sm);
-        // XXX: need to figure this out
-        // std::string spell_text = get_spelling_text(dre->getSourceRange(),
-        // sm); SPDLOG_INFO("source: {}", dre_text); SPDLOG_INFO("spell: {}",
-        // spell_text);
         if (dre_text.back() == '>') {
             // this is a templated call, loop back through the string
             // and find the opening angle bracket
@@ -1806,6 +1915,7 @@ extract_method_from_decl_ref_expr(clang::DeclRefExpr const* dre,
                     get_source_text(dre->getSourceRange(),
                                     ast_context->getSourceManager()));
     }
+
     // If there's a StringLiteral inside an ImplicitCastExpr,
     // that will be our rename string
     std::string rename_str;
@@ -1850,6 +1960,7 @@ extract_method_from_decl_ref_expr(clang::DeclRefExpr const* dre,
 
     bbl::Class* cls = bbl_ctx->get_class(target_class_id);
     if (!cls) {
+        // this shouldn't be possible in the bindings, but just to make sure
         BBL_THROW("method {} is targeting class {} but this class "
                   "is not extracted",
                   cmd->getQualifiedNameAsString(),
@@ -1859,7 +1970,7 @@ extract_method_from_decl_ref_expr(clang::DeclRefExpr const* dre,
     // extract and add the method to the corresponding class
     // methods mangled names are based on the class in which
     // they're first declared, which means we'll get
-    // "duplicate" entries for inherited methods.
+    // colliding entries for inherited methods.
     // append the name of the target class to differentiate them
     std::string method_id = get_mangled_name(cmd, mangle_context);
     method_id =
@@ -1991,11 +2102,6 @@ extract_function_from_decl_ref_expr(clang::DeclRefExpr const* dre_fn,
 
     std::string comment = get_comment_from_decl(fd, ast_context);
 
-    // Now extract the function
-    Function function = bbl_ctx->extract_function_binding(
-        fd, rename_str, spelling, template_call, comment, mangle_context);
-    std::string id = get_mangled_name(fd, mangle_context);
-
     std::string mod_id;
     if (!find_containing_module(dre_fn, ast_context, mangle_context, mod_id)) {
         BBL_THROW("could not find containing module for {}",
@@ -2003,13 +2109,91 @@ extract_function_from_decl_ref_expr(clang::DeclRefExpr const* dre_fn,
                                   ast_context->getSourceManager()));
     }
 
-    bbl_ctx->insert_function_binding(mod_id, id, std::move(function));
+    // check if there's a wrapper lambda under the CallExpr
+    if (auto const* ctoe =
+            find_first_child_of_type<clang::CXXTemporaryObjectExpr>(ce)) {
+        clang::CXXConstructorDecl const* ccd = ctoe->getConstructor();
+        if (!ccd) {
+            ctoe->dumpColor();
+            BBL_THROW(
+                "could not get CXXConstructorDecl from CXXTemporaryObjectExpr");
+        }
 
-    // If the function decl is in the bblext namespace, extract the function
-    // implementation as well
-    if (is_in_namespace(fd, "bblext")) {
-        std::string function_source = get_source_text(fd->getSourceRange(), sm);
-        bbl_ctx->insert_function_impl(mod_id, function_source);
+        if (ccd->getQualifiedNameAsString().find("bbl::Wrap") != 0) {
+            BBL_THROW("expected bbl::Wrap but constructor name is {}",
+                         ccd->getQualifiedNameAsString());
+        }
+
+        auto const* le = find_first_child_of_type<clang::LambdaExpr>(ctoe);
+        if (!le) {
+            BBL_THROW("{} could not find a lambda under "
+                        "bbl::Wrap",
+                        location_to_string(ctoe, sm));
+        }
+
+        // extract the wrapping lambda and insert it as a new
+        // function in bblext:: that we'll call instead of the
+        // original method
+        // get the lambda source from the bindfile and take
+        // everything from the opening parentheses to get the impl
+        clang::CXXMethodDecl const* lambda_decl =
+            le->getCallOperator();
+        std::string lambda_source =
+            get_source_text(le->getSourceRange(), sm);
+        lambda_source =
+            lambda_source.substr(lambda_source.find("("), std::string::npos);
+
+        // the lambda name is just the function name
+        // concatenated
+        std::string lambda_name = fd->getNameAsString();
+
+        // extract the lambda decl as a function
+        bbl::Function function = bbl_ctx->extract_function_binding(
+            lambda_decl,
+            rename_str,
+            // because we're converting our lambda to a direct function impl
+            // it will be placed in the bblext namespace
+            fmt::format("bblext::{}", lambda_name),
+            "",
+            // take the doc comment from the wrapped method decl
+            comment,
+            mangle_context);
+
+        // override the extracted function name with the lambda name because
+        // the lambda function itself is operator()
+        function.name = lambda_name;
+
+        // the lambda source has the parameter list, trailing return and body
+        // already, just add a prefixing "auto" and the name
+        std::string lambda_impl =
+            fmt::format("auto {}{}", lambda_name, lambda_source);
+
+        // mangle the lambda as an id
+        std::string mangled_name =
+            get_mangled_name(lambda_decl, mangle_context);
+
+        // insert the generated lambda function impl.
+        // this will go in the bblext namespace
+        bbl_ctx->insert_function_impl(mod_id, lambda_impl);
+
+        // insert the generated function binding
+        bbl_ctx->insert_function_binding(
+            mod_id, mangled_name, std::move(function));
+
+    } else {
+        // Just extract the function 
+        Function function = bbl_ctx->extract_function_binding(
+            fd, rename_str, spelling, template_call, comment, mangle_context);
+        std::string id = get_mangled_name(fd, mangle_context);
+
+        bbl_ctx->insert_function_binding(mod_id, id, std::move(function));
+
+        // If the function decl is in the bblext namespace, extract the function
+        // implementation as well
+        if (is_in_namespace(fd, "bblext")) {
+            std::string function_source = get_source_text(fd->getSourceRange(), sm);
+            bbl_ctx->insert_function_impl(mod_id, function_source);
+        }
     }
 }
 
@@ -2214,7 +2398,8 @@ extract_ctor_from_construct_expr(clang::CXXConstructExpr const* cce,
         }
     }
 
-    // If we could find a matching constructor, then grab any doc comment from it
+    // If we could find a matching constructor, then grab any doc comment from
+    // it
     std::string comment;
     if (target_ccd != nullptr) {
         comment = get_comment_from_decl(target_ccd, ast_context);
@@ -2466,12 +2651,55 @@ public:
                     find_first_ancestor_of_type<clang::CXXMemberCallExpr>(
                         dre, _ast_context)) {
 
+                // this call is definitely .m()
                 if (cmce->getMethodDecl()->getName() == "m") {
-                    extract_method_from_decl_ref_expr(dre,
-                                                      _bbl_ctx,
-                                                      _ast_context,
-                                                      _sm,
-                                                      _mangle_context.get());
+                    // if there's a CXXTemporaryObjectExpr constructing a
+                    // bbl::Wrap under here, then we're doing a bbl::Wrap lambda
+                    // method wrapping
+                    if (auto const* ctoe = find_first_child_of_type<
+                            clang::CXXTemporaryObjectExpr>(cmce)) {
+                        clang::CXXConstructorDecl const* ccd =
+                            ctoe->getConstructor();
+                        if (!ccd) {
+                            ctoe->dumpColor();
+                            BBL_THROW("could not get constructor decl from "
+                                      "CXXTemporaryObjectExpr");
+                        }
+
+                        if (ccd->getQualifiedNameAsString().find("bbl::Wrap") ==
+                            0) {
+                            auto const* le =
+                                find_first_child_of_type<clang::LambdaExpr>(
+                                    ctoe);
+                            if (!le) {
+                                BBL_THROW("{} could not find a lambda under "
+                                          "bbl::Wrap",
+                                          location_to_string(ctoe, _sm));
+                            }
+
+                            // extract the wrapping lambda and insert it as a
+                            // new function in bblext:: that we'll call instead
+                            // of the original method
+                            extract_wrapped_method_from_decl_ref_expr(
+                                dre,
+                                le,
+                                _bbl_ctx,
+                                _ast_context,
+                                _sm,
+                                _mangle_context.get());
+                        } else {
+                            SPDLOG_ERROR("constructor name is {}",
+                                         ccd->getQualifiedNameAsString());
+                        }
+                    } else {
+                        extract_method_from_decl_ref_expr(
+                            dre,
+                            _bbl_ctx,
+                            _ast_context,
+                            _sm,
+                            _mangle_context.get());
+                    }
+
                 } else {
                     SPDLOG_WARN(
                         "got CMCE but its name is {}",

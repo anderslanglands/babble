@@ -573,6 +573,38 @@ which will generate:
 foo_hello(char const* msg);
 ```
 
+As of babble 0.5, it's possible to do this directly inline in the binding with...
+
+## `bbl::Wrap` - inline lambda wrappers
+We can generate the exact same result as manually creating an extension function, but without having to write or bind that function by using `bbl::Wrap`.
+
+Given a similar C++ target from the previous examples:
+```c++
+// target library header
+namespace foo {
+  void hello(std::string const& msg);
+
+  struct Bar {
+    void hello(std::string const& msg) const;
+  };
+}
+```
+we can do the replacement of `std::string const&` with `char const*` directly inline in the bindings using `bbl::Wrap`:
+```c++
+// bindfile
+BBL_MODULE(foo) {
+  bbl::fn(bbl::Wrap(&foo::hello, [](char const* msg) {
+    foo::hello(msg);
+  }));
+
+  bbl::Class<foo::Bar>
+    .m(bbl::Wrap(&foo::Bar::hello, [](foo::Bar const& bar, char const* msg) {
+      bar.hello(msg);
+    }), "hello_again");
+  ;
+}
+```
+
 
 ## `bbl::Enum` - Binding Enums
 Enums are bound similarly to classes:

@@ -3,6 +3,7 @@
 
 #include <type_traits>
 #include <cstddef>
+#include <functional>
 
 #define BBL_MODULE(name) static void bbl_bind_##name()
 
@@ -13,6 +14,14 @@ template <typename...> struct Tuple {};
 
 template <typename T1, typename T2> struct Pair {};
 } // namespace detail
+
+template <typename Func, typename Lambda>
+struct Wrap {
+    Wrap(Func fn, Lambda wrapper) {}
+};
+
+template <typename Result, typename ...Args>
+using FunctionPtrT = Result(*)(Args...);
 
 /// Bind a class in the current module.
 ///
@@ -73,6 +82,16 @@ public:
         return *this;
     }
 
+    // typedef that allows us to specify that a member function ptr must be passed
+    // as an argument
+    template <typename Ret, typename RecordT, typename ...Args>
+    using MethodPtrT = Ret(RecordT::*)(Args...);
+
+    // typedef that allows us to specify that a const member function ptr must be passed
+    // as an argument
+    template <typename Ret, typename RecordT, typename ...Args>
+    using ConstMethodPtrT = Ret(RecordT::*)(Args...) const;
+
     /// Bind a method on Class C by passing a member function pointer to it and
     /// optionally a replacement name.
     ///
@@ -91,7 +110,66 @@ public:
     ///    .m((void (Foo::*)(float))&Foo::bar, "bar_float")
     ///    ;
     /// ```
-    template <typename Func> Class m(Func fn, const char* rename = "") {
+    // template <typename Func> Class m(Func fn, const char* rename = "") {
+    //     return *this;
+    // }
+    template <typename Result, typename RecordT, typename ...Args> Class m(MethodPtrT<Result, RecordT, Args...> fn, const char* rename = "") {
+        static_assert(std::is_base_of_v<RecordT, C>, "method is member of class that is not a base of this one");
+        return *this;
+    }
+
+    /// Bind a method on Class C by passing a member function pointer to it and
+    /// optionally a replacement name.
+    ///
+    /// e.g. for method `bar` on class `Foo`, do:
+    /// ```
+    /// bbl::Class<Foo>()
+    ///    .m(&Foo::bar, "mybar")
+    ///    ;
+    /// ```
+    /// Note that for overloaded methods, the specific overload to be bound must
+    /// be specified with a member-function-pointer cast. Assuming two overloads
+    /// of `void bar()`, one taking an int and one taking a float, you would do:
+    /// ```
+    /// bbl::Class<Foo>()
+    ///    .m((void (Foo::*)(int))&Foo::bar, "bar_int")
+    ///    .m((void (Foo::*)(float))&Foo::bar, "bar_float")
+    ///    ;
+    /// ```
+    // template <typename Func> Class m(Func fn, const char* rename = "") {
+    //     return *this;
+    // }
+    template <typename Result, typename RecordT, typename ...Args> Class m(ConstMethodPtrT<Result, RecordT, Args...> fn, const char* rename = "") {
+        static_assert(std::is_base_of_v<RecordT, C>, "method is member of class that is not a base of this one");
+        return *this;
+    }
+
+    /// Bind a method on Class C by passing a member function pointer to it and
+    /// optionally a replacement name.
+    ///
+    /// e.g. for method `bar` on class `Foo`, do:
+    /// ```
+    /// bbl::Class<Foo>()
+    ///    .m(&Foo::bar, "mybar")
+    ///    ;
+    /// ```
+    /// Note that for overloaded methods, the specific overload to be bound must
+    /// be specified with a member-function-pointer cast. Assuming two overloads
+    /// of `void bar()`, one taking an int and one taking a float, you would do:
+    /// ```
+    /// bbl::Class<Foo>()
+    ///    .m((void (Foo::*)(int))&Foo::bar, "bar_int")
+    ///    .m((void (Foo::*)(float))&Foo::bar, "bar_float")
+    ///    ;
+    /// ```
+    // template <typename Func> Class m(Func fn, const char* rename = "") {
+    //     return *this;
+    // }
+    template <typename Result, typename ...Args> Class m(FunctionPtrT<Result, Args...> fn, const char* rename = "") {
+        return *this;
+    }
+
+    template <typename Func, typename Lambda> Class m(Wrap<Func, Lambda> wrapper, char const* rename = "") {
         return *this;
     }
 
@@ -211,8 +289,13 @@ public:
     /// @}
 };
 
+/// Bind a free function
 template <typename Result, typename... Args>
-void fn(Result (*fun)(Args...), const char* rename = "") {}
+void fn(FunctionPtrT<Result, Args...> fun, const char* rename = "") {}
+
+/// Bind a wrapping lambda in place of a free function
+template <typename FunT, typename LambdaT>
+void fn(Wrap<FunT, LambdaT> wrapper, const char* rename = "") {}
 
 inline void rename_namespace(const char* from, const char* to) {}
 inline void prepend_module_name(bool enable) {}

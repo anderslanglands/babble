@@ -59,6 +59,9 @@ std::string get_source_and_location(clang::Decl const* decl,
 std::string location_to_string(clang::Decl const* decl,
                                clang::SourceManager const& sm);
 
+std::string location_to_string(clang::Stmt const* stmt,
+                               clang::SourceManager const& sm);
+
 std::string get_filename(clang::NamedDecl const* decl, clang::SourceManager const& sm);
 
 namespace clang {
@@ -434,6 +437,8 @@ inline auto get_comment_from_decl(clang::Decl const* decl,
 auto expr_to_string(clang::Expr const* expr, clang::ASTContext* ctx)
     -> std::string;
 
+auto stmt_to_string(clang::Stmt const* stmt, clang::ASTContext* ctx)
+    -> std::string;
 
 auto decl_to_string(clang::Decl const* decl, clang::ASTContext* ctx)
     -> std::string;
