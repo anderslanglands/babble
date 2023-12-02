@@ -1425,8 +1425,23 @@ extract_class_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
         bbl_ctsd, "is_move_assignable", *ast_context);
     bool is_nothrow_move_assignable = evaluate_field_expression_bool(
         bbl_ctsd, "is_nothrow_move_assignable", *ast_context);
+
     bool is_destructible = evaluate_field_expression_bool(
         bbl_ctsd, "is_destructible", *ast_context);
+
+    // we need to double-check destructible here. It's possible that a library
+    // will give a type a destructor but make the delete operator private in
+    // order to prevent users from calling delete() as opposed to a custom
+    // destroy() method. OpenImageIO does this, for example.
+    for (clang::CXXMethodDecl const* method : type_record_decl->methods()) {
+        if (method->getQualifiedNameAsString().find("operator delete") !=
+                std::string::npos &&
+            method->getAccess() != clang::AS_public) {
+            is_destructible = false;
+            break;
+        }
+    }
+
     bool has_virtual_destructor = evaluate_field_expression_bool(
         bbl_ctsd, "has_virtual_destructor", *ast_context);
     bool is_abstract =
