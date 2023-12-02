@@ -120,6 +120,14 @@ public:
     template <typename Ret, typename RecordT, typename ...Args>
     using ConstMethodPtrT = Ret(RecordT::*)(Args...) const;
 
+    // typedef that allows us to specify that a const& member function ptr must be passed
+    // as an argument.
+    // What, you didn't kmnow that const& was an actual specifier on methods?
+    // you can have const&& too, because they're aren't enough secret corners
+    // in the language...
+    template <typename Ret, typename RecordT, typename ...Args>
+    using ConstRefMethodPtrT = Ret(RecordT::*)(Args...) const&;
+
     /// Bind a method on Class C by passing a member function pointer to it and
     /// optionally a replacement name.
     ///
@@ -168,6 +176,32 @@ public:
     //     return *this;
     // }
     template <typename Result, typename RecordT, typename ...Args> Class m(ConstMethodPtrT<Result, RecordT, Args...> fn, const char* rename = "") {
+        static_assert(std::is_base_of_v<RecordT, C>, "method is member of class that is not a base of this one");
+        return *this;
+    }
+
+    /// Bind a method on Class C by passing a member function pointer to it and
+    /// optionally a replacement name.
+    ///
+    /// e.g. for method `bar` on class `Foo`, do:
+    /// ```
+    /// bbl::Class<Foo>()
+    ///    .m(&Foo::bar, "mybar")
+    ///    ;
+    /// ```
+    /// Note that for overloaded methods, the specific overload to be bound must
+    /// be specified with a member-function-pointer cast. Assuming two overloads
+    /// of `void bar()`, one taking an int and one taking a float, you would do:
+    /// ```
+    /// bbl::Class<Foo>()
+    ///    .m((void (Foo::*)(int))&Foo::bar, "bar_int")
+    ///    .m((void (Foo::*)(float))&Foo::bar, "bar_float")
+    ///    ;
+    /// ```
+    // template <typename Func> Class m(Func fn, const char* rename = "") {
+    //     return *this;
+    // }
+    template <typename Result, typename RecordT, typename ...Args> Class m(ConstRefMethodPtrT<Result, RecordT, Args...> fn, const char* rename = "") {
         static_assert(std::is_base_of_v<RecordT, C>, "method is member of class that is not a base of this one");
         return *this;
     }
