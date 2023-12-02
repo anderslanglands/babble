@@ -18,10 +18,10 @@ static thread_local std::string _bbl_error_message;
 
 namespace bblext {
 
-auto Foo_set_name(qux::Foo& foo, char const* name) -> int {
+auto Foo_set_name_wrapped(qux::Foo& foo, char const* name) -> int {
                 return foo.set_name(name);
             }
-auto get_name(char const** chars, size_t* len) -> void {
+auto get_name_wrapped(char const** chars, size_t* len) -> void {
         std::string_view sv = qux::get_name();
         *chars = sv.data();
         *len = sv.size();
@@ -37,9 +37,9 @@ int test033_Foo_dtor(test033_Foo_t* _this) {
     return 0;
 }
 
-int test033_set_name_wrapped(test033_Foo_t* foo, char const* name, int* _result) {
+int test033_Foo_set_name_wrapped(test033_Foo_t* foo, char const* name, int* _result) {
     try {
-        *_result = bblext::Foo_set_name(*foo, name);
+        *_result = bblext::Foo_set_name_wrapped(*foo, name);
         return 0;
     } catch (std::exception& e) {
         _bbl_error_message = e.what();
@@ -49,7 +49,7 @@ int test033_set_name_wrapped(test033_Foo_t* foo, char const* name, int* _result)
 
 int test033_get_name_wrapped(char const** chars, size_t* len) {
     try {
-        bblext::get_name(chars, len);
+        bblext::get_name_wrapped(chars, len);
         return 0;
     } catch (std::exception& e) {
         _bbl_error_message = e.what();

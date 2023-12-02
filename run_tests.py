@@ -50,6 +50,9 @@ TESTS = [
     "test030",
     "test031",
     "test033",
+    "test034",
+    "test035",
+    "test036",
 ]
 
 

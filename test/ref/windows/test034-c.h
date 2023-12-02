@@ -1,5 +1,5 @@
-#ifndef __TEST033_C_H__
-#define __TEST033_C_H__
+#ifndef __TEST034_C_H__
+#define __TEST034_C_H__
 
 #if defined(__GNUC__) || defined(__clang__)
 #  define BBL_ALIGN(x) __attribute__ ((aligned(x)))
@@ -22,18 +22,20 @@ extern "C" {
 
 /** structs */
 
-typedef struct test033_Foo_t test033_Foo_t;
+typedef struct test034_Incomplete_t test034_Incomplete_t;
+
+typedef struct test034_Complete_t test034_Complete_t;
 
 
 
 
 /** functions */
 
-int test033_Foo_dtor(test033_Foo_t* _this);
+int test034_Complete_hello(test034_Complete_t const* _this, char const* msg);
 
-int test033_Foo_set_name_wrapped(test033_Foo_t* foo, char const* name, int* _result);
+int test034_Complete_dtor(test034_Complete_t* _this);
 
-int test033_get_name_wrapped(char const** chars, size_t* len);
+int test034_Complete_create(test034_Complete_t** _result);
 
 
 
