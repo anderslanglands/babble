@@ -1,8 +1,9 @@
 #include "capi.hpp"
 #include "bbl-detail.h"
 #include "bblfmt.hpp"
-#include "spdlog/spdlog.h"
-#include "clang/AST/DeclCXX.h"
+#include "astutil.hpp"
+
+#include <spdlog/spdlog.h>
 
 #include <memory>
 #include <optional>

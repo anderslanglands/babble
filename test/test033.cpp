@@ -23,7 +23,7 @@ BBL_MODULE(test033) {
             [](qux::Foo& foo, char const* name) -> int {
                 return foo.set_name(name);
             }
-        ), "get_name_wrapped")
+        ), "set_name_wrapped")
     ;
 
     bbl::fn(bbl::Wrap(&qux::get_name, [](char const** chars, size_t* len) -> void {

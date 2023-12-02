@@ -15,13 +15,41 @@ template <typename...> struct Tuple {};
 template <typename T1, typename T2> struct Pair {};
 } // namespace detail
 
-template <typename Func, typename Lambda>
 struct Wrap {
+    template <typename Func, typename Lambda>
     Wrap(Func fn, Lambda wrapper) {}
 };
 
 template <typename Result, typename ...Args>
 using FunctionPtrT = Result(*)(Args...);
+
+template <typename C> class ClassIncomplete {
+public:
+    ClassIncomplete() {}
+    ClassIncomplete(const char* name) {}
+
+    size_t type_size = 0;
+
+    /// Alignment of the bound type
+    size_t type_align = 0;
+
+    /// Is the class abstract?
+    bool is_abstract = false;
+
+    /// @{ Rule-of-seven information
+    bool is_default_constructible = false;
+    bool is_copy_constructible = false;
+    bool is_nothrow_copy_constructible =false;
+    bool is_move_constructible = false;
+    bool is_nothrow_move_constructible =false;
+    bool is_copy_assignable = false;
+    bool is_nothrow_copy_assignable = false;
+    bool is_move_assignable = false;
+    bool is_nothrow_move_assignable = false;
+    bool is_destructible = false;
+    bool has_virtual_destructor = false;
+    /// @}
+};
 
 /// Bind a class in the current module.
 ///
@@ -169,7 +197,11 @@ public:
         return *this;
     }
 
-    template <typename Func, typename Lambda> Class m(Wrap<Func, Lambda> wrapper, char const* rename = "") {
+    // template <typename Result, typename ...Args, typename Lambda> Class m(Wrap<MethodPtrT<Result, C, Args...>, Lambda> wrapper, char const* rename = "") {
+    //     return *this;
+    // }
+
+    Class m(Wrap wrapper, char const* rename = "") {
         return *this;
     }
 
@@ -264,7 +296,7 @@ public:
     }
 
     /// Size of the bound type
-    size_t type_size = sizeof(C);
+    size_t type_size =  sizeof(C);
 
     /// Alignment of the bound type
     size_t type_align = alignof(C);
@@ -273,19 +305,17 @@ public:
     bool is_abstract = std::is_abstract<C>::value;
 
     /// @{ Rule-of-seven information
-    bool is_default_constructible = std::is_default_constructible<C>::value;
-    bool is_copy_constructible = std::is_copy_constructible<C>::value;
-    bool is_nothrow_copy_constructible =
-        std::is_nothrow_copy_constructible<C>::value;
-    bool is_move_constructible = std::is_move_constructible<C>::value;
-    bool is_nothrow_move_constructible =
-        std::is_nothrow_move_constructible<C>::value;
-    bool is_copy_assignable = std::is_copy_assignable<C>::value;
-    bool is_nothrow_copy_assignable = std::is_nothrow_copy_assignable<C>::value;
-    bool is_move_assignable = std::is_move_assignable<C>::value;
-    bool is_nothrow_move_assignable = std::is_nothrow_move_assignable<C>::value;
-    bool is_destructible = std::is_destructible<C>::value;
-    bool has_virtual_destructor = std::has_virtual_destructor<C>::value;
+    bool is_default_constructible = std::is_default_constructible<C>::value; 
+    bool is_copy_constructible = std::is_copy_constructible<C>::value; 
+    bool is_nothrow_copy_constructible = std::is_nothrow_copy_constructible<C>::value; 
+    bool is_move_constructible = std::is_move_constructible<C>::value; 
+    bool is_nothrow_move_constructible = std::is_nothrow_move_constructible<C>::value; 
+    bool is_copy_assignable = std::is_copy_assignable<C>::value; 
+    bool is_nothrow_copy_assignable = std::is_nothrow_copy_assignable<C>::value; 
+    bool is_move_assignable = std::is_move_assignable<C>::value; 
+    bool is_nothrow_move_assignable = std::is_nothrow_move_assignable<C>::value; 
+    bool is_destructible = std::is_destructible<C>::value; 
+    bool has_virtual_destructor = std::has_virtual_destructor<C>::value; 
     /// @}
 };
 
@@ -294,8 +324,7 @@ template <typename Result, typename... Args>
 void fn(FunctionPtrT<Result, Args...> fun, const char* rename = "") {}
 
 /// Bind a wrapping lambda in place of a free function
-template <typename FunT, typename LambdaT>
-void fn(Wrap<FunT, LambdaT> wrapper, const char* rename = "") {}
+inline void fn(Wrap wrapper, const char* rename = "") {}
 
 inline void rename_namespace(const char* from, const char* to) {}
 inline void prepend_module_name(bool enable) {}

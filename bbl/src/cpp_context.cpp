@@ -1224,7 +1224,8 @@ get_record_to_extract_from_construct_expr(clang::CXXConstructExpr const* cce) {
 
     // then check that it's definitely bbl::Class before we go any
     // further in case user has written something very weird...
-    if (crd->getQualifiedNameAsString() != "bbl::Class") {
+    if (crd->getQualifiedNameAsString() != "bbl::Class" &&
+        crd->getQualifiedNameAsString() != "bbl::ClassIncomplete") {
         BBL_THROW("got class binding but underlying record {} - {} "
                   "does not match bbl::Class",
                   crd->getQualifiedNameAsString(),
@@ -1234,7 +1235,7 @@ get_record_to_extract_from_construct_expr(clang::CXXConstructExpr const* cce) {
     // Now we get the type that we're binding from the template
     // argument list of the CTSD
     if (ctsd->getTemplateArgs().size() != 1) {
-        BBL_THROW("expected 1 template argument on {}, found {}",
+        BBL_THROW("expected 1 template arguments on {}, found {}",
                   ctsd->getQualifiedNameAsString(),
                   ctsd->getTemplateArgs().size());
     }
@@ -1349,6 +1350,10 @@ static BindKind search_for_bind_kind_calls(clang::Stmt const* stmt,
 static auto get_bases(clang::CXXRecordDecl const* crd,
                       std::vector<std::string>& inherits_from,
                       clang::MangleContext* mangle_context) -> void {
+    if (!crd->hasDefinition() || crd->getNumBases() == 0) {
+        return;
+    }
+
     for (auto const& base : crd->bases()) {
         if (base.getAccessSpecifier() == clang::AS_public) {
             clang::CXXRecordDecl const* base_crd =
@@ -2121,14 +2126,14 @@ extract_function_from_decl_ref_expr(clang::DeclRefExpr const* dre_fn,
 
         if (ccd->getQualifiedNameAsString().find("bbl::Wrap") != 0) {
             BBL_THROW("expected bbl::Wrap but constructor name is {}",
-                         ccd->getQualifiedNameAsString());
+                      ccd->getQualifiedNameAsString());
         }
 
         auto const* le = find_first_child_of_type<clang::LambdaExpr>(ctoe);
         if (!le) {
             BBL_THROW("{} could not find a lambda under "
-                        "bbl::Wrap",
-                        location_to_string(ctoe, sm));
+                      "bbl::Wrap",
+                      location_to_string(ctoe, sm));
         }
 
         // extract the wrapping lambda and insert it as a new
@@ -2136,10 +2141,8 @@ extract_function_from_decl_ref_expr(clang::DeclRefExpr const* dre_fn,
         // original method
         // get the lambda source from the bindfile and take
         // everything from the opening parentheses to get the impl
-        clang::CXXMethodDecl const* lambda_decl =
-            le->getCallOperator();
-        std::string lambda_source =
-            get_source_text(le->getSourceRange(), sm);
+        clang::CXXMethodDecl const* lambda_decl = le->getCallOperator();
+        std::string lambda_source = get_source_text(le->getSourceRange(), sm);
         lambda_source =
             lambda_source.substr(lambda_source.find("("), std::string::npos);
 
@@ -2181,7 +2184,7 @@ extract_function_from_decl_ref_expr(clang::DeclRefExpr const* dre_fn,
             mod_id, mangled_name, std::move(function));
 
     } else {
-        // Just extract the function 
+        // Just extract the function
         Function function = bbl_ctx->extract_function_binding(
             fd, rename_str, spelling, template_call, comment, mangle_context);
         std::string id = get_mangled_name(fd, mangle_context);
@@ -2191,7 +2194,8 @@ extract_function_from_decl_ref_expr(clang::DeclRefExpr const* dre_fn,
         // If the function decl is in the bblext namespace, extract the function
         // implementation as well
         if (is_in_namespace(fd, "bblext")) {
-            std::string function_source = get_source_text(fd->getSourceRange(), sm);
+            std::string function_source =
+                get_source_text(fd->getSourceRange(), sm);
             bbl_ctx->insert_function_impl(mod_id, function_source);
         }
     }
@@ -2602,7 +2606,8 @@ public:
             return true;
         }
 
-        if (crd->getQualifiedNameAsString() == "bbl::Class") {
+        if (crd->getQualifiedNameAsString() == "bbl::Class" ||
+            crd->getQualifiedNameAsString() == "bbl::ClassIncomplete") {
             extract_class_from_construct_expr(
                 cce, _bbl_ctx, _ast_context, _sm, _mangle_context.get());
         } else if (crd->getQualifiedNameAsString() == "bbl::Enum") {

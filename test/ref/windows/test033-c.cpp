@@ -37,7 +37,7 @@ int test033_Foo_dtor(test033_Foo_t* _this) {
     return 0;
 }
 
-int test033_get_name_wrapped(test033_Foo_t* foo, char const* name, int* _result) {
+int test033_set_name_wrapped(test033_Foo_t* foo, char const* name, int* _result) {
     try {
         *_result = bblext::Foo_set_name(*foo, name);
         return 0;
