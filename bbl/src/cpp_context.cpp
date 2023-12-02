@@ -1805,10 +1805,9 @@ extract_wrapped_method_from_decl_ref_expr(clang::DeclRefExpr const* dre,
     // If there's a StringLiteral inside an ImplicitCastExpr,
     // that will be our rename string
     std::string rename_str;
-    if (auto const* ice =
-            find_first_child_of_type<clang::ImplicitCastExpr>(mce)) {
+    for (clang::Stmt const* child: mce->children()) {
         if (auto const* sl =
-                find_first_child_of_type<clang::StringLiteral>(ice)) {
+                find_first_child_of_type<clang::StringLiteral>(child)) {
             rename_str = sl->getString().str();
         }
     }
@@ -1939,10 +1938,9 @@ extract_method_from_decl_ref_expr(clang::DeclRefExpr const* dre,
     // If there's a StringLiteral inside an ImplicitCastExpr,
     // that will be our rename string
     std::string rename_str;
-    if (auto const* ice =
-            find_first_child_of_type<clang::ImplicitCastExpr>(mce)) {
+    for (clang::Stmt const* child: mce->children()) {
         if (auto const* sl =
-                find_first_child_of_type<clang::StringLiteral>(ice)) {
+                find_first_child_of_type<clang::StringLiteral>(child)) {
             rename_str = sl->getString().str();
         }
     }
