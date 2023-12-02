@@ -2726,7 +2726,11 @@ public:
                         cmce->getMethodDecl()->getQualifiedNameAsString());
                 }
             } else {
-                SPDLOG_WARN("got method but no CMCE ancestor");
+                /// XXX: this probably means we're inside the lambda body of a
+                /// bbl:Wrap(). Need to see if this actually hurts is
+                // SPDLOG_WARN("got method but no CMCE ancestor in:\n{}\n{}",
+                //             location_to_string(dre, _sm),
+                //             expr_to_string(dre, _ast_context));
             }
         } else if (auto const* fd = llvm::dyn_cast_or_null<clang::FunctionDecl>(
                        dre->getDecl())) {
