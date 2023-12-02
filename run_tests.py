@@ -5,8 +5,17 @@ import difflib
 import shutil
 import platform
 
+TEST_OUTPUT_PATH = os.path.join("build", "test", "out")
+
+if os.name == "nt":
+    TEST_REF_PATH = os.path.join("test", "ref", "windows")
+else:
+    TEST_REF_PATH = os.path.join("test", "ref", "linux")
+
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--verbose', action='store_true', help='increase verbosity')
+parser.add_argument('-u', '--update-ref', nargs="+", help='copy the test output from the build directory to the ref')
+parser.add_argument('-t', '--test', nargs="+", help='only run the tests specified')
 args = parser.parse_args()
 
 TESTS = [
@@ -43,18 +52,49 @@ TESTS = [
     "test033",
 ]
 
-TEST_OUTPUT_PATH = os.path.join("build", "test", "out")
 
-if os.name == "nt":
-    TEST_REF_PATH = os.path.join("test", "ref", "windows")
-else:
-    TEST_REF_PATH = os.path.join("test", "ref", "linux")
+if args.update_ref:
+    tests_to_copy = args.update_ref
+
+    if "all" in tests_to_copy:
+        tests_to_copy = TESTS
+        
+    for test in tests_to_copy:
+        tst_c_p = os.path.join(TEST_OUTPUT_PATH, f"{test}-c.cpp")
+        tst_h_p = os.path.join(TEST_OUTPUT_PATH, f"{test}-c.h")
+
+        ok = True
+        if not os.path.exists(tst_c_p):
+            print(f"ERROR test file {tst_c_p} does not exist")
+            ok = False
+
+        if not os.path.exists(tst_h_p):
+            print(f"ERROR test file {tst_h_p} does not exist")
+            ok = False
+
+        if not ok:
+            sys.exit(1)
+
+        shutil.copy(tst_c_p, TEST_REF_PATH)
+        shutil.copy(tst_h_p, TEST_REF_PATH)
+
+    sys.exit(0)
+
 
 if os.path.isdir(TEST_OUTPUT_PATH):
     shutil.rmtree(TEST_OUTPUT_PATH)
 os.makedirs(TEST_OUTPUT_PATH)
 
-for test in TESTS:
+tests_to_run = TESTS
+
+if args.test:
+    if "all" in args.test:
+        # redundant but symetrical with the update flag
+        tests_to_run = TESTS
+    else:
+        tests_to_run = [t for t in TESTS if t in args.test]
+
+for test in tests_to_run:
     print(test)
     bindfile = f"{test}.cpp"
     bindfile_path = os.path.join("test", bindfile)
@@ -69,11 +109,11 @@ for test in TESTS:
 
 failed_tests = []
 
-for test in TESTS:
+for test in tests_to_run:
     tst_c_p = os.path.join(TEST_OUTPUT_PATH, f"{test}-c.cpp")
-    tst_h_p = os.path.join(TEST_OUTPUT_PATH, f"{test}-c.cpp")
+    tst_h_p = os.path.join(TEST_OUTPUT_PATH, f"{test}-c.h")
     ref_c_p = os.path.join(TEST_REF_PATH, f"{test}-c.cpp")
-    ref_h_p = os.path.join(TEST_REF_PATH, f"{test}-c.cpp")
+    ref_h_p = os.path.join(TEST_REF_PATH, f"{test}-c.h")
 
     try:
         tst_c_f = open(tst_c_p)
