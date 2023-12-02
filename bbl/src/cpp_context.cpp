@@ -1835,7 +1835,7 @@ extract_wrapped_method_from_decl_ref_expr(clang::DeclRefExpr const* dre,
         // the lambda name is just the class name and the wrapped method name
         // concatenated
         std::string lambda_name =
-            fmt::format("{}_{}", crd_target->getName(), cmd->getName());
+            fmt::format("{}_{}", crd_target->getName(), rename_str.empty() ? cmd->getName() : rename_str);
 
         // extract the lambda decl as a function
         bbl::Function function = bbl_ctx->extract_function_binding(
@@ -1852,6 +1852,8 @@ extract_wrapped_method_from_decl_ref_expr(clang::DeclRefExpr const* dre,
         // override the extracted function name with the lambda name because
         // the lambda function itself is operator()
         function.name = lambda_name;
+        function.qualified_name = fmt::format("bblext::{}", lambda_name);
+        function.rename = "";
 
         // the lambda source has the parameter list, trailing return and body
         // already, just add a prefixing "auto" and the name
@@ -2161,7 +2163,7 @@ extract_function_from_decl_ref_expr(clang::DeclRefExpr const* dre_fn,
 
         // the lambda name is just the function name
         // concatenated
-        std::string lambda_name = fd->getNameAsString();
+        std::string lambda_name = rename_str.empty() ? fd->getNameAsString() : rename_str;
 
         // extract the lambda decl as a function
         bbl::Function function = bbl_ctx->extract_function_binding(
@@ -2178,6 +2180,7 @@ extract_function_from_decl_ref_expr(clang::DeclRefExpr const* dre_fn,
         // override the extracted function name with the lambda name because
         // the lambda function itself is operator()
         function.name = lambda_name;
+        function.rename = "";
 
         // the lambda source has the parameter list, trailing return and body
         // already, just add a prefixing "auto" and the name
