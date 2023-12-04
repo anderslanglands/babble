@@ -10,7 +10,6 @@
 #include <set>
 #include <stdio.h>
 
-
 using namespace babble;
 
 static auto builtin_to_string(bbl_builtin_t builtin,
@@ -225,7 +224,7 @@ BBL_PLUGIN_API int bbl_plugin_exec(bbl_context_t cpp_ctx,
 
     C_API capi(capi_);
 
-    std::string source = ""; 
+    std::string source = "";
 
     std::set<std::string> imports;
     for (auto mod : capi.modules()) {
@@ -321,7 +320,7 @@ BBL_PLUGIN_API int bbl_plugin_exec(bbl_context_t cpp_ctx,
             }
         }
 
-        source  = fmt::format("{}}}\n\n", source);
+        source = fmt::format("{}}}\n\n", source);
     }
 
     std::string import_str;
@@ -336,7 +335,8 @@ BBL_PLUGIN_API int bbl_plugin_exec(bbl_context_t cpp_ctx,
     // printf("%s", source.c_str());
 
     if (!std::string(output_path).empty()) {
-        std::string filename = fmt::format("{}/{}.rs", output_path, project_name);
+        std::string filename =
+            fmt::format("{}/{}.rs", output_path, project_name);
         std::ofstream file;
         file.open(filename);
         file << source;
