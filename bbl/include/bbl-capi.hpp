@@ -108,6 +108,23 @@ public:
 
 using C_EnumVariantRange = Range<C_EnumVariantIterator>;
 
+class C_EnumOriginalVariantIterator: public IndexIterator {
+    bbl_capi_enum_t _enm;
+public:
+    C_EnumOriginalVariantIterator(bbl_capi_enum_t enm, size_t index) : _enm(enm), IndexIterator(index) {}
+
+    auto operator*() const -> C_EnumVariant {
+        char const* name = nullptr;
+        size_t name_len = 0;
+        char const* value = nullptr;
+        size_t value_len = 0;
+        bbl_capi_enum_get_variant(_enm, _index, &name, &name_len, &value, &value_len);
+        return C_EnumVariant{std::string_view(name, name_len), std::string_view(value, value_len)};
+    }
+};
+
+using C_EnumOriginalVariantRange = Range<C_EnumOriginalVariantIterator>;
+
 class C_Enum {
     bbl_capi_enum_t _enm;
 
@@ -141,6 +158,19 @@ public:
             C_EnumVariantIterator{_enm, 0},
             C_EnumVariantIterator{_enm, num_variants()},
         };
+    }
+
+    auto original_variants() const -> C_EnumOriginalVariantRange {
+        return C_EnumOriginalVariantRange{
+            C_EnumOriginalVariantIterator{_enm, 0},
+            C_EnumOriginalVariantIterator{_enm, num_variants()},
+        };
+    }
+
+    auto get_underlying_type() const -> bbl_builtin_t {
+        bbl_builtin_t type;
+        bbl_capi_enum_get_underlying_type(_enm, &type);
+        return type;
     }
 
 };

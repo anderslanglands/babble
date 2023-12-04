@@ -137,6 +137,7 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
                                enum_name,
                                cpp_enum->comment,
                                std::move(c_variants),
+                               cpp_enum->variants,
                                integer_type,
                            });
             mod_enums.push_back(cpp_enum_id);

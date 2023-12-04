@@ -72,6 +72,7 @@ struct C_Enum {
     std::string name;
     std::string comment;
     std::vector<EnumVariant> variants;
+    std::vector<EnumVariant> original_variants;
     bbl_builtin_t integer_type;
 };
 
