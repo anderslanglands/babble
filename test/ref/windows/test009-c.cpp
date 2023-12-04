@@ -24,23 +24,23 @@ int test_std_pair_StdPairIntFloat_dtor(test_std_pair_StdPairIntFloat_t* _this) {
     return 0;
 }
 
-int test_std_pair_StdPairIntFloat_get0(test_std_pair_StdPairIntFloat_t* _Pr, int* _result) {
-    *_result = std::get<0, bbl::detail::argument_type<void (int)>::type, bbl::detail::argument_type<void (float)>::type>(*_Pr);
+int test_std_pair_StdPairIntFloat_get0(test_std_pair_StdPairIntFloat_t* _Pr, int** _result) {
+    *_result = &std::get<0, bbl::detail::argument_type<void (int)>::type, bbl::detail::argument_type<void (float)>::type>(*_Pr);
     return 0;
 }
 
-int test_std_pair_StdPairIntFloat_get0_const(test_std_pair_StdPairIntFloat_t const* _Pr, int* _result) {
-    *_result = std::get<0, bbl::detail::argument_type<void (int)>::type, bbl::detail::argument_type<void (float)>::type>(*_Pr);
+int test_std_pair_StdPairIntFloat_get0_const(test_std_pair_StdPairIntFloat_t const* _Pr, int const** _result) {
+    *_result = &std::get<0, bbl::detail::argument_type<void (int)>::type, bbl::detail::argument_type<void (float)>::type>(*_Pr);
     return 0;
 }
 
-int test_std_pair_StdPairIntFloat_get1(test_std_pair_StdPairIntFloat_t* _Pr, float* _result) {
-    *_result = std::get<1, bbl::detail::argument_type<void (int)>::type, bbl::detail::argument_type<void (float)>::type>(*_Pr);
+int test_std_pair_StdPairIntFloat_get1(test_std_pair_StdPairIntFloat_t* _Pr, float** _result) {
+    *_result = &std::get<1, bbl::detail::argument_type<void (int)>::type, bbl::detail::argument_type<void (float)>::type>(*_Pr);
     return 0;
 }
 
-int test_std_pair_StdPairIntFloat_get1_const(test_std_pair_StdPairIntFloat_t const* _Pr, float* _result) {
-    *_result = std::get<1, bbl::detail::argument_type<void (int)>::type, bbl::detail::argument_type<void (float)>::type>(*_Pr);
+int test_std_pair_StdPairIntFloat_get1_const(test_std_pair_StdPairIntFloat_t const* _Pr, float const** _result) {
+    *_result = &std::get<1, bbl::detail::argument_type<void (int)>::type, bbl::detail::argument_type<void (float)>::type>(*_Pr);
     return 0;
 }
 

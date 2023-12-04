@@ -804,22 +804,16 @@ auto C_API::_translate_return_type(QType const& cpp_return_type)
     //     - wrap the param in another pointer and assign the pointer into it
     //       *result = call()
     //   o if the result is by reference
-    //     - use the existing pointer from the reference conversion, and assign
-    //     into that
-    //       *result = call()
+    //     - wrap the pointer from the reference conversion in another pointer, and assign
+    //       the address of the returned object into that
+    //       *result = &call()
     std::optional<C_Param> result;
 
     C_QType return_type = _translate_qtype(cpp_return_type);
     std::string return_name = "_result";
 
     if (!is_void(return_type)) {
-        if (is_reference_to_bytes_or_value(cpp_return_type, _cpp_ctx)) {
-            remove_const_on_pointee(return_type);
-            result = C_Param{
-                std::move(return_type),
-                std::move(return_name),
-            };
-        } else if (is_opaque_ptr_by_value(cpp_return_type, _cpp_ctx)) {
+        if (is_opaque_ptr_by_value(cpp_return_type, _cpp_ctx)) {
             result = C_Param{
                 wrap_in_pointer(wrap_in_pointer(std::move(return_type))),
                 std::move(return_name),
@@ -920,8 +914,7 @@ auto C_API::_translate_method(Method const* method,
     if (result.has_value()) {
         // if the function returns a reference, we need to wrap the call in an
         // address operator in order to convert it back to a pointer
-        if (is_opaqueptr_lvalue_reference(method->function.return_type,
-                                          _cpp_ctx)) {
+        if (is_lvalue_reference(method->function.return_type)) {
             receiving_call = ex_address(std::move(receiving_call));
         } else if (is_opaque_ptr_by_value(method->function.return_type,
                                           _cpp_ctx)) {
@@ -1003,7 +996,7 @@ auto C_API::_translate_function(Function const* function,
         // if the function returns a reference, we need to wrap the call in an
         // address operator in order to convert it back to a pointer when
         // returning an opaqueptr
-        if (is_opaqueptr_lvalue_reference(function->return_type, _cpp_ctx)) {
+        if (is_lvalue_reference(function->return_type)) {
             expr_call = ex_address(std::move(expr_call));
         } else if (is_opaque_ptr_by_value(function->return_type, _cpp_ctx)) {
             // need to construct a new object on the heap to return
