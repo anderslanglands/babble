@@ -231,21 +231,31 @@ BBL_PLUGIN_API int bbl_plugin_exec(bbl_context_t cpp_ctx,
     for (auto mod : capi.modules()) {
         for (auto enum_id : mod.enums()) {
             try {
+                // use the newtype pattern for enums
                 C_Enum enm = capi.get_enum(enum_id);
+                source = fmt::format("{}#[derive(Copy, Clone, Default, Debug, "
+                                     "Hash, PartialEq, Eq)]\n",
+                                     source);
+                source = fmt::format("{}#[repr(transparent)]\n", source);
                 source = fmt::format(
-                    "{}#[repr(C)]\npub enum {} {{\n", source, enm.get_name());
+                    "{}pub struct {} (pub {});\n",
+                    source,
+                    enm.get_name(),
+                    builtin_to_string(enm.get_underlying_type(), imports));
 
-                std::set<std::string> values;
-                for (auto var : enm.variants()) {
-                    if (values.find(std::string(var.value)) == values.end()) {
-                        source = fmt::format(
-                            "{}    {} = {},\n", source, var.name, var.value);
+                source = fmt::format("{}impl {} {{\n", source, enm.get_name());
 
-                        values.insert(std::string(var.value));
-                    }
+                for (auto const& variant : enm.original_variants()) {
+                    source = fmt::format("{}    pub const {}: {} = {}({});\n",
+                                         source,
+                                         variant.name,
+                                         enm.get_name(),
+                                         enm.get_name(),
+                                         variant.value);
                 }
 
                 source = fmt::format("{}}}\n\n", source);
+
             } catch (std::exception& e) {
                 SPDLOG_ERROR("could not translate enum: {}", e.what());
                 continue;
