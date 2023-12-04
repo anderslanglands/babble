@@ -256,11 +256,15 @@ BBL_PLUGIN_API int bbl_plugin_exec(bbl_context_t cpp_ctx,
             try {
                 C_Struct strct = capi.get_struct(struct_id);
                 if (strct.get_bind_kind() == BBL_BIND_KIND_OpaquePtr) {
-                    source = fmt::format(
-                        "{}#[repr(C)]\npub struct {} {{\n", source, strct.get_name());
+                    source = fmt::format("{}#[repr(C)]\npub struct {} {{\n",
+                                         source,
+                                         strct.get_name());
                     source = fmt::format("{}    _unused: [u8; 0],\n", source);
                     source = fmt::format("{}}}\n\n", source);
                 } else if (strct.get_bind_kind() == BBL_BIND_KIND_ValueType) {
+                    source = fmt::format("{}#[derive(Default, Copy, Clone, "
+                                         "PartialEq, Debug)]\n",
+                                         source);
                     source = fmt::format("{}#[repr(C)]\n", source);
                     source = fmt::format(
                         "{}pub struct {} {{\n", source, strct.get_name());
