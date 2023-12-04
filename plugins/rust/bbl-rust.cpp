@@ -267,7 +267,7 @@ BBL_PLUGIN_API int bbl_plugin_exec(bbl_context_t cpp_ctx,
 
                     for (auto field : strct.fields()) {
                         source = fmt::format(
-                            "{}    {}: {},\n",
+                            "{}    pub {}: {},\n",
                             source,
                             field.get_name(),
                             qtype_to_string(capi, field.get_type(), imports));
