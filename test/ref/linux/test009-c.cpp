@@ -24,23 +24,23 @@ int test_std_pair_StdPairIntFloat_dtor(test_std_pair_StdPairIntFloat_t* _this) {
     return 0;
 }
 
-int test_std_pair_StdPairIntFloat_get0(test_std_pair_StdPairIntFloat_t* __in, int* _result) {
-    *_result = std::get<0, bbl::detail::argument_type<void (int)>::type, bbl::detail::argument_type<void (float)>::type>(*__in);
+int test_std_pair_StdPairIntFloat_get0(test_std_pair_StdPairIntFloat_t* __in, int** _result) {
+    *_result = &std::get<0, bbl::detail::argument_type<void (int)>::type, bbl::detail::argument_type<void (float)>::type>(*__in);
     return 0;
 }
 
-int test_std_pair_StdPairIntFloat_get0_const(test_std_pair_StdPairIntFloat_t const* __in, int* _result) {
-    *_result = std::get<0, bbl::detail::argument_type<void (int)>::type, bbl::detail::argument_type<void (float)>::type>(*__in);
+int test_std_pair_StdPairIntFloat_get0_const(test_std_pair_StdPairIntFloat_t const* __in, int const** _result) {
+    *_result = &std::get<0, bbl::detail::argument_type<void (int)>::type, bbl::detail::argument_type<void (float)>::type>(*__in);
     return 0;
 }
 
-int test_std_pair_StdPairIntFloat_get1(test_std_pair_StdPairIntFloat_t* __in, float* _result) {
-    *_result = std::get<1, bbl::detail::argument_type<void (int)>::type, bbl::detail::argument_type<void (float)>::type>(*__in);
+int test_std_pair_StdPairIntFloat_get1(test_std_pair_StdPairIntFloat_t* __in, float** _result) {
+    *_result = &std::get<1, bbl::detail::argument_type<void (int)>::type, bbl::detail::argument_type<void (float)>::type>(*__in);
     return 0;
 }
 
-int test_std_pair_StdPairIntFloat_get1_const(test_std_pair_StdPairIntFloat_t const* __in, float* _result) {
-    *_result = std::get<1, bbl::detail::argument_type<void (int)>::type, bbl::detail::argument_type<void (float)>::type>(*__in);
+int test_std_pair_StdPairIntFloat_get1_const(test_std_pair_StdPairIntFloat_t const* __in, float const** _result) {
+    *_result = &std::get<1, bbl::detail::argument_type<void (int)>::type, bbl::detail::argument_type<void (float)>::type>(*__in);
     return 0;
 }
 

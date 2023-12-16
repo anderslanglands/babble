@@ -81,16 +81,6 @@ int test_std_vector_StdVectorInt_pop_back(test_std_vector_StdVectorInt_t* _this)
     return 0;
 }
 
-int test_std_vector_StdVectorInt_resize(test_std_vector_StdVectorInt_t* _this, size_t __new_size) {
-    try {
-        _this->resize(__new_size);
-        return 0;
-    } catch (std::exception& e) {
-        _bbl_error_message = e.what();
-        return 1;
-    }
-}
-
 int test_std_vector_StdVectorInt_resize_with(test_std_vector_StdVectorInt_t* _this, size_t __new_size, test_std_vector_StdPairIntFloat_t const* __x) {
     try {
         _this->resize(__new_size, *__x);
