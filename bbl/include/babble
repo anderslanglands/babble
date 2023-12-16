@@ -150,7 +150,7 @@ public:
     //     return *this;
     // }
     template <typename Result, typename RecordT, typename ...Args> Class m(MethodPtrT<Result, RecordT, Args...> fn, const char* rename = "") {
-        static_assert(std::is_base_of_v<RecordT, C>, "method is member of class that is not a base of this one");
+        static_assert(std::is_base_of<RecordT, C>::value, "method is member of class that is not a base of this one");
         return *this;
     }
 
@@ -176,7 +176,7 @@ public:
     //     return *this;
     // }
     template <typename Result, typename RecordT, typename ...Args> Class m(ConstMethodPtrT<Result, RecordT, Args...> fn, const char* rename = "") {
-        static_assert(std::is_base_of_v<RecordT, C>, "method is member of class that is not a base of this one");
+        static_assert(std::is_base_of<RecordT, C>::value, "method is member of class that is not a base of this one");
         return *this;
     }
 
@@ -202,7 +202,7 @@ public:
     //     return *this;
     // }
     template <typename Result, typename RecordT, typename ...Args> Class m(ConstRefMethodPtrT<Result, RecordT, Args...> fn, const char* rename = "") {
-        static_assert(std::is_base_of_v<RecordT, C>, "method is member of class that is not a base of this one");
+        static_assert(std::is_base_of<RecordT, C>::value, "method is member of class that is not a base of this one");
         return *this;
     }
 
