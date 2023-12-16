@@ -83,7 +83,11 @@ function(BBL_GENERATE_BINDING PROJECT_NAME GENFILE NAMESPACE)
     set(OUTPUT_PROJECT_PATH ${CMAKE_BINARY_DIR}/${PROJECT_NAME})
     set(OUTPUT_DUMMY ${OUTPUT_PROJECT_PATH}/bbl-dummy-cpp)
 
-    add_library(${TARGET_NAME} STATIC ${GENFILE} ${OUTPUT_DUMMY})
+    set(list_args COMPILE_ARGS)
+    cmake_parse_arguments(arg "${flags}" "${args}" "${list_args}" ${ARGN})
+
+
+    add_library(${TARGET_NAME} SHARED ${GENFILE} ${OUTPUT_DUMMY})
     target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
     set(genfile_path ${CMAKE_CURRENT_SOURCE_DIR}/${GENFILE})
@@ -103,6 +107,7 @@ function(BBL_GENERATE_BINDING PROJECT_NAME GENFILE NAMESPACE)
                 "-I$<JOIN:$<TARGET_PROPERTY:${TARGET_NAME},INCLUDE_DIRECTORIES>,;-I>" 
                 "$<JOIN:$<TARGET_PROPERTY:${TARGET_NAME},COMPILE_DEFINITIONS>,;>" 
                 "$<JOIN:$<TARGET_PROPERTY:${TARGET_NAME},COMPILE_OPTIONS>,;>" 
+                ${arg_COMPILE_ARGS}
                 -- 
                 ${PROJECT_NAME} 
                 ${OUTPUT_PROJECT_PATH}

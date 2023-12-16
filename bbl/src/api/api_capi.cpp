@@ -806,6 +806,43 @@ bbl_result_t bbl_capi_enum_get_variant(bbl_capi_enum_t enm,
     return BBL_RESULT_Success;
 }
 
+bbl_result_t bbl_capi_enum_get_original_variant(bbl_capi_enum_t enm,
+                                       size_t index,
+                                       char const** name,
+                                       size_t* name_len,
+                                       char const** value,
+                                       size_t* value_len) {
+    *name = nullptr;
+    *name_len = 0;
+    *value = nullptr;
+    *value_len = 0;
+
+    if (enm == nullptr) {
+        return BBL_RESULT_ArgumentIsNull;
+    }
+
+    if (index >= enm->original_variants.size()) {
+        return BBL_RESULT_ArgumentOutOfRange;
+    }
+
+    *name = enm->original_variants[index].first.c_str();
+    *name_len = enm->original_variants[index].first.size();
+    *value = enm->original_variants[index].second.c_str();
+    *value_len = enm->original_variants[index].second.size();
+
+    return BBL_RESULT_Success;
+}
+
+bbl_result_t bbl_capi_enum_get_underlying_type(bbl_capi_enum_t enm, bbl_builtin_t* type) {
+    if (enm == nullptr) {
+        return BBL_RESULT_ArgumentIsNull;
+    }
+
+    *type = enm->integer_type;
+
+    return BBL_RESULT_Success;
+}
+
 bbl_result_t bbl_capi_qtype_is_const(bbl_capi_qtype_t qtype, bool* is_const) {
     if (qtype == nullptr) {
         return BBL_RESULT_ArgumentIsNull;

@@ -31,11 +31,11 @@ typedef struct test0021_BarShort_t test0021_BarShort_t;
 
 /** functions */
 
-int test0021_Foo_get_int(test0021_Foo_t const* _this, int* _result);
+int test0021_Foo_get_int(test0021_Foo_t const* _this, int const** _result);
 
 int test0021_Foo_is_int(test0021_Foo_t const* _this, bool* _result);
 
-int test0021_Foo_get_float(test0021_Foo_t const* _this, float* _result);
+int test0021_Foo_get_float(test0021_Foo_t const* _this, float const** _result);
 
 int test0021_Foo_is_float(test0021_Foo_t const* _this, bool* _result);
 

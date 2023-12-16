@@ -684,6 +684,36 @@ bbl_result_t bbl_capi_enum_get_variant(bbl_capi_enum_t enm,
                                        size_t* value_len);
 
 /**
+ * @brief Get the index'th original variant in this enum
+ * 
+ * The original variants are the names from the C++ declaration without any
+ * prefixing
+ * 
+ * @param enm 
+ * @param index 
+ * @param name 
+ * @param name_len 
+ * @param value 
+ * @param value_len 
+ * @return bbl_result_t 
+ */
+bbl_result_t bbl_capi_enum_get_original_variant(bbl_capi_enum_t enm,
+                                       size_t index,
+                                       char const** name,
+                                       size_t* name_len,
+                                       char const** value,
+                                       size_t* value_len);
+
+/**
+ * @brief Get the underlying integer type of this enum
+ * 
+ * @param enm 
+ * @param type 
+ * @return bbl_result_t 
+ */
+bbl_result_t bbl_capi_enum_get_underlying_type(bbl_capi_enum_t enm, bbl_builtin_t* type);
+
+/**
  * @brief Get whether this qtype is const-qualified
  * 
  * @param qtype 

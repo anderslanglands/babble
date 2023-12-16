@@ -10,7 +10,6 @@
 #include <set>
 #include <stdio.h>
 
-
 using namespace babble;
 
 static auto builtin_to_string(bbl_builtin_t builtin,
@@ -225,27 +224,37 @@ BBL_PLUGIN_API int bbl_plugin_exec(bbl_context_t cpp_ctx,
 
     C_API capi(capi_);
 
-    std::string source = ""; 
+    std::string source = "";
 
     std::set<std::string> imports;
     for (auto mod : capi.modules()) {
         for (auto enum_id : mod.enums()) {
             try {
+                // use the newtype pattern for enums
                 C_Enum enm = capi.get_enum(enum_id);
+                source = fmt::format("{}#[derive(Copy, Clone, Default, Debug, "
+                                     "Hash, PartialEq, Eq)]\n",
+                                     source);
+                source = fmt::format("{}#[repr(transparent)]\n", source);
                 source = fmt::format(
-                    "{}#[repr(C)]\npub enum {} {{\n", source, enm.get_name());
+                    "{}pub struct {} (pub {});\n",
+                    source,
+                    enm.get_name(),
+                    builtin_to_string(enm.get_underlying_type(), imports));
 
-                std::set<std::string> values;
-                for (auto var : enm.variants()) {
-                    if (values.find(std::string(var.value)) == values.end()) {
-                        source = fmt::format(
-                            "{}    {} = {},\n", source, var.name, var.value);
+                source = fmt::format("{}impl {} {{\n", source, enm.get_name());
 
-                        values.insert(std::string(var.value));
-                    }
+                for (auto const& variant : enm.original_variants()) {
+                    source = fmt::format("{}    pub const {}: {} = {}({});\n",
+                                         source,
+                                         variant.name,
+                                         enm.get_name(),
+                                         enm.get_name(),
+                                         variant.value);
                 }
 
                 source = fmt::format("{}}}\n\n", source);
+
             } catch (std::exception& e) {
                 SPDLOG_ERROR("could not translate enum: {}", e.what());
                 continue;
@@ -256,18 +265,22 @@ BBL_PLUGIN_API int bbl_plugin_exec(bbl_context_t cpp_ctx,
             try {
                 C_Struct strct = capi.get_struct(struct_id);
                 if (strct.get_bind_kind() == BBL_BIND_KIND_OpaquePtr) {
-                    source = fmt::format(
-                        "{}#[repr(C)]\npub struct {} {{\n", source, strct.get_name());
+                    source = fmt::format("{}#[repr(C)]\npub struct {} {{\n",
+                                         source,
+                                         strct.get_name());
                     source = fmt::format("{}    _unused: [u8; 0],\n", source);
                     source = fmt::format("{}}}\n\n", source);
                 } else if (strct.get_bind_kind() == BBL_BIND_KIND_ValueType) {
+                    source = fmt::format("{}#[derive(Default, Copy, Clone, "
+                                         "PartialEq, Debug)]\n",
+                                         source);
                     source = fmt::format("{}#[repr(C)]\n", source);
                     source = fmt::format(
                         "{}pub struct {} {{\n", source, strct.get_name());
 
                     for (auto field : strct.fields()) {
                         source = fmt::format(
-                            "{}    {}: {},\n",
+                            "{}    pub {}: {},\n",
                             source,
                             field.get_name(),
                             qtype_to_string(capi, field.get_type(), imports));
@@ -307,7 +320,7 @@ BBL_PLUGIN_API int bbl_plugin_exec(bbl_context_t cpp_ctx,
             }
         }
 
-        source  = fmt::format("{}}}\n\n", source);
+        source = fmt::format("{}}}\n\n", source);
     }
 
     std::string import_str;
@@ -322,7 +335,8 @@ BBL_PLUGIN_API int bbl_plugin_exec(bbl_context_t cpp_ctx,
     // printf("%s", source.c_str());
 
     if (!std::string(output_path).empty()) {
-        std::string filename = fmt::format("{}/{}.rs", output_path, project_name);
+        std::string filename =
+            fmt::format("{}/{}.rs", output_path, project_name);
         std::ofstream file;
         file.open(filename);
         file << source;

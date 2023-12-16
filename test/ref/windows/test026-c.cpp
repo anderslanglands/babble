@@ -20,9 +20,9 @@ extern "C" {
 using test0021_Foo_t = Foo;
 using test0021_BarShort_t = Bar<short>;
 
-int test0021_Foo_get_int(test0021_Foo_t const* _this, int* _result) {
+int test0021_Foo_get_int(test0021_Foo_t const* _this, int const** _result) {
     try {
-        *_result = _this->get();
+        *_result = &_this->get();
         return 0;
     } catch (std::exception& e) {
         _bbl_error_message = e.what();
@@ -40,9 +40,9 @@ int test0021_Foo_is_int(test0021_Foo_t const* _this, bool* _result) {
     }
 }
 
-int test0021_Foo_get_float(test0021_Foo_t const* _this, float* _result) {
+int test0021_Foo_get_float(test0021_Foo_t const* _this, float const** _result) {
     try {
-        *_result = _this->get();
+        *_result = &_this->get();
         return 0;
     } catch (std::exception& e) {
         _bbl_error_message = e.what();
