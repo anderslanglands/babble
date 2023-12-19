@@ -298,7 +298,13 @@ bbl_result_t bbl_capi_get_struct(bbl_capi_t capi, bbl_capi_structid_t id, bbl_ca
         return BBL_RESULT_ArgumentIsNull;
     }
 
-    *strct = &capi->get_structs().at(*id);
+    try {
+        *strct = &capi->get_structs().at(*id);
+    } catch (std::exception& e) {
+        SPDLOG_ERROR("struct id {} not found", *id);
+        return BBL_RESULT_NotFound;
+    }
+
     return BBL_RESULT_Success;
 }
 
@@ -349,7 +355,13 @@ bbl_result_t bbl_capi_get_function(bbl_capi_t capi, bbl_capi_functionid_t id, bb
         return BBL_RESULT_ArgumentIsNull;
     }
 
-    *function = &capi->get_functions().at(*id);
+    try {
+        *function = &capi->get_functions().at(*id);
+    } catch (std::exception& e) {
+        SPDLOG_ERROR("function id {} not found", *id);
+        return BBL_RESULT_NotFound;
+    }
+
     return BBL_RESULT_Success;
 }
 
@@ -385,7 +397,12 @@ bbl_result_t bbl_capi_get_stdfunction(bbl_capi_t capi, bbl_capi_stdfunctionid_t 
         return BBL_RESULT_ArgumentIsNull;
     }
 
-    *stdfunction = &capi->get_stdfunctions().at(*id);
+    try {
+        *stdfunction = &capi->get_stdfunctions().at(*id);
+    } catch (std::exception& e) {
+        SPDLOG_ERROR("stdfunction {} not found", *id);
+        return BBL_RESULT_NotFound;
+    }
     return BBL_RESULT_Success;
 }
 
@@ -406,7 +423,12 @@ bbl_result_t bbl_capi_get_enum(bbl_capi_t capi, bbl_capi_enumid_t id, bbl_capi_e
         return BBL_RESULT_ArgumentIsNull;
     }
 
-    *enm = &capi->get_enums().at(*id);
+    try {
+        *enm = &capi->get_enums().at(*id);
+    } catch (std::exception& e) {
+        SPDLOG_ERROR("enum {} not found", *id);
+        return BBL_RESULT_NotFound;
+    }
     return BBL_RESULT_Success;
 }
 

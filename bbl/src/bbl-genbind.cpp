@@ -902,7 +902,7 @@ install(
     return SUCCESS;
 }
 
-auto get_operator_rename(std::string const& name) -> std::string {
+static auto get_operator_rename(std::string const& name) -> std::string {
     if (name.rfind("operator==") != std::string::npos) {
         return "op_eq";
     } else if (name.rfind("operator[]") != std::string::npos) {
@@ -967,6 +967,8 @@ auto get_operator_rename(std::string const& name) -> std::string {
         return "op_or_assign";
     } else if (name.rfind("operator||") != std::string::npos) {
         return "op_or";
+    } else if (name.rfind("operator bool") != std::string::npos) {
+        return "op_bool";
     }
 
     return "";

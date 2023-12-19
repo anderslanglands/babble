@@ -432,6 +432,32 @@ std::string enum_to_string(bbl_context_t ctx, bbl_enum_t enm) {
     return result;
 }
 
+/// Simple steady timer
+class Timer {
+    using time_point = std::chrono::time_point<std::chrono::steady_clock>;
+
+    time_point _start;
+
+public:
+    Timer() : _start(std::chrono::steady_clock::now()) {}
+
+    double elapsed_seconds() {
+        time_point end = std::chrono::steady_clock::now();
+        auto dur = end - _start;
+        return std::chrono::duration<double, std::milli>(dur).count() / 1000.0;
+    }
+
+    double elapsed_milliseconds() {
+        time_point end = std::chrono::steady_clock::now();
+        auto dur = end - _start;
+        return std::chrono::duration<double, std::milli>(dur).count();
+    }
+
+    void reset() {
+        _start = std::chrono::steady_clock::now();
+    }
+};
+
 int main(int argc, char const** argv) {
     // parse args
     // clang expects arguments like:
@@ -459,11 +485,13 @@ int main(int argc, char const** argv) {
     // next, compile and run the extraction on the source files passed in as
     // arguments.
     // XXX: Should replace this with a dedicated options struct
+    Timer timer;
     if (bbl_context_compile_and_extract(ctx, clang_arg_count, argv) !=
         BBL_RESULT_Success) {
-        SPDLOG_ERROR("compilation failed");
+        SPDLOG_ERROR("extraction failed after {}s", timer.elapsed_seconds());
         return 1;
     }
+    SPDLOG_ERROR("extraction completed in {}s", timer.elapsed_seconds());
 
     bbl_opts.insert(bbl_opts.begin(), argv[0]);
     int bbl_argc = bbl_opts.size();
@@ -500,11 +528,14 @@ int main(int argc, char const** argv) {
         fmt::format("{}/{}.h", output_directory, c_project_name);
 
     // or just translate to C using the built-in functionality
+    timer.reset();
     bbl_capi_t capi = nullptr;
     if (bbl_capi_create(ctx, &capi) != BBL_RESULT_Success) {
-        SPDLOG_ERROR("could not create C API");
+        SPDLOG_ERROR("failed to create C API after {}s", timer.elapsed_seconds());
         return 1;
     }
+    SPDLOG_ERROR("created C API in {}s", timer.elapsed_seconds());
+
     char const* header;
     size_t len = 0;
     if (bbl_capi_get_header(capi, &header, &len) != BBL_RESULT_Success) {

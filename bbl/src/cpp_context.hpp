@@ -637,6 +637,8 @@ public:
     /// Get a string representation of the given `Enum` suitable for debugging
     /// and test printing
     std::string get_enum_as_string(Enum const& enm);
+
+    std::string get_fallback_typename(std::string const& id) const;
 };
 
 /// Evaluate the value of the constexpr boolean field with name `name` on `rd`

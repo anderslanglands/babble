@@ -255,6 +255,7 @@ auto extract_builtin_type(clang::BuiltinType const* btype) -> bbl_builtin_t {
 
     switch (btype->getKind()) {
         CASE(Void)
+        CASE(Bool)
         CASE(Char_S)
         CASE(Short)
         CASE(Int)
@@ -411,10 +412,10 @@ auto Context::extract_qualtype(clang::QualType const& qt,
         _decl_maps.typename_map[id] = et->getDecl()->getNameAsString();
 
         // check that the user has bound the corresponding enum
-        if (!_decl_maps.enum_map.contains(id)) {
-            BBL_THROW("enum {} has not been bound",
-                      et->getDecl()->getQualifiedNameAsString());
-        }
+        // if (!_decl_maps.enum_map.contains(id)) {
+        //     BBL_THROW("enum {} has not been bound",
+        //               et->getDecl()->getQualifiedNameAsString());
+        // }
 
         return QType{is_const, Type{EnumId{id}}};
     } else if (clang::ParenType const* pt =
@@ -565,12 +566,20 @@ auto Context::insert_class_binding(std::string const& mod_id,
     // somewhere
     if (auto it = _type_to_module_map.find(id);
         it != _type_to_module_map.end()) {
+
+        std::string class_str;
+        try {
+            class_str = get_class_as_string(_decl_maps.class_map.at(id));
+        } catch (std::exception& e) {
+            BBL_THROW("could not find class id {}", id);
+        }
+
         BBL_THROW("Class {} ({}) is already bound in module {}"
                   "\n{}",
                   cls.spelling,
                   id,
                   mod.name,
-                  get_class_as_string(_decl_maps.class_map.at(id)));
+                  class_str);
     } else {
         _type_to_module_map.emplace(id, mod_id);
     }
@@ -2793,6 +2802,15 @@ public:
     }
 };
 
+std::string Context::get_fallback_typename(std::string const& id) const {
+    // if (auto it = _decl_maps.typename_map.find(id); it != _decl_maps.typename_map.end()) {
+    //     return it->second;
+    // } else {
+    //     return id;
+    // }
+    return id;
+}
+
 auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
     -> void {
     using namespace clang::tooling;
@@ -2832,6 +2850,7 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
     // SPDLOG_INFO("building asts");
     Timer timer_ast;
     tool.buildASTs(ast_units);
+    SPDLOG_INFO("ASTs built in {}s", timer_ast.elapsed_seconds());
 
     if (ast_units.empty()) {
         BBL_THROW("no AST units generated");
