@@ -13,16 +13,16 @@
     .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::empty)                                                                     \
     .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::size)                                                                      \
     .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::max_size)                                                                  \
-    .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::reserve)                                                                   \
+    /*.m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::reserve)*/                                                                   \
     .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::capacity)                                                                  \
     .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::clear)                                                                     \
-    .m((void(std::vector<bbl::detail::argument_type<void(TY)>::type>::*)(bbl::detail::argument_type<void(TY)>::type const&)) &              \
-        std::vector<bbl::detail::argument_type<void(TY)>::type>::push_back)                                                                 \
+    /*.m((void(std::vector<bbl::detail::argument_type<void(TY)>::type>::*)(bbl::detail::argument_type<void(TY)>::type const&)) &              \
+        std::vector<bbl::detail::argument_type<void(TY)>::type>::push_back)*/                                                                 \
     .m(&std::vector<bbl::detail::argument_type<void(TY)>::type>::pop_back)                                                                  \
     /*.m((void(std::vector<bbl::detail::argument_type<void(TY)>::type>::*)(size_t)) &                                                         \
         std::vector<bbl::detail::argument_type<void(TY)>::type>::resize)*/                                                                    \
-    .m((void(std::vector<bbl::detail::argument_type<void(TY)>::type>::*)(size_t, bbl::detail::argument_type<void(TY)>::type const&))        \
-        &std::vector<bbl::detail::argument_type<void(TY)>::type>::resize, "resize_with")                                                    \
+    /*.m((void(std::vector<bbl::detail::argument_type<void(TY)>::type>::*)(size_t, bbl::detail::argument_type<void(TY)>::type const&))        \
+        &std::vector<bbl::detail::argument_type<void(TY)>::type>::resize, "resize_with")*/                                                    \
     .m((bbl::detail::argument_type<void(TY)>::type const& (std::vector<bbl::detail::argument_type<void(TY)>::type>::*)(size_t) const)       \
         &std::vector<bbl::detail::argument_type<void(TY)>::type>::operator[], "op_index")                                                               \
     ;
