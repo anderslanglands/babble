@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION  3.15)
-project(babble VERSION 0.5.0 LANGUAGES C CXX)
+project(babble VERSION 0.6.0 LANGUAGES C CXX)
 
 find_package(Clang REQUIRED)
 string(REGEX MATCH "^([0-9]+)\\.([0-9]+)\\.([0-9]+)"
