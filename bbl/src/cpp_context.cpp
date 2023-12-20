@@ -2048,15 +2048,15 @@ extract_function_from_decl_ref_expr(clang::DeclRefExpr const* dre_fn,
     // surrounding AST when binding a function `foo` is structured like:
     //
     // clang-format off
-        // 
-        // CallExpr 0x201a9cde350 <line:20:5, col:26> 'void'
-        //     |-ImplicitCastExpr 0x201a9cde338 <col:5, col:10> 'void  (*)(unsigned long long (*)(qux::Bar &&), const char *)' <FunctionToPointerDecay> 
-        //     | `-DeclRefExpr 0x201a9cde2a0 <col:5, col:10> 'void (unsigned long long (*)(qux::Bar &&), const char*)' lvalue Function 0x201a9cde178 'fn' 'void (unsigned long long(*)(qux::Bar &&), const char *)' (FunctionTemplate 0x201a90dd550 'fn')
-        //     |-UnaryOperator 0x201a9cddc68 <col:13, col:14> 'auto (*)(Bar &&) -> size_t' prefix '&' cannot overflow 
-        //     | `-DeclRefExpr  0x201a9cddbe8 <col:14> 'auto (Bar &&) -> size_t' lvalue Function 0x201a9cda1f8 'foo' 'auto (Bar &&) -> size_t'
-        //     `-ImplicitCastExpr 0x201a9cde380 <col:19> 'const char *' <ArrayToPointerDecay>
-        //       `-StringLiteral 0x201a9cddd58 <col:19> 'const char[6]' lvalue "myfoo"
-        //
+    // 
+    // CallExpr 0x201a9cde350 <line:20:5, col:26> 'void'
+    //     |-ImplicitCastExpr 0x201a9cde338 <col:5, col:10> 'void  (*)(unsigned long long (*)(qux::Bar &&), const char *)' <FunctionToPointerDecay> 
+    //     | `-DeclRefExpr 0x201a9cde2a0 <col:5, col:10> 'void (unsigned long long (*)(qux::Bar &&), const char*)' lvalue Function 0x201a9cde178 'fn' 'void (unsigned long long(*)(qux::Bar &&), const char *)' (FunctionTemplate 0x201a90dd550 'fn')
+    //     |-UnaryOperator 0x201a9cddc68 <col:13, col:14> 'auto (*)(Bar &&) -> size_t' prefix '&' cannot overflow 
+    //     | `-DeclRefExpr  0x201a9cddbe8 <col:14> 'auto (Bar &&) -> size_t' lvalue Function 0x201a9cda1f8 'foo' 'auto (Bar &&) -> size_t'
+    //     `-ImplicitCastExpr 0x201a9cde380 <col:19> 'const char *' <ArrayToPointerDecay>
+    //       `-StringLiteral 0x201a9cddd58 <col:19> 'const char[6]' lvalue "myfoo"
+    //
     // clang-format on
     // So we need to go up to the CallExpr, then back down again to the
     // other DeclRefExpr that's not "fn" but "foo". We can then pluck the
@@ -2298,17 +2298,8 @@ extract_field_from_decl_ref_expr(clang::DeclRefExpr const* dre,
     });
 }
 
-static auto get_as_classid(QType const& qt) -> std::optional<std::string> {
-    if (std::holds_alternative<Type>(qt.type)) {
-        Type const& type = std::get<Type>(qt.type);
-        if (std::holds_alternative<ClassId>(type.kind)) {
-            return std::get<ClassId>(type.kind).id;
-        }
-    }
-
-    return {};
-}
-
+/// Given a CXXConstructExpr corresponding to a `bbl::Class<C>::Ctor<...Args>()`
+/// constructror invocation, extract the described constructor
 static auto
 extract_ctor_from_construct_expr(clang::CXXConstructExpr const* cce,
                                  bbl::Context* bbl_ctx,
@@ -2458,6 +2449,10 @@ extract_ctor_from_construct_expr(clang::CXXConstructExpr const* cce,
     cls->constructors.emplace_back(ctor_id);
 }
 
+/// Given a CXXMemberCallExpr that references `replace_with<T>()`, get the declaration
+/// of T and add its fields to the target class, forcing it to a value type.
+/// This allows making a replacing a type in the target library with a bit-equivalent
+/// C type
 static auto extract_replacement_type_from_member_call_expr(
     clang::CXXMemberCallExpr const* mce,
     bbl::Context* bbl_ctx,
@@ -2499,14 +2494,15 @@ static auto extract_replacement_type_from_member_call_expr(
                   get_source_text(mce->getSourceRange(), sm));
     }
 
-    // And finally get the target class that we're going to add the
-    // constructor to
+    // And finally get the target class that we're going to replace
     clang::CXXRecordDecl const* crd_target =
         get_record_to_extract_from_construct_expr(cce_target);
 
     std::string target_class_id = get_mangled_name(crd_target, mangle_context);
 
     if (bbl::Class* cls = bbl_ctx->get_class(target_class_id)) {
+        // add the fields we've extracted to the target class binding and force
+        // its bind kind to value type
         cls->fields = std::move(fields);
         cls->bind_kind = BindKind::ValueType;
     } else {
@@ -2516,6 +2512,9 @@ static auto extract_replacement_type_from_member_call_expr(
     }
 }
 
+/// Given a CXXMemberCallExpr that refers to an instance of a `smartptr_to<>()` 
+/// call on a class binding, extract the information necessary to automatically
+/// loft methods from the pointee class to the bound smartptr class
 static auto
 extract_smartptr_to_from_member_call_expr(clang::CXXMemberCallExpr const* mce,
                                           bbl::Context* bbl_ctx,
@@ -2642,16 +2641,6 @@ public:
 
         return true;
     }
-
-    // bool VisitCallExpr(clang::CallExpr* ce) {
-    //     clang::FunctionDecl const* fd =
-    //     llvm::dyn_cast_or_null<clang::FunctionDecl>(ce->getCalleeDecl()); if
-    //     (!fd) {
-    //         return true;
-    //     }
-
-    //     return true;
-    // }
 };
 
 class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor> {
@@ -2737,7 +2726,7 @@ public:
                 }
             } else {
                 /// XXX: this probably means we're inside the lambda body of a
-                /// bbl:Wrap(). Need to see if this actually hurts is
+                /// bbl:Wrap(). Need to see if this actually hurts us
                 // SPDLOG_WARN("got method but no CMCE ancestor in:\n{}\n{}",
                 //             location_to_string(dre, _sm),
                 //             expr_to_string(dre, _ast_context));
@@ -2775,10 +2764,6 @@ public:
         }
 
         if (auto const* cmd = cmce->getMethodDecl()) {
-            /*if (cmd->getName() == "ctor") {
-                extract_ctor_from_member_call_expr(
-                    cmce, _bbl_ctx, _ast_context, _sm, _mangle_context.get());
-            } else*/
             if (cmd->getName() == "replace_with") {
                 extract_replacement_type_from_member_call_expr(
                     cmce, _bbl_ctx, _ast_context, _sm, _mangle_context.get());
