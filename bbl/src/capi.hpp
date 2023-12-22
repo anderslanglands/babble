@@ -105,10 +105,29 @@ struct C_Function {
     ExprPtr body;
 };
 
+struct C_VirtualFunction {
+    std::string name;
+    std::string comment;
+    std::optional<C_Param> result;
+    std::variant<IsStatic, C_Param, C_SmartPtr> receiver;
+    std::vector<C_Param> params;
+    Method const& method;
+    ExprPtr body;
+};
+
+struct Subclass {
+    Class const& super;
+    std::string name;
+    std::vector<std::string> constructors;
+    std::vector<std::string> methods;
+    std::vector<C_VirtualFunction> c_virtual_methods;
+};
+
 using C_StructMap = MapType<std::string, C_Struct>;
 using C_FunctionMap = MapType<std::string, C_Function>;
 using C_StdFunctionMap = MapType<std::string, C_StdFunction>;
 using C_EnumMap = MapType<std::string, C_Enum>;
+using SubclassMap = MapType<std::string, Subclass>;
 
 struct C_Module {
     std::string cpp_id;
@@ -129,6 +148,7 @@ class C_API {
     C_FunctionMap _functions;
     C_StdFunctionMap _stdfunctions;
     C_EnumMap _enums;
+    SubclassMap _subclasses;
 
     auto _translate_parameter_list(std::vector<Param> const& params,
                                    std::vector<C_Param>& c_params,
@@ -185,6 +205,16 @@ class C_API {
                                  std::set<std::string>& visited,
                                  bool is_smartptr_delegated,
                                  bool only_const) -> void;
+
+    /// Given a superclass, generate a C++ trampoline subclass implementation
+    /// that forwards virtual method calls to a user-provided function table
+    auto _generate_subclass(Context const& cpp_ctx,
+                            Class const* super,
+                            std::string const& struct_name) -> Subclass;
+
+    auto _generate_virtual_function(Method const* method, C_Function&& function) const -> C_VirtualFunction;
+
+    auto _generate_virtual_function_pointer_declaration(C_VirtualFunction const& fun) const -> std::string;
 
 public:
     C_API(Context const& cpp_ctx);

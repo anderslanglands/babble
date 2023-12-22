@@ -325,6 +325,7 @@ struct Class {
     BindKind bind_kind;
     RuleOfSeven rule_of_seven;
     bool is_abstract;
+    bool is_superclass;
     std::string id;
 };
 
@@ -486,6 +487,7 @@ public:
                           BindKind bind_kind,
                           RuleOfSeven const& rule_of_seven,
                           bool is_abstract,
+                          bool is_superclass,
                           std::vector<std::string> const& inherits_from,
                           clang::MangleContext* mangle_ctx) -> Class;
 

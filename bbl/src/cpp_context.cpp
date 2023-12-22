@@ -520,6 +520,7 @@ auto Context::extract_class_binding(
     BindKind bind_kind,
     RuleOfSeven const& rule_of_seven,
     bool is_abstract,
+    bool is_superclass,
     std::vector<std::string> const& inherits_from,
     clang::MangleContext* mangle_ctx) -> Class {
     std::string id = get_mangled_name(crd, mangle_ctx);
@@ -548,6 +549,7 @@ auto Context::extract_class_binding(
                  bind_kind,
                  rule_of_seven,
                  is_abstract,
+                 is_superclass,
                  id};
 }
 
@@ -1354,6 +1356,30 @@ static BindKind search_for_bind_kind_calls(clang::Stmt const* stmt,
     return BindKind::OpaquePtr;
 }
 
+/// Returns true if there is a `.superclass()` call, false otherwise
+static bool search_for_superclass_call(clang::Stmt const* stmt,
+                                       clang::ASTContext& ast_context) {
+    if (stmt == nullptr || llvm::isa<clang::CompoundStmt>(stmt)) {
+        // if we haven't found one, default to false
+        return false;
+    }
+
+    if (clang::MemberExpr const* me = dyn_cast<clang::MemberExpr>(stmt)) {
+        if (me->getMemberDecl()->getNameAsString() == "superclass") {
+            return true;
+        }
+    }
+
+    for (const auto& parent : ast_context.getParents(*stmt)) {
+        if (search_for_superclass_call(parent.get<clang::Stmt>(),
+                                       ast_context)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 // recursively get all the bases of `crd` and append their mangled ids to
 // `inherits_from`
 static auto get_bases(clang::CXXRecordDecl const* crd,
@@ -1400,6 +1426,9 @@ extract_class_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
     Layout layout = get_record_layout(construct_expr, *ast_context);
     BindKind bind_kind =
         search_for_bind_kind_calls(construct_expr, *ast_context);
+    bool is_superclass =
+        search_for_superclass_call(construct_expr, *ast_context);
+    SPDLOG_INFO("is superclass: {}", is_superclass);
 
     // Get the rule of seven fields from the bbl::Class decl
     clang::CXXConstructorDecl* bbl_ctor_decl = construct_expr->getConstructor();
@@ -1539,6 +1568,7 @@ extract_class_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
                     has_virtual_destructor,
                 },
                 is_abstract,
+                is_superclass,
                 inherits_from,
                 mangle_context);
 
@@ -1780,13 +1810,13 @@ static auto get_target_record_decl_from_member_call_expr(
     }
 }
 
-// Given a DeclRefExpr that refers to a CXXMethodDecl and a LambdaExpr, insert
-// the body of the lambda as new function in bblext and generate a binding to
-// it, giving it the name the original method would have gotten. this allows us
-// to replace actual method bindings with lambdas, which is useful for shimming
-// functions with parameter types that are needlessly tiresome to work with in
-// C, for instance std::string_view, where we'd much rather just pass a char
-// const* instead
+/// Given a DeclRefExpr that refers to a CXXMethodDecl and a LambdaExpr, insert
+/// the body of the lambda as new function in bblext and generate a binding to
+/// it, giving it the name the original method would have gotten. this allows us
+/// to replace actual method bindings with lambdas, which is useful for shimming
+/// functions with parameter types that are needlessly tiresome to work with in
+/// C, for instance std::string_view, where we'd much rather just pass a char
+/// const* instead
 static auto
 extract_wrapped_method_from_decl_ref_expr(clang::DeclRefExpr const* dre,
                                           clang::LambdaExpr const* lambda_expr,
@@ -1814,7 +1844,7 @@ extract_wrapped_method_from_decl_ref_expr(clang::DeclRefExpr const* dre,
     // If there's a StringLiteral inside an ImplicitCastExpr,
     // that will be our rename string
     std::string rename_str;
-    for (clang::Stmt const* child: mce->children()) {
+    for (clang::Stmt const* child : mce->children()) {
         if (auto const* sl =
                 find_first_child_of_type<clang::StringLiteral>(child)) {
             rename_str = sl->getString().str();
@@ -1844,7 +1874,9 @@ extract_wrapped_method_from_decl_ref_expr(clang::DeclRefExpr const* dre,
         // the lambda name is just the class name and the wrapped method name
         // concatenated
         std::string lambda_name =
-            fmt::format("{}_{}", crd_target->getName(), rename_str.empty() ? cmd->getName() : rename_str);
+            fmt::format("{}_{}",
+                        crd_target->getName(),
+                        rename_str.empty() ? cmd->getName() : rename_str);
 
         // extract the lambda decl as a function
         bbl::Function function = bbl_ctx->extract_function_binding(
@@ -1949,7 +1981,7 @@ extract_method_from_decl_ref_expr(clang::DeclRefExpr const* dre,
     // If there's a StringLiteral inside an ImplicitCastExpr,
     // that will be our rename string
     std::string rename_str;
-    for (clang::Stmt const* child: mce->children()) {
+    for (clang::Stmt const* child : mce->children()) {
         if (auto const* sl =
                 find_first_child_of_type<clang::StringLiteral>(child)) {
             rename_str = sl->getString().str();
@@ -2172,7 +2204,8 @@ extract_function_from_decl_ref_expr(clang::DeclRefExpr const* dre_fn,
 
         // the lambda name is just the function name
         // concatenated
-        std::string lambda_name = rename_str.empty() ? fd->getNameAsString() : rename_str;
+        std::string lambda_name =
+            rename_str.empty() ? fd->getNameAsString() : rename_str;
 
         // extract the lambda decl as a function
         bbl::Function function = bbl_ctx->extract_function_binding(
@@ -2449,10 +2482,10 @@ extract_ctor_from_construct_expr(clang::CXXConstructExpr const* cce,
     cls->constructors.emplace_back(ctor_id);
 }
 
-/// Given a CXXMemberCallExpr that references `replace_with<T>()`, get the declaration
-/// of T and add its fields to the target class, forcing it to a value type.
-/// This allows making a replacing a type in the target library with a bit-equivalent
-/// C type
+/// Given a CXXMemberCallExpr that references `replace_with<T>()`, get the
+/// declaration of T and add its fields to the target class, forcing it to a
+/// value type. This allows making a replacing a type in the target library with
+/// a bit-equivalent C type
 static auto extract_replacement_type_from_member_call_expr(
     clang::CXXMemberCallExpr const* mce,
     bbl::Context* bbl_ctx,
@@ -2512,7 +2545,7 @@ static auto extract_replacement_type_from_member_call_expr(
     }
 }
 
-/// Given a CXXMemberCallExpr that refers to an instance of a `smartptr_to<>()` 
+/// Given a CXXMemberCallExpr that refers to an instance of a `smartptr_to<>()`
 /// call on a class binding, extract the information necessary to automatically
 /// loft methods from the pointee class to the bound smartptr class
 static auto
@@ -2788,7 +2821,8 @@ public:
 };
 
 std::string Context::get_fallback_typename(std::string const& id) const {
-    // if (auto it = _decl_maps.typename_map.find(id); it != _decl_maps.typename_map.end()) {
+    // if (auto it = _decl_maps.typename_map.find(id); it !=
+    // _decl_maps.typename_map.end()) {
     //     return it->second;
     // } else {
     //     return id;

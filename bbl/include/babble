@@ -329,6 +329,15 @@ public:
         return *this;
     }
 
+    /// Declare that the bound class should be inheritable in C.
+    ///
+    /// This causes a trampoline class to be generated that inherits from the
+    /// bound class and forwards virtual method calls to a user-provided function
+    /// table
+    Class superclass() {
+        return *this;
+    }
+
     /// Size of the bound type
     size_t type_size =  sizeof(C);
 

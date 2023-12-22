@@ -103,6 +103,7 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
         std::vector<std::string> mod_functions;
         std::vector<std::string> mod_stdfunctions;
         std::vector<std::string> mod_enums;
+        std::vector<std::string> mod_subclasses;
 
         // Translate all enums
         for (auto const& cpp_enum_id : cpp_mod.enums) {
@@ -348,6 +349,22 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
                                             visited,
                                             true,
                                             cpp_cls->smartptr_is_const);
+                }
+            }
+
+            if (cpp_cls->is_superclass) {
+                try {
+                    Subclass sub =
+                        _generate_subclass(cpp_ctx, cpp_cls, struct_name);
+                    std::string subclass_id =
+                        fmt::format("{}_Subclass", cpp_class_id);
+                    _subclasses.emplace(subclass_id, std::move(sub));
+                    mod_subclasses.emplace_back(subclass_id);
+                } catch (std::exception& e) {
+                    SPDLOG_ERROR(
+                        "could not generate subclass for superclass {}.\n\t{}",
+                        cpp_cls->qualified_name,
+                        e.what());
                 }
             }
         }
@@ -715,7 +732,8 @@ static bool is_opaqueptr(QType const& qt, Context const& ctx) {
 
             Class const* cls = ctx.get_class(id.id);
             if (cls == nullptr) {
-                BBL_THROW("class {} is not bound", ctx.get_fallback_typename(id.id));
+                BBL_THROW("class {} is not bound",
+                          ctx.get_fallback_typename(id.id));
             }
 
             if (cls->bind_kind == BindKind::OpaquePtr) {
@@ -755,7 +773,8 @@ static bool is_opaque_ptr_by_value(QType const& qt, Context const& ctx) {
             ClassId const& id = std::get<ClassId>(type.kind);
             Class const* cls = ctx.get_class(id.id);
             if (cls == nullptr) {
-                BBL_THROW("class {} is not bound", ctx.get_fallback_typename(id.id));
+                BBL_THROW("class {} is not bound",
+                          ctx.get_fallback_typename(id.id));
             }
             return cls->bind_kind == BindKind::OpaquePtr;
         }
@@ -1296,6 +1315,207 @@ auto C_API::_generate_stdfunction_wrapper(std::string const& id,
             ->to_string(0));
 }
 
+auto C_API::_generate_subclass(Context const& cpp_ctx,
+                               Class const* super,
+                               std::string const& struct_name) -> Subclass {
+    Subclass sub{*super};
+    sub.name = fmt::format("{}_Subclass", struct_name);
+
+    // translate all virtual methods to virtual functions
+    for (std::string const& method_id : super->methods) {
+        Method const* method = cpp_ctx.get_method(method_id);
+        if (method->is_virtual) {
+
+            C_Function function =
+                _translate_method(method, sub.name, super->id, false);
+            sub.methods.push_back(method_id);
+            sub.c_virtual_methods.emplace_back(
+                _generate_virtual_function(method, std::move(function)));
+        }
+    }
+
+    // translate all constructors
+
+    return sub;
+}
+
+auto C_API::_generate_virtual_function(Method const* method,
+                                       C_Function&& function) const
+    -> C_VirtualFunction {
+    // we need to add on a void* user data to the c params
+    // the body will be the body for calling the c function pointer from c++ in
+    // the trampoline
+
+    // function.params.emplace_back(C_Param{
+    //     wrap_in_pointer(C_QType{nullptr, false, C_Type{BBL_BUILTIN_Void}}),
+    //     "_user_data"});
+
+    std::vector<ExprPtr> expr_c_call_params;
+    for (size_t i = 0; i < method->function.params.size(); ++i) {
+        Param const& cpp_param = method->function.params[i];
+        std::string const& name = function.params[i].name;
+
+        // now we need to handle passing the C++ parameter to C
+        // if the param is pass-by-value and the type is opaqueptr, or if it is
+        // an lvalue reference, then it will be expected as a pointer
+        if (is_by_value(cpp_param.type) &&
+                is_opaqueptr(cpp_param.type, _cpp_ctx) ||
+            is_lvalue_reference(cpp_param.type)) {
+            expr_c_call_params.emplace_back(ex_address(ex_token(name)));
+        } else {
+            expr_c_call_params.emplace_back(ex_token(name));
+        }
+    }
+
+    std::vector<ExprPtr> expr_body;
+
+    if (function.result.has_value()) {
+        C_Param const& c_result = function.result.value();
+        if (is_opaque_ptr_by_value(method->function.return_type, _cpp_ctx)) {
+            // This is a bit nasty. Hopefully there's a better way.
+            // Since the return is an opaqueptr by value, the C function will
+            // allocate a new object into a pointer that we pass as the out
+            // parameter. We need to move that heap allocation to the stack, so
+            // we create a temporary to move the heap allocation into an return
+            // and delete the heap allocation before returning. This will fail
+            // if the return type is not default-constructible.
+            std::string result_ptr_name = fmt::format("{}_ptr", c_result.name);
+
+            expr_body.emplace_back(
+                ex_var_decl(ex_token(_cpp_ctx.get_qtype_as_string(
+                                method->function.return_type)),
+                            ex_token(c_result.name)));
+
+            expr_body.emplace_back(
+                ex_var_decl(ex_token(_cpp_ctx.get_qtype_as_string(
+                                wrap_in_pointer(method->function.return_type))),
+                            ex_token(result_ptr_name)));
+
+            expr_c_call_params.emplace_back(
+                ex_address(ex_token(result_ptr_name)));
+        } else if (is_lvalue_reference(method->function.return_type)) {
+            // we can't create an lvalue ref temporary, so instead we need to
+            // create a pointer instead, then deref it in the lambda return
+            expr_body.emplace_back(ex_var_decl(
+                ex_token(_cpp_ctx.get_qtype_as_string(wrap_in_pointer(
+                    unwrap_reference(method->function.return_type)))),
+                ex_token(c_result.name)));
+            expr_c_call_params.emplace_back(
+                ex_address(ex_token(c_result.name)));
+        } else {
+            // add the variable declaration and pass of the return value
+            expr_body.emplace_back(
+                ex_var_decl(ex_token(_cpp_ctx.get_qtype_as_string(
+                                method->function.return_type)),
+                            ex_token(c_result.name)));
+            expr_c_call_params.emplace_back(
+                ex_address(ex_token(c_result.name)));
+        }
+    }
+
+    // add the pass of the per-function userdata parameter
+    expr_c_call_params.emplace_back(
+        ex_token(fmt::format("_fn_{}_user_data", method->function.name)));
+
+    // create the call expression from the function pointer name and parameter
+    // list and add it to the lambda body
+    ExprPtr expr_c_call =
+        ex_call(fmt::format("_fn_{}", method->function.name),
+                ex_parameter_list(std::move(expr_c_call_params)));
+    expr_body.emplace_back(std::move(expr_c_call));
+
+    if (function.result.has_value()) {
+        C_Param const& c_result = function.result.value();
+        if (is_opaque_ptr_by_value(method->function.return_type, _cpp_ctx)) {
+            std::string result_ptr_name = fmt::format("{}_ptr", c_result.name);
+            expr_body.emplace_back(
+                ex_assign(ex_token(c_result.name),
+                          ex_move(ex_deref(ex_token(result_ptr_name)))));
+
+            expr_body.emplace_back(ex_delete(ex_token(result_ptr_name)));
+            expr_body.emplace_back(ex_return(ex_token(c_result.name)));
+        } else if (is_lvalue_reference(method->function.return_type)) {
+            expr_body.emplace_back(
+                ex_return(ex_deref(ex_token(c_result.name))));
+        } else {
+            expr_body.emplace_back(ex_return(ex_token(c_result.name)));
+        }
+    }
+
+    return C_VirtualFunction{std::move(function.name),
+                             std::move(function.comment),
+                             std::move(function.result),
+                             std::move(function.receiver),
+                             std::move(function.params),
+                             *method,
+                             ex_compound(std::move(expr_body))};
+}
+
+auto C_API::_generate_virtual_function_pointer_declaration(
+    C_VirtualFunction const& fun) const -> std::string {
+    std::string result = fmt::format("typedef int (*{})(", fun.name);
+
+    bool first = true;
+
+    // If the method has a receiver (i.e. it's not static), bind the receiver in
+    // as the first parameter
+    if (std::holds_alternative<C_Param>(fun.receiver)) {
+        auto const& receiver = std::get<C_Param>(fun.receiver);
+        result =
+            fmt::format("{}{}",
+                        result,
+                        _get_c_qtype_as_string(receiver.type, receiver.name));
+
+        first = false;
+    } else if (std::holds_alternative<C_SmartPtr>(fun.receiver)) {
+        auto const& receiver = std::get<C_SmartPtr>(fun.receiver);
+        result = fmt::format("{}{}",
+                             result,
+                             _get_c_qtype_as_string(receiver.smartptr.type,
+                                                    receiver.smartptr.name));
+
+        first = false;
+    }
+
+    // Then do the actual parameters
+    for (C_Param const& c_param : fun.params) {
+        if (first) {
+            first = false;
+        } else {
+            result = fmt::format("{}, ", result);
+        }
+
+        std::string type_string =
+            _get_c_qtype_as_string(c_param.type, c_param.name);
+        result = fmt::format("{}{}", result, type_string);
+    }
+
+    // Next, convert the return type (if it's not void) to an out
+    // parameter at the end of the parameter list, as the actual return type of
+    // the C function will be int to do error reporting
+    if (fun.result.has_value()) {
+        if (first) {
+            first = false;
+        } else {
+            result = fmt::format("{}, ", result);
+        }
+
+        std::string type_string = _get_c_qtype_as_string(
+            fun.result.value().type, fun.result.value().name);
+        result = fmt::format("{}{}", result, type_string);
+    }
+
+    // Finally, add on the void* user data parameter
+    if (!first) {
+        result = fmt::format("{}, ", result);
+    }
+    result = fmt::format("{}void* user_data", result);
+
+    result = fmt::format("{})", result);
+
+    return result;
+}
+
 auto C_API::_translate_parameter_list(std::vector<Param> const& params,
                                       std::vector<C_Param>& c_params,
                                       std::vector<ExprPtr>& expr_params,
@@ -1537,7 +1757,8 @@ auto C_API::_translate_qtype(QType const& qt) -> C_QType {
             ClassId const& class_id = std::get<ClassId>(type.kind);
 
             if (!_cpp_ctx.has_class(class_id.id)) {
-                BBL_THROW_MTBE("class not bound: {}", _cpp_ctx.get_fallback_typename(class_id.id));
+                BBL_THROW_MTBE("class not bound: {}",
+                               _cpp_ctx.get_fallback_typename(class_id.id));
             }
 
             return C_QType{
@@ -1549,7 +1770,8 @@ auto C_API::_translate_qtype(QType const& qt) -> C_QType {
             EnumId const& enum_id = std::get<EnumId>(type.kind);
 
             if (!_cpp_ctx.has_enum(enum_id.id)) {
-                BBL_THROW_MTBE("enum not bound: {}", _cpp_ctx.get_fallback_typename(enum_id.id));
+                BBL_THROW_MTBE("enum not bound: {}",
+                               _cpp_ctx.get_fallback_typename(enum_id.id));
             }
 
             return C_QType{
@@ -1561,7 +1783,8 @@ auto C_API::_translate_qtype(QType const& qt) -> C_QType {
             StdFunctionId const& fun_id = std::get<StdFunctionId>(type.kind);
 
             if (!_cpp_ctx.has_stdfunction(fun_id.id)) {
-                BBL_THROW_MTBE("stdfunction not bound: {}", _cpp_ctx.get_fallback_typename(fun_id.id));
+                BBL_THROW_MTBE("stdfunction not bound: {}",
+                               _cpp_ctx.get_fallback_typename(fun_id.id));
             }
 
             return C_QType{
@@ -1837,6 +2060,105 @@ static thread_local std::string _bbl_error_message;
     }
     if (did_any_impl) {
         result = fmt::format("\n{}}}\n\n", result);
+    }
+
+    for (auto const& [sub_id, sub] : _subclasses) {
+
+        // write the function pointer typedefs
+        for (C_VirtualFunction const& fun : sub.c_virtual_methods) {
+            result = fmt::format(
+                "{}{};\n\n",
+                result,
+                _generate_virtual_function_pointer_declaration(fun));
+        }
+
+        result = fmt::format("{}class {} : public {} {{\n",
+                             result,
+                             sub.name,
+                             sub.super.spelling);
+
+        // write the function pointer member variables
+        for (C_VirtualFunction const& fun : sub.c_virtual_methods) {
+            result = fmt::format("{}    {} _fn_{};\n",
+                                 result,
+                                 fun.name,
+                                 fun.method.function.name);
+            // store a void* user data for each function to allow for closures
+            result =
+                fmt::format("{}    void* {}_user_data;\n", result, fun.name);
+        }
+
+        result = fmt::format("{}\npublic:\n", result);
+
+        for (C_VirtualFunction const& fun : sub.c_virtual_methods) {
+            char const* s_const = fun.method.is_const ? " const" : "";
+
+            result =
+                fmt::format("{}    auto {}(", result, fun.method.function.name);
+
+            bool first = true;
+            for (Param const& param : fun.method.function.params) {
+                if (first) {
+                    first = false;
+                } else {
+                    result = fmt::format("{}, ", result);
+                }
+
+                result = fmt::format("{}{} {}",
+                                     result,
+                                     _cpp_ctx.get_qtype_as_string(param.type),
+                                     param.name);
+            }
+
+            result = fmt::format(
+                "{}) -> {}{} override {{\n",
+                result,
+                _cpp_ctx.get_qtype_as_string(fun.method.function.return_type),
+                s_const);
+
+            // first handle the case that an implementation was not provided
+            result = fmt::format(
+                "{}        if (_fn_{} == nullptr) {{\n", result, fun.method.function.name);
+            if (fun.method.is_pure) {
+                // user MUST implement this method. All we can do is give up
+                result =
+                    fmt::format("{}            fprintf(stderr, \"method {} is "
+                                "pure virtual, but no implementation was "
+                                "provided in the subclass\");\n",
+                                result,
+                                fun.method.function.qualified_name);
+                result =
+                    fmt::format("{}            std::terminate();\n", result);
+            } else {
+                // call the superclass
+                bool first = true;
+                result = fmt::format("{}            return {}::{}(",
+                                     result,
+                                     sub.super.spelling,
+                                     fun.method.function.name);
+                for (Param const& param : fun.method.function.params) {
+                    if (first) {
+                        first = false;
+                    } else {
+                        result = fmt::format("{}, ", result);
+                    }
+
+                    result = fmt::format("{}{}", result, param.name);
+                }
+
+                result = fmt::format("{});\n", result);
+            }
+            result = fmt::format("{}        }}\n\n", result);
+
+            // now insert the generated function body that is just the call to
+            // the c function pointer and associated machinery for variable
+            // return
+            result = fmt::format("{}{}", result, fun.body->to_string(2));
+
+            result = fmt::format("{}    }}\n\n", result);
+        }
+
+        result = fmt::format("{}}};\n\n", result);
     }
 
     result = fmt::format("{}extern \"C\" {{\n", result);
