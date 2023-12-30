@@ -98,8 +98,18 @@ struct StdFunctionId {
     std::string id;
 };
 
+struct FunctionProtoId {
+    std::string id;
+};
+
 inline bool operator==(StdFunctionId const& lhs, StdFunctionId const& rhs) {
     return lhs.id == rhs.id;
+}
+
+class QType;
+bool operator==(QType const& lhs, QType const& rhs);
+inline bool operator!=(QType const& lhs, QType const& rhs) {
+    return !(lhs == rhs);
 }
 
 /// A reference to a type, which is itself contained in a QType
@@ -107,17 +117,12 @@ struct Type {
     std::variant<bbl_builtin_t,
                  ClassId,
                  EnumId,
-                 StdFunctionId>
+                 StdFunctionId,
+                 FunctionProtoId>
         kind;
 };
 
 bool operator==(Type const& lhs, Type const& rhs);
-
-class QType;
-bool operator==(QType const& lhs, QType const& rhs);
-inline bool operator!=(QType const& lhs, QType const& rhs) {
-    return !(lhs == rhs);
-}
 
 /// Represents a pointer to another (qualified) type
 struct Pointer {
@@ -258,6 +263,14 @@ struct Constructor {
     bool is_noexcept;
 };
 
+/// A function prototype, i.e. what a function pointer is pointing to
+struct FunctionProto {
+    // name for this prototype, if one has be found from a typedef
+    std::optional<std::string> name;
+    QType return_type;
+    std::vector<QType> params;
+};
+
 /// The layout of a given type in terms of its size and alignment
 ///
 /// Note: these values are computed on the platform the binding is generated on.
@@ -327,6 +340,7 @@ struct Class {
     bool is_abstract;
     bool is_superclass;
     std::string id;
+    std::vector<std::string> pointee_methods;
 };
 
 /// A std::function specialization, bound by and detected from a
@@ -381,6 +395,8 @@ struct Module {
     std::vector<std::string> enums;
     /// Function implementations to be pasted into the module
     std::vector<std::string> function_impls;
+    /// Class implementations to be pasted into the module
+    std::vector<std::string> class_impls;
     /// Namespace string to replace
     std::string namespace_from;
     /// Namespace string to replace with
@@ -406,6 +422,7 @@ struct SourceFile {
 
 using ClassMap = MapType<std::string, Class>;
 using FunctionMap = MapType<std::string, Function>;
+using FunctionProtoMap = MapType<std::string, FunctionProto>;
 using ConstructorMap = MapType<std::string, Constructor>;
 using StdFunctionMap = MapType<std::string, StdFunction>;
 using EnumMap = MapType<std::string, Enum>;
@@ -419,6 +436,7 @@ struct DeclMaps {
     MethodMap method_map;
     ConstructorMap constructor_map;
     FunctionMap function_map;
+    FunctionProtoMap function_proto_map;
     StdFunctionMap stdfunction_map;
     EnumMap enum_map;
     TypenameMap typename_map;
@@ -430,6 +448,8 @@ class Context {
     TypeToModuleMap _type_to_module_map;
     SourceFileMap _source_file_map;
     llvm::cl::OptionCategory _option_category;
+
+    auto _get_base_class_methods(Class const& cls, std::vector<std::string>& method_ids, std::vector<std::string>& bound_method_signiatures) -> void;
 
 public:
     Context();
@@ -608,6 +628,9 @@ public:
     auto insert_function_impl(std::string const& mod_id,
                               std::string const& impl) -> void;
 
+    auto insert_class_impl(std::string const& mod_id,
+                              std::string const& impl) -> void;
+
     /// Compile the sources in the given command line to AST and run the
     /// extraction.
     ///
@@ -641,6 +664,12 @@ public:
     std::string get_enum_as_string(Enum const& enm);
 
     std::string get_fallback_typename(std::string const& id) const;
+
+    /// Insert the given function prototype with id `id` into the module with 
+    /// id `mod_id`
+    auto insert_function_proto(std::string const& mod_id,
+                                 std::string const& id,
+                                 FunctionProto&& fun) -> void;
 };
 
 /// Evaluate the value of the constexpr boolean field with name `name` on `rd`

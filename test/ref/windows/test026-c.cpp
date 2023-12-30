@@ -15,11 +15,11 @@
 
 static thread_local std::string _bbl_error_message;
 
-extern "C" {
 
 using test0021_Foo_t = Foo;
 using test0021_BarShort_t = Bar<short>;
 
+extern "C" {
 int test0021_Foo_get_int(test0021_Foo_t const* _this, int const** _result) {
     try {
         *_result = &_this->get();

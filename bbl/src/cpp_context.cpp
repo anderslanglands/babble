@@ -159,6 +159,9 @@ public:
     }
 };
 
+auto to_string(FunctionProto const& fun, DeclMaps const& decl_maps)
+    -> std::string;
+
 // Convert the given Type into a string suitable for debug printing
 std::string
 to_string(bbl::Type const& ty, char const* s_const, DeclMaps const& decl_maps) {
@@ -201,6 +204,16 @@ to_string(bbl::Type const& ty, char const* s_const, DeclMaps const& decl_maps) {
             name = it->second;
         }
         return fmt::format("StdFunction({} \"{}\"){}", id.id, name, s_const);
+    } else if (std::holds_alternative<FunctionProtoId>(ty.kind)) {
+        FunctionProtoId const& id = std::get<FunctionProtoId>(ty.kind);
+        if (auto it = decl_maps.function_proto_map.find(id.id);
+            it != decl_maps.function_proto_map.end()) {
+            return to_string(it->second, decl_maps);
+        } else if (auto it = decl_maps.typename_map.find(id.id);
+                   it != decl_maps.typename_map.end()) {
+            return it->second;
+        }
+        return fmt::format("unknown function proto {}", id.id);
     } else {
         BBL_THROW("unhandled Type kind in format");
     }
@@ -244,6 +257,28 @@ std::string to_string(TemplateArg const& arg, DeclMaps const& decl_maps) {
     } else {
         return std::get<Integral>(arg).value;
     }
+}
+
+auto to_string(FunctionProto const& fun, DeclMaps const& decl_maps)
+    -> std::string {
+    // if this proto has a named typedef, use just the name in type position
+    if (fun.name.has_value()) {
+        return fun.name.value();
+    }
+
+    std::string result =
+        fmt::format("{} (*)(", to_string(fun.return_type, decl_maps));
+    bool first = true;
+    for (QType const& qt : fun.params) {
+        if (first) {
+            first = false;
+        } else {
+            result = fmt::format("{}, ", result);
+        }
+        result = fmt::format("{}{}", result, to_string(qt, decl_maps));
+    }
+    result = fmt::format("{})", result);
+    return result;
 }
 
 // Convert clang's BuiltinType to a bbl_builtin_t
@@ -1158,6 +1193,16 @@ auto Context::insert_function_impl(std::string const& mod_id,
     }
 }
 
+auto Context::insert_class_impl(std::string const& mod_id,
+                                std::string const& impl) -> void {
+    if (Module* mod = get_module(mod_id)) {
+        mod->class_impls.push_back(impl);
+    } else {
+        BBL_THROW("tried to insert class impl to non-existent module {}",
+                  mod_id);
+    }
+}
+
 static auto
 extract_module_from_function_decl(clang::FunctionDecl const* fd,
                                   bbl::Context* bbl_ctx,
@@ -1236,7 +1281,8 @@ get_record_to_extract_from_construct_expr(clang::CXXConstructExpr const* cce) {
     // then check that it's definitely bbl::Class before we go any
     // further in case user has written something very weird...
     if (crd->getQualifiedNameAsString() != "bbl::Class" &&
-        crd->getQualifiedNameAsString() != "bbl::ClassIncomplete") {
+        crd->getQualifiedNameAsString() != "bbl::ClassIncomplete" &&
+        crd->getQualifiedNameAsString() != "bbl::Superclass") {
         BBL_THROW("got class binding but underlying record {} - {} "
                   "does not match bbl::Class",
                   crd->getQualifiedNameAsString(),
@@ -1357,28 +1403,28 @@ static BindKind search_for_bind_kind_calls(clang::Stmt const* stmt,
 }
 
 /// Returns true if there is a `.superclass()` call, false otherwise
-static bool search_for_superclass_call(clang::Stmt const* stmt,
-                                       clang::ASTContext& ast_context) {
-    if (stmt == nullptr || llvm::isa<clang::CompoundStmt>(stmt)) {
-        // if we haven't found one, default to false
-        return false;
-    }
+// static bool search_for_superclass_call(clang::Stmt const* stmt,
+//                                        clang::ASTContext& ast_context) {
+//     if (stmt == nullptr || llvm::isa<clang::CompoundStmt>(stmt)) {
+//         // if we haven't found one, default to false
+//         return false;
+//     }
 
-    if (clang::MemberExpr const* me = dyn_cast<clang::MemberExpr>(stmt)) {
-        if (me->getMemberDecl()->getNameAsString() == "superclass") {
-            return true;
-        }
-    }
+//     if (clang::MemberExpr const* me = dyn_cast<clang::MemberExpr>(stmt)) {
+//         if (me->getMemberDecl()->getNameAsString() == "superclass") {
+//             return true;
+//         }
+//     }
 
-    for (const auto& parent : ast_context.getParents(*stmt)) {
-        if (search_for_superclass_call(parent.get<clang::Stmt>(),
-                                       ast_context)) {
-            return true;
-        }
-    }
+//     for (const auto& parent : ast_context.getParents(*stmt)) {
+//         if (search_for_superclass_call(parent.get<clang::Stmt>(),
+//                                        ast_context)) {
+//             return true;
+//         }
+//     }
 
-    return false;
-}
+//     return false;
+// }
 
 // recursively get all the bases of `crd` and append their mangled ids to
 // `inherits_from`
@@ -1416,8 +1462,8 @@ extract_class_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
                                   bbl::Context* bbl_ctx,
                                   clang::ASTContext* ast_context,
                                   clang::SourceManager const& sm,
-                                  clang::MangleContext* mangle_context)
-    -> void {
+                                  clang::MangleContext* mangle_context,
+                                  bool is_superclass) -> void {
     // Find the class decl that we're binding from the bbl::Class<Foo>()
     // constructor
     clang::CXXRecordDecl const* type_record_decl =
@@ -1426,9 +1472,8 @@ extract_class_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
     Layout layout = get_record_layout(construct_expr, *ast_context);
     BindKind bind_kind =
         search_for_bind_kind_calls(construct_expr, *ast_context);
-    bool is_superclass =
-        search_for_superclass_call(construct_expr, *ast_context);
-    SPDLOG_INFO("is superclass: {}", is_superclass);
+    // bool is_superclass =
+    //     search_for_superclass_call(construct_expr, *ast_context);
 
     // Get the rule of seven fields from the bbl::Class decl
     clang::CXXConstructorDecl* bbl_ctor_decl = construct_expr->getConstructor();
@@ -1582,6 +1627,14 @@ extract_class_from_construct_expr(clang::CXXConstructExpr const* construct_expr,
                                           ast_context->getSourceManager()));
             }
             bbl_ctx->insert_class_binding(mod_id, id, std::move(cls));
+
+            // if this is a class in the bblext namespace we want to paste it
+            // into the module
+            if (is_in_namespace(type_record_decl, "bblext")) {
+                std::string class_source =
+                    get_source_text(type_record_decl->getSourceRange(), sm);
+                bbl_ctx->insert_class_impl(mod_id, class_source);
+            }
         } catch (std::runtime_error& e) {
             BBL_RETHROW(e,
                         "failed to extract class binding from\n{}",
@@ -2664,9 +2717,15 @@ public:
         }
 
         if (crd->getQualifiedNameAsString() == "bbl::Class" ||
-            crd->getQualifiedNameAsString() == "bbl::ClassIncomplete") {
-            extract_class_from_construct_expr(
-                cce, _bbl_ctx, _ast_context, _sm, _mangle_context.get());
+            crd->getQualifiedNameAsString() == "bbl::ClassIncomplete" ||
+            crd->getQualifiedNameAsString() == "bbl::Superclass") {
+            extract_class_from_construct_expr(cce,
+                                              _bbl_ctx,
+                                              _ast_context,
+                                              _sm,
+                                              _mangle_context.get(),
+                                              crd->getQualifiedNameAsString() ==
+                                                  "bbl::Superclass");
         } else if (crd->getQualifiedNameAsString() == "bbl::Enum") {
             extract_enum_from_construct_expr(
                 cce, _bbl_ctx, _ast_context, _sm, _mangle_context.get());
@@ -2869,7 +2928,7 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
     // SPDLOG_INFO("building asts");
     Timer timer_ast;
     tool.buildASTs(ast_units);
-    SPDLOG_INFO("ASTs built in {}s", timer_ast.elapsed_seconds());
+    // SPDLOG_INFO("ASTs built in {}s", timer_ast.elapsed_seconds());
 
     if (ast_units.empty()) {
         BBL_THROW("no AST units generated");
@@ -2915,6 +2974,173 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
 
     // SPDLOG_INFO("building {} ASTs took {}s", ast_units.size(),
     // timer_ast.elapsed_seconds());
+
+    // Now that we've extracted everything we want from the AST, go through and
+    // copy methods down from superclasses to subclasses
+    for (auto const& [mod_id, mod] : _module_map) {
+        for (std::string const& class_id : mod.classes) {
+            Class& cls = _decl_maps.class_map.at(class_id);
+            std::vector<std::string> inherited_method_ids;
+
+            for (std::string const& super_id : cls.inherits_from) {
+                if (!_decl_maps.class_map.contains(super_id)) {
+                    // just continue here. it's possible this is a user error,
+                    // but it's far more likely that they just haven't
+                    // explicitly bound something in the inheritance hierarchy
+                    // and don't want to, in which case spitting errors is just
+                    // noise.
+                    continue;
+                }
+
+                Class& supercls = _decl_maps.class_map.at(super_id);
+                // put the signiatures of this class's methods in the bound
+                // methods list in order to handle overrides
+                std::vector<std::string> bound_method_signiatures;
+                for (std::string const& method_id : cls.methods) {
+                    try {
+                        Method const& method =
+                            _decl_maps.method_map.at(method_id);
+                        bound_method_signiatures.emplace_back(
+                            get_method_as_string(method));
+                    } catch (std::exception& e) {
+                        SPDLOG_ERROR("could not find method {} on {}",
+                                     method_id,
+                                     cls.spelling);
+                    }
+                }
+
+                _get_base_class_methods(
+                    supercls, inherited_method_ids, bound_method_signiatures);
+            }
+
+            for (std::string const& method_id : inherited_method_ids) {
+                cls.methods.push_back(method_id);
+            }
+        }
+
+        // now copy all methods from pointee classes to smartptr classes
+        for (std::string const& class_id : mod.classes) {
+            Class& cls = _decl_maps.class_map.at(class_id);
+
+            if (!cls.smartptr_to.has_value()) {
+                continue;
+            }
+
+            std::string const& pointee_id = cls.smartptr_to.value();
+            try {
+                Class const& pointee_cls = _decl_maps.class_map.at(pointee_id);
+                for (std::string const& method_id : pointee_cls.methods) {
+                    try {
+                        Method const& method =
+                            _decl_maps.method_map.at(method_id);
+                        if (!method.is_const && cls.smartptr_is_const) {
+                            // if the smartptr is templated on a const type, we
+                            // don't want to add non-const methods
+                            continue;
+                        }
+
+                        if (method.is_static) {
+                            // don't want static methods either
+                            continue;
+                        }
+
+                        cls.pointee_methods.push_back(method_id);
+                    } catch (std::exception& e) {
+                        SPDLOG_ERROR("could not find method id {} on pointee "
+                                     "class {} for smartptr {}",
+                                     method_id,
+                                     pointee_cls.spelling,
+                                     cls.spelling);
+                        continue;
+                    }
+                }
+
+            } catch (std::exception& e) {
+                SPDLOG_ERROR("could not find pointee {} from smartptr {}",
+                             pointee_id,
+                             cls.spelling);
+                continue;
+            }
+        }
+    }
+}
+
+template <class C, class T>
+inline auto contains_impl(const C& c, const T& x, int)
+    -> decltype(c.find(x), true) {
+    return end(c) != c.find(x);
+}
+
+template <class C, class T>
+inline bool contains_impl(const C& v, const T& x, long) {
+    return end(v) != std::find(begin(v), end(v), x);
+}
+
+template <class C, class T>
+auto contains(const C& c, const T& x) -> decltype(end(c), true) {
+    return contains_impl(c, x, 0);
+}
+
+auto Context::_get_base_class_methods(
+    Class const& cls,
+    std::vector<std::string>& inherited_method_ids,
+    std::vector<std::string>& bound_method_signiatures) -> void {
+    for (std::string const& method_id : cls.methods) {
+        if (!_decl_maps.method_map.contains(method_id)) {
+            SPDLOG_ERROR("could not find method {} on class {}",
+                         method_id,
+                         cls.spelling);
+            continue;
+        }
+        Method const& method = _decl_maps.method_map.at(method_id);
+
+        std::string method_sig = get_method_as_string(method);
+        if (!method.is_static &&
+            !contains(bound_method_signiatures, method_sig)) {
+            inherited_method_ids.push_back(method_id);
+            bound_method_signiatures.emplace_back(std::move(method_sig));
+        }
+    }
+
+    for (std::string const& super_id : cls.inherits_from) {
+        if (!_decl_maps.class_map.contains(super_id)) {
+            continue;
+        }
+
+        Class& supercls = _decl_maps.class_map.at(super_id);
+        _get_base_class_methods(
+            supercls, inherited_method_ids, bound_method_signiatures);
+    }
+}
+
+auto Context::insert_function_proto(std::string const& mod_id,
+                                    std::string const& id,
+                                    FunctionProto&& fun) -> void {
+
+    // First, find the module we're going to insert into
+    // this should already have been extracted
+    auto it_mod = _module_map.find(mod_id);
+    if (it_mod == _module_map.end()) {
+        BBL_THROW("module id {} is not in module map", mod_id);
+    }
+    Module& mod = it_mod->second;
+
+    // Now check that we don't already have another binding
+    // somewhere
+    if (auto it = _type_to_module_map.find(id);
+        it != _type_to_module_map.end()) {
+        BBL_THROW("FunctionProto {} ({}) is already bound in module "
+                  "{}",
+                  to_string(fun, _decl_maps),
+                  id,
+                  mod.name);
+    } else {
+        _type_to_module_map.emplace(id, mod_id);
+    }
+
+    // If we have a module and no existing bindings, insert
+    mod.functions.push_back(id);
+    _decl_maps.function_proto_map.emplace(id, std::move(fun));
 }
 
 } // namespace bbl

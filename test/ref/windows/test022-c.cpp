@@ -23,10 +23,10 @@ static float custom_foo(Foo const& foo) {
 }
 }
 
-extern "C" {
 
 using test0022_Foo_t = Foo;
 
+extern "C" {
 int test0022_Foo_dtor(test0022_Foo_t* _this) {
     delete _this;
     return 0;

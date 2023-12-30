@@ -491,7 +491,7 @@ int main(int argc, char const** argv) {
         SPDLOG_ERROR("extraction failed after {}s", timer.elapsed_seconds());
         return 1;
     }
-    SPDLOG_ERROR("extraction completed in {}s", timer.elapsed_seconds());
+    // SPDLOG_INFO("extraction completed in {}s", timer.elapsed_seconds());
 
     bbl_opts.insert(bbl_opts.begin(), argv[0]);
     int bbl_argc = bbl_opts.size();
@@ -534,7 +534,6 @@ int main(int argc, char const** argv) {
         SPDLOG_ERROR("failed to create C API after {}s", timer.elapsed_seconds());
         return 1;
     }
-    SPDLOG_ERROR("created C API in {}s", timer.elapsed_seconds());
 
     char const* header;
     size_t len = 0;

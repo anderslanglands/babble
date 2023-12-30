@@ -15,18 +15,23 @@ public:
     virtual ~Base(){}
 };
 
+class Derived : public Base {
+
+};
+
 }
 
-BBL_MODULE(test039) {
-    bbl::Superclass<foo::Base>()
-        .superclass()
-        .ctor(bbl::Superclass<foo::Base>::Ctor<>(), "default")
-        .ctor(bbl::Superclass<foo::Base>::Ctor<std::string, std::string&, std::string*>("foo", "foo_ref", "foo_ptr"), "from_str")
-        .ctor(bbl::Superclass<foo::Base>::Ctor<int, int&, int*>("foo", "foo_ref", "foo_ptr"), "from_int")
+BBL_MODULE(test040) {
+    bbl::Class<foo::Base>()
+        .ctor(bbl::Class<foo::Base>::Ctor<>(), "default")
+        .ctor(bbl::Class<foo::Base>::Ctor<std::string, std::string&, std::string*>("foo", "foo_ref", "foo_ptr"), "from_str")
+        .ctor(bbl::Class<foo::Base>::Ctor<int, int&, int*>("foo", "foo_ref", "foo_ptr"), "from_int")
         .m(&foo::Base::hello)
         .m(&foo::Base::hello2)
         .m(&foo::Base::nonvirtual)
     ;
+
+    bbl::Class<foo::Derived>();
 
     bbl::Class<std::string>("string");
 }

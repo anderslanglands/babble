@@ -14,7 +14,6 @@
 
 static thread_local std::string _bbl_error_message;
 
-extern "C" {
 
 using test017_Vec3f_t = qux::Vec3f;
 struct BBL_ALIGN(4) test017_Vec3f_t_bbl_size_check {
@@ -28,6 +27,7 @@ static_assert(alignof(test017_Vec3f_t_bbl_size_check) == alignof(qux::Vec3f), "a
 using test017_Foo_t = qux::Foo;
 using test017_Bar_t = qux::Bar;
 
+extern "C" {
 int test017_Vec3f_length(test017_Vec3f_t const* _this, float* _result) {
     try {
         *_result = _this->length();

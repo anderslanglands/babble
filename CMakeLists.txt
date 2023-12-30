@@ -42,6 +42,7 @@ set(BABBLE_RESOURCE_DIR "${CLANG_INSTALL_PREFIX}/lib/clang/${LLVM_VERSION_MAJOR}
 # more complete example bindings
 add_subdirectory(test/smartptr)
 add_subdirectory(test/stdfunction)
+add_subdirectory(test/inheritance)
 
 # plugins
 add_subdirectory(plugins)

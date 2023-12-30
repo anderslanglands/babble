@@ -14,10 +14,10 @@
 
 static thread_local std::string _bbl_error_message;
 
-extern "C" {
 
 using test036_ustring_t = OIIO::ustring;
 
+extern "C" {
 int test036_ustring_op_lt(test036_ustring_t const* _this, test036_ustring_t const* x, bool* _result) {
     *_result = _this->operator<(*x);
     return 0;

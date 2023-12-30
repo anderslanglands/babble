@@ -14,7 +14,6 @@
 
 static thread_local std::string _bbl_error_message;
 
-extern "C" {
 
 using test003_FooFloat_t = Foo<float>;
 using test003_FooInt_t = FooInt;
@@ -25,6 +24,7 @@ static_assert(alignof(test003_FooInt_t_bbl_size_check) == alignof(FooInt), "alig
 
 using test003_Baz_t = Baz;
 
+extern "C" {
 int test003_FooFloat_bar(test003_FooFloat_t* _this, float const* a, float* _result) {
     try {
         *_result = _this->bar(*a);
