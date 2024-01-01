@@ -35,7 +35,7 @@ enum Result {
     ERROR_FILE_OPEN,
 };
 
-auto get_operator_rename(std::string const& name) -> std::string;
+static auto get_operator_rename(std::string const& name) -> std::string;
 
 auto get_function_cast_string(FunctionDecl const* fd,
                               std::string const& scope,
