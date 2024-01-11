@@ -58,6 +58,7 @@ TESTS = [
     "test039",
     "test040",
     "test041",
+    "test042",
 ]
 
 
@@ -110,7 +111,7 @@ for test in tests_to_run:
     out_cpp_path = os.path.join(TEST_OUTPUT_PATH, f"{test}.cpp")
     out_h_path = os.path.join("build", "test", "out", f"{test}.h")
 
-    cmd = f"{exe_path} {bindfile_path} -- --std=c++17 -Ibbl/include -idirafter build/include -- {test} -o {TEST_OUTPUT_PATH}"
+    cmd = f"{exe_path} {bindfile_path} -- --std=c++17 -Ibbl/include -idirafter build/include -- {test} -o {TEST_OUTPUT_PATH} -l rust"
     if args.verbose:
         print(f"# {cmd}")
     os.system(cmd)

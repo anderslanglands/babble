@@ -2889,6 +2889,22 @@ std::string Context::get_fallback_typename(std::string const& id) const {
     return id;
 }
 
+template <class C, class T>
+inline auto contains_impl(const C& c, const T& x, int)
+    -> decltype(c.find(x), true) {
+    return end(c) != c.find(x);
+}
+
+template <class C, class T>
+inline bool contains_impl(const C& v, const T& x, long) {
+    return end(v) != std::find(begin(v), end(v), x);
+}
+
+template <class C, class T>
+auto contains(const C& c, const T& x) -> decltype(end(c), true) {
+    return contains_impl(c, x, 0);
+}
+
 auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
     -> void {
     using namespace clang::tooling;
@@ -2981,6 +2997,13 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
         for (std::string const& class_id : mod.classes) {
             Class& cls = _decl_maps.class_map.at(class_id);
             std::vector<std::string> inherited_method_ids;
+            std::vector<std::string> bound_method_signiatures;
+
+            for (std::string const& method_id: cls.methods) {
+                Method const& method =
+                    _decl_maps.method_map.at(method_id);
+                bound_method_signiatures.emplace_back(get_method_as_string(method));
+            }
 
             for (std::string const& super_id : cls.inherits_from) {
                 if (!_decl_maps.class_map.contains(super_id)) {
@@ -2993,24 +3016,22 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
                 }
 
                 Class& supercls = _decl_maps.class_map.at(super_id);
-                // put the signiatures of this class's methods in the bound
-                // methods list in order to handle overrides
-                std::vector<std::string> bound_method_signiatures;
-                for (std::string const& method_id : cls.methods) {
+                for (std::string const& method_id : supercls.methods) {
                     try {
                         Method const& method =
                             _decl_maps.method_map.at(method_id);
-                        bound_method_signiatures.emplace_back(
-                            get_method_as_string(method));
+                        std::string method_sig = get_method_as_string(method);
+
+                        if (!method.is_static && !contains(bound_method_signiatures, method_sig)) {
+                            bound_method_signiatures.push_back(method_sig);
+                            inherited_method_ids.push_back(method_id);
+                        }
                     } catch (std::exception& e) {
                         SPDLOG_ERROR("could not find method {} on {}",
                                      method_id,
                                      cls.spelling);
                     }
                 }
-
-                _get_base_class_methods(
-                    supercls, inherited_method_ids, bound_method_signiatures);
             }
 
             for (std::string const& method_id : inherited_method_ids) {
@@ -3062,54 +3083,6 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
                 continue;
             }
         }
-    }
-}
-
-template <class C, class T>
-inline auto contains_impl(const C& c, const T& x, int)
-    -> decltype(c.find(x), true) {
-    return end(c) != c.find(x);
-}
-
-template <class C, class T>
-inline bool contains_impl(const C& v, const T& x, long) {
-    return end(v) != std::find(begin(v), end(v), x);
-}
-
-template <class C, class T>
-auto contains(const C& c, const T& x) -> decltype(end(c), true) {
-    return contains_impl(c, x, 0);
-}
-
-auto Context::_get_base_class_methods(
-    Class const& cls,
-    std::vector<std::string>& inherited_method_ids,
-    std::vector<std::string>& bound_method_signiatures) -> void {
-    for (std::string const& method_id : cls.methods) {
-        if (!_decl_maps.method_map.contains(method_id)) {
-            SPDLOG_ERROR("could not find method {} on class {}",
-                         method_id,
-                         cls.spelling);
-            continue;
-        }
-        Method const& method = _decl_maps.method_map.at(method_id);
-
-        std::string method_sig = get_method_as_string(method);
-        if (!method.is_static &&
-            !contains(bound_method_signiatures, method_sig)) {
-            inherited_method_ids.push_back(method_id);
-            bound_method_signiatures.emplace_back(std::move(method_sig));
-        }
-    }
-
-    for (std::string const& super_id : cls.inherits_from) {
-        if (!_decl_maps.class_map.contains(super_id)) {
-            continue;
-        }
-
-        Class& supercls = _decl_maps.class_map.at(super_id);
-        _get_base_class_methods(
-            supercls, inherited_method_ids, bound_method_signiatures);
     }
 }
 

@@ -449,8 +449,6 @@ class Context {
     SourceFileMap _source_file_map;
     llvm::cl::OptionCategory _option_category;
 
-    auto _get_base_class_methods(Class const& cls, std::vector<std::string>& method_ids, std::vector<std::string>& bound_method_signiatures) -> void;
-
 public:
     Context();
 
