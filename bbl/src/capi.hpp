@@ -85,6 +85,12 @@ struct C_StdFunction {
     std::vector<C_Param> params;
 };
 
+struct C_FunctionProto {
+    std::optional<std::string> name;
+    C_QType return_type;
+    std::vector<C_QType> params;
+};
+
 struct Generated {};
 
 using FunctionSource =
@@ -118,9 +124,12 @@ struct C_VirtualFunction {
 struct Subclass {
     Class const& super;
     std::string name;
-    std::vector<std::string> constructors;
+    std::string basename;
     std::vector<std::string> methods;
     std::vector<C_VirtualFunction> c_virtual_methods;
+    std::vector<C_Function> c_constructors;
+    std::vector<C_FunctionProto> c_function_protos;
+    bool has_destructor;
 };
 
 using C_StructMap = MapType<std::string, C_Struct>;
@@ -138,6 +147,7 @@ struct C_Module {
     std::vector<std::string> stdfunctions;
     std::vector<std::string> enums;
     std::vector<std::string> function_impls;
+    std::vector<std::string> class_impls;
 };
 
 class C_API {
@@ -193,19 +203,6 @@ class C_API {
                                          std::string const& name) const
         -> std::string;
 
-    /// Recursively add methods from other classes referenced via
-    /// bbl::Class::inherits_from
-    auto _add_base_class_methods(Context const& cpp_ctx,
-                                 Class const* derived,
-                                 std::string const& struct_namespace,
-                                 std::string const& base_id,
-                                 C_FunctionMap& functions,
-                                 std::vector<std::string>& mod_functions,
-                                 std::set<std::string>& bound_methods,
-                                 std::set<std::string>& visited,
-                                 bool is_smartptr_delegated,
-                                 bool only_const) -> void;
-
     /// Given a superclass, generate a C++ trampoline subclass implementation
     /// that forwards virtual method calls to a user-provided function table
     auto _generate_subclass(Context const& cpp_ctx,
@@ -215,6 +212,13 @@ class C_API {
     auto _generate_virtual_function(Method const* method, C_Function&& function) const -> C_VirtualFunction;
 
     auto _generate_virtual_function_pointer_declaration(C_VirtualFunction const& fun) const -> std::string;
+
+    auto _generate_function_pointer_typedef(C_FunctionProto const& proto) const -> std::string;
+
+    auto _generate_virtual_constructor_declaration(C_Function const& fun, Subclass const& sub) const -> std::string;
+    auto _generate_virtual_constructor_definition(C_Function const& fun, Subclass const& sub) const -> std::string;
+
+    auto _generate_subclass_constructor(C_Function const& fun, Subclass const& sub) const -> std::string;
 
 public:
     C_API(Context const& cpp_ctx);

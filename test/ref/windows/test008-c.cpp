@@ -16,11 +16,11 @@
 
 static thread_local std::string _bbl_error_message;
 
-extern "C" {
 
 using test_std_vector_StdVectorInt_t = std::vector<std::pair<int, float>>;
 using test_std_vector_StdPairIntFloat_t = std::pair<int, float>;
 
+extern "C" {
 int test_std_vector_StdVectorInt_data(test_std_vector_StdVectorInt_t* _this, test_std_vector_StdPairIntFloat_t** _result) {
     *_result = _this->data();
     return 0;

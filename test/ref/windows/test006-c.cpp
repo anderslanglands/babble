@@ -16,9 +16,9 @@
 
 static thread_local std::string _bbl_error_message;
 
-extern "C" {
 using test006a_Foo = int;
 using test006b_Bar = int64_t;
 
 
+extern "C" {
 } // extern "C"

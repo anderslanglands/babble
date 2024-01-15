@@ -14,7 +14,6 @@
 
 static thread_local std::string _bbl_error_message;
 
-extern "C" {
 
 using test0023_Foo_t = qux::Foo;
 struct BBL_ALIGN(4) test0023_Foo_t_bbl_size_check {
@@ -26,6 +25,7 @@ static_assert(sizeof(test0023_Foo_t_bbl_size_check) == sizeof(qux::Foo), "size o
 static_assert(alignof(test0023_Foo_t_bbl_size_check) == alignof(qux::Foo), "align of value type does not match");
 
 
+extern "C" {
 int test0023_Foo_length(test0023_Foo_t* _this, float* _result) {
     try {
         *_result = _this->length();

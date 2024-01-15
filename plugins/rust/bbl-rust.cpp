@@ -220,8 +220,6 @@ BBL_PLUGIN_API int bbl_plugin_exec(bbl_context_t cpp_ctx,
                                    bbl_capi_t capi_,
                                    char const* project_name,
                                    char const* output_path) {
-    printf("running bbl rust\n");
-
     C_API capi(capi_);
 
     std::string source = "";

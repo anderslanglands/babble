@@ -28,10 +28,10 @@ auto get_name_wrapped(char const** chars, size_t* len) -> void {
     }
 }
 
-extern "C" {
 
 using test033_Foo_t = qux::Foo;
 
+extern "C" {
 int test033_Foo_dtor(test033_Foo_t* _this) {
     delete _this;
     return 0;

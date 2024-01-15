@@ -15,11 +15,11 @@
 
 static thread_local std::string _bbl_error_message;
 
-extern "C" {
 
 using test028_Foo_t = tst::Foo;
 using test028_Bar_t = tst::Bar;
 
+extern "C" {
 int test028_Foo_dtor(test028_Foo_t* _this) {
     delete _this;
     return 0;

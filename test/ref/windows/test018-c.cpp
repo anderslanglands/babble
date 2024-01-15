@@ -15,10 +15,10 @@
 
 static thread_local std::string _bbl_error_message;
 
-extern "C" {
 
 using test018_Foo_t = qux::Foo;
 
+extern "C" {
 int test018_Foo_do_foo(test018_Foo_t const* _this, void (*fun)(test018_Foo_t const* param00, int param01, float param02, test018_Foo_t** _result)) {
     try {
         std::function<qux::Foo (qux::Foo const&, int, float)> fun_wrapper = [&](qux::Foo const& param00, int param01, float param02) {

@@ -14,10 +14,10 @@
 
 static thread_local std::string _bbl_error_message;
 
-extern "C" {
 
 using test035_ImageCache_t = OIIO::ImageCache;
 
+extern "C" {
 int test035_ImageCache_hello(test035_ImageCache_t* _this) {
     try {
         _this->hello();
