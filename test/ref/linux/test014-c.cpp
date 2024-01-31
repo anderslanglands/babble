@@ -14,10 +14,10 @@
 
 static thread_local std::string _bbl_error_message;
 
-extern "C" {
 
 using test014_Foo_t = Foo;
 
+extern "C" {
 int test014_Foo_bar(test014_Foo_t* _this, float a, int* _result) {
     try {
         *_result = _this->bar(a);

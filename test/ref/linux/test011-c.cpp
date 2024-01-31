@@ -15,10 +15,10 @@
 
 static thread_local std::string _bbl_error_message;
 
-extern "C" {
 
 using test011_FooFloat_t = qux::Foo<float>;
 
+extern "C" {
 int test011_FooFloat_bar(test011_FooFloat_t* _this, float const* a, float* _result) {
     try {
         *_result = _this->bar(*a);

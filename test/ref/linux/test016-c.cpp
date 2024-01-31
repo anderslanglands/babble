@@ -15,11 +15,11 @@
 
 static thread_local std::string _bbl_error_message;
 
-extern "C" {
 using test016_Bar = int64_t;
 
 using test016_Foo_t = qux::Foo;
 
+extern "C" {
 int test016_Foo_take_enum(test016_Foo_t const* _this, int64_t b) {
     try {
         _this->take_enum(static_cast<qux::Bar>(b));

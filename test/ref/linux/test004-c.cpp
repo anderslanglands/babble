@@ -14,11 +14,11 @@
 
 static thread_local std::string _bbl_error_message;
 
-extern "C" {
 
 using test004_FooFloat_t = Foo<float>;
 using test004_FooInt_t = FooInt;
 
+extern "C" {
 int test004_FooFloat_baz_int(test004_FooFloat_t* _this, size_t a) {
     try {
         _this->baz(a);
