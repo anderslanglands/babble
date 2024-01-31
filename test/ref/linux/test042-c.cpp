@@ -16,13 +16,14 @@
 static thread_local std::string _bbl_error_message;
 
 
-using test0021_Foo_t = Foo;
-using test0021_BarShort_t = Bar<short>;
+using test042_Abstract_t = foo::Abstract;
+using test042_Base1_t = foo::Base1;
+using test042_Base2_t = foo::Base2;
 
 extern "C" {
-int test0021_Foo_get_int(test0021_Foo_t const* _this, int const** _result) {
+int test042_Abstract_do_pure_thing(test042_Abstract_t* _this) {
     try {
-        *_result = &_this->get();
+        _this->do_pure_thing();
         return 0;
     } catch (std::exception& e) {
         _bbl_error_message = e.what();
@@ -30,9 +31,9 @@ int test0021_Foo_get_int(test0021_Foo_t const* _this, int const** _result) {
     }
 }
 
-int test0021_Foo_is_int(test0021_Foo_t const* _this, bool* _result) {
+int test042_Abstract_public_method(test042_Abstract_t* _this) {
     try {
-        *_result = _this->is();
+        _this->public_method();
         return 0;
     } catch (std::exception& e) {
         _bbl_error_message = e.what();
@@ -40,52 +41,57 @@ int test0021_Foo_is_int(test0021_Foo_t const* _this, bool* _result) {
     }
 }
 
-int test0021_Foo_get_float(test0021_Foo_t const* _this, float const** _result) {
-    try {
-        *_result = &_this->get();
-        return 0;
-    } catch (std::exception& e) {
-        _bbl_error_message = e.what();
-        return 1;
-    }
-}
-
-int test0021_Foo_is_float(test0021_Foo_t const* _this, bool* _result) {
-    try {
-        *_result = _this->is();
-        return 0;
-    } catch (std::exception& e) {
-        _bbl_error_message = e.what();
-        return 1;
-    }
-}
-
-int test0021_Foo_from_int(int const* value, test0021_Foo_t** _result) {
-    try {
-        *_result = new Foo(*value);
-        return 0;
-    } catch (std::exception& e) {
-        _bbl_error_message = e.what();
-        return 1;
-    }
-}
-
-int test0021_Foo_from_float(float const* value, test0021_Foo_t** _result) {
-    try {
-        *_result = new Foo(*value);
-        return 0;
-    } catch (std::exception& e) {
-        _bbl_error_message = e.what();
-        return 1;
-    }
-}
-
-int test0021_Foo_dtor(test0021_Foo_t* _this) {
+int test042_Abstract_dtor(test042_Abstract_t* _this) {
     delete _this;
     return 0;
 }
 
-int test0021_BarShort_dtor(test0021_BarShort_t* _this) {
+int test042_Base1_do_pure_thing(test042_Base1_t* _this) {
+    try {
+        _this->do_pure_thing();
+        return 0;
+    } catch (std::exception& e) {
+        _bbl_error_message = e.what();
+        return 1;
+    }
+}
+
+int test042_Base1_public_method(test042_Base1_t* _this) {
+    try {
+        _this->public_method();
+        return 0;
+    } catch (std::exception& e) {
+        _bbl_error_message = e.what();
+        return 1;
+    }
+}
+
+int test042_Base1_dtor(test042_Base1_t* _this) {
+    delete _this;
+    return 0;
+}
+
+int test042_Base2_do_pure_thing(test042_Base2_t* _this) {
+    try {
+        _this->do_pure_thing();
+        return 0;
+    } catch (std::exception& e) {
+        _bbl_error_message = e.what();
+        return 1;
+    }
+}
+
+int test042_Base2_public_method(test042_Base2_t* _this) {
+    try {
+        _this->public_method();
+        return 0;
+    } catch (std::exception& e) {
+        _bbl_error_message = e.what();
+        return 1;
+    }
+}
+
+int test042_Base2_dtor(test042_Base2_t* _this) {
     delete _this;
     return 0;
 }

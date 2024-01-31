@@ -14,7 +14,6 @@
 
 static thread_local std::string _bbl_error_message;
 
-extern "C" {
 
 using test029_GradingRGBM_t = OCIO_NAMESPACE::GradingRGBM;
 struct BBL_ALIGN(8) test029_GradingRGBM_t_bbl_size_check {
@@ -27,4 +26,5 @@ static_assert(sizeof(test029_GradingRGBM_t_bbl_size_check) == sizeof(OCIO_NAMESP
 static_assert(alignof(test029_GradingRGBM_t_bbl_size_check) == alignof(OCIO_NAMESPACE::GradingRGBM), "align of value type does not match");
 
 
+extern "C" {
 } // extern "C"

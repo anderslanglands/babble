@@ -15,11 +15,11 @@
 
 static thread_local std::string _bbl_error_message;
 
-extern "C" {
 
 using test012_Base_t = qux::Base;
 using test012_Foo_t = qux::Foo;
 
+extern "C" {
 int test012_Base_bar(test012_Base_t* _this) {
     try {
         _this->bar();

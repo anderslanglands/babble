@@ -15,10 +15,10 @@
 
 static thread_local std::string _bbl_error_message;
 
-extern "C" {
 
 using test_std_pair_StdPairIntFloat_t = std::pair<int, float>;
 
+extern "C" {
 int test_std_pair_StdPairIntFloat_dtor(test_std_pair_StdPairIntFloat_t* _this) {
     delete _this;
     return 0;

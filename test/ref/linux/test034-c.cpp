@@ -22,11 +22,11 @@ auto Complete_create() -> foo::Complete* {
         }
 }
 
-extern "C" {
 
 using test034_Incomplete_t = foo::Incomplete;
 using test034_Complete_t = foo::Complete;
 
+extern "C" {
 int test034_Complete_hello(test034_Complete_t const* _this, char const* msg) {
     try {
         _this->hello(msg);

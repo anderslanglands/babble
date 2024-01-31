@@ -15,13 +15,13 @@
 
 static thread_local std::string _bbl_error_message;
 
-extern "C" {
 using bar_Enum = unsigned int;
 using baz_Enum = unsigned int;
 
 using bar_Foo_t = QUX_NS::BarFoo;
 using baz_Foo_t = QUX_NS::BazFoo;
 
+extern "C" {
 int bar_Foo_ctor(int a, float b, bar_Foo_t** _result) {
     try {
         *_result = new QUX_NS::BarFoo(a, b);

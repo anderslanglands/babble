@@ -14,10 +14,10 @@
 
 static thread_local std::string _bbl_error_message;
 
-extern "C" {
 
 using test030_Transform_t = OCIO_NAMESPACE::Transform;
 
+extern "C" {
 int test030_Transform_getValues(test030_Transform_t const* _this, double (*values)[3]) {
     try {
         _this->getValues(*values);
