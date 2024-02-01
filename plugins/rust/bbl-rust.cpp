@@ -181,7 +181,6 @@ static auto qtype_to_string(C_API capi,
                             std::set<std::string>& imports) -> std::string {
     bbl_capi_type_kind_t kind = qt.get_type_kind();
 
-    char const* s_mut = qt.is_const() ? "const " : "mut ";
 
     switch (kind) {
     case bbl_capi_typekind_Builtin:
@@ -194,7 +193,7 @@ static auto qtype_to_string(C_API capi,
     case bbl_capi_typekind_Pointer:
         return fmt::format(
             "*{}{}",
-            s_mut,
+            qt.get_pointee_type().value().is_const() ? "const " : "mut ",
             qtype_to_string(capi, qt.get_pointee_type().value(), imports));
     case bbl_capi_typekind_Array:
         return fmt::format(
