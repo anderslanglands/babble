@@ -37,6 +37,19 @@ function(BBL_TRANSLATE_BINDING PROJECT_NAME)
     add_library(${TARGET_NAME} STATIC ${BBL_TRANSLATED_SOURCE})
     target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
+    # The bbl-translate binary will have the system include paths baked into it,
+    # meaning that using the binary on a system with a different version of the
+    # stdlib than the one on which it was built will fail to find the stdlib 
+    # headers. 
+    # In order to find them we need to parse the output of `c++ -v`, and add them
+    # back with -isystem args
+    if (UNIX OR APPLE)
+        execute_process(COMMAND bash "-c" "c++ -xc++ /dev/null -E -Wp,-v 2>&1 | sed -n 's,^ ,,p'" OUTPUT_VARIABLE gcc_default_includes)
+        string(STRIP ${gcc_default_includes} gcc_default_includes)
+        string(REPLACE "\n" " -isystem " gcc_include_list "-isystem ${gcc_default_includes}")
+        string(REPLACE " " ";" gcc_include_list ${gcc_include_list})
+    endif()
+
     add_custom_command(
         OUTPUT ${BBL_TRANSLATED_SOURCE}
         DEPENDS ${arg_BINDFILES}
@@ -47,7 +60,8 @@ function(BBL_TRANSLATE_BINDING PROJECT_NAME)
                 -std=c++17
                 -fsyntax-only
                 -fno-spell-checking
-                 -I${BABBLE_RESOURCE_DIR}/include
+                ${gcc_include_list}
+                -I${BABBLE_RESOURCE_DIR}/include
                 "-I$<JOIN:$<TARGET_PROPERTY:babble::bind,INTERFACE_INCLUDE_DIRECTORIES>,;-I>" 
                 "-I$<JOIN:$<TARGET_PROPERTY:${TARGET_NAME},INCLUDE_DIRECTORIES>,;-I>" 
                 "$<JOIN:$<TARGET_PROPERTY:${TARGET_NAME},COMPILE_DEFINITIONS>,;>" 
@@ -63,18 +77,18 @@ function(BBL_TRANSLATE_BINDING PROJECT_NAME)
     # Ouptut the link libraries to a text file we can read downstream
     # First generate a stub main source file, then compile and link it with our
     # echo linker
-    file(GENERATE OUTPUT ${PROJECT_NAME}-link-libraries.cpp CONTENT "int main() {return 0;}")
-    add_executable(${PROJECT_NAME}-link-libraries ${PROJECT_NAME}-link-libraries.cpp)
-    target_link_libraries(${PROJECT_NAME}-link-libraries ${TARGET_NAME})
+    # file(GENERATE OUTPUT ${PROJECT_NAME}-link-libraries.cpp CONTENT "int main() {return 0;}")
+    # add_executable(${PROJECT_NAME}-link-libraries ${PROJECT_NAME}-link-libraries.cpp)
+    # target_link_libraries(${PROJECT_NAME}-link-libraries ${TARGET_NAME})
 
-    set_target_properties(
-        ${PROJECT_NAME}-link-libraries 
-            PROPERTIES
-                LINKER_LANGUAGE 
-                    ECHO
-                SUFFIX          
-                    ".txt"
-    )
+    # set_target_properties(
+    #     ${PROJECT_NAME}-link-libraries 
+    #         PROPERTIES
+    #             LINKER_LANGUAGE 
+    #                 ECHO
+    #             SUFFIX          
+    #                 ".txt"
+    # )
 endfunction()
 
 function(BBL_GENERATE_BINDING PROJECT_NAME GENFILE NAMESPACE)
