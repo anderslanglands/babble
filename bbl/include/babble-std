@@ -24,8 +24,49 @@
     /*.m((void(std::vector<bbl::detail::argument_type<void(TY)>::type>::*)(size_t, bbl::detail::argument_type<void(TY)>::type const&))        \
         &std::vector<bbl::detail::argument_type<void(TY)>::type>::resize, "resize_with")*/                                                    \
     .m((bbl::detail::argument_type<void(TY)>::type const& (std::vector<bbl::detail::argument_type<void(TY)>::type>::*)(size_t) const)       \
-        &std::vector<bbl::detail::argument_type<void(TY)>::type>::operator[], "op_index")                                                               \
-    ;
+        &std::vector<bbl::detail::argument_type<void(TY)>::type>::operator[], "op_index")                                                   \
+    .ignore_all_unbound()                                                                                                                   
+
+#define BBL_STD_MAP_METHODS(TY)                                                                                                                                                             \
+    .m((bbl::detail::argument_type<void(TY)>::type::mapped_type const& (bbl::detail::argument_type<void(TY)>::type::*)(bbl::detail::argument_type<void(TY)>::type::key_type const&) const)  \
+        &bbl::detail::argument_type<void(TY)>::type::at, "at_const"                                                                                                                         \
+    )                                                                                                                                                                                       \
+    .m((bbl::detail::argument_type<void(TY)>::type::mapped_type& (bbl::detail::argument_type<void(TY)>::type::*)(bbl::detail::argument_type<void(TY)>::type::key_type const&))              \
+        &bbl::detail::argument_type<void(TY)>::type::at                                                                                                                                     \
+    )                                                                                                                                                                                       \
+    .ignore_all_unbound()                                                                                                                   
+
+
+#define BBL_STD_SET_METHODS(TY) \
+        .m(&bbl::detail::argument_type<void(TY)>::type::empty) \
+        .m(&bbl::detail::argument_type<void(TY)>::type::size) \
+        .m((bbl::detail::argument_type<void(TY)>::type::const_iterator (bbl::detail::argument_type<void(TY)>::type::*)() const) \
+            &bbl::detail::argument_type<void(TY)>::type::begin, "begin_const" \
+        ) \
+        .m((bbl::detail::argument_type<void(TY)>::type::const_iterator (bbl::detail::argument_type<void(TY)>::type::*)() const) \
+            &bbl::detail::argument_type<void(TY)>::type::end, "end_const" \
+        ) \
+        .m((bbl::detail::argument_type<void(TY)>::type::iterator (bbl::detail::argument_type<void(TY)>::type::*)()) \
+            &bbl::detail::argument_type<void(TY)>::type::begin, "begin" \
+        ) \
+        .m((bbl::detail::argument_type<void(TY)>::type::iterator (bbl::detail::argument_type<void(TY)>::type::*)()) \
+            &bbl::detail::argument_type<void(TY)>::type::end, "end" \
+        ) \
+        .m((bbl::detail::argument_type<void(TY)>::type::const_iterator (bbl::detail::argument_type<void(TY)>::type::*)(bbl::detail::argument_type<void(TY)>::type::key_type const&) const) \
+            &bbl::detail::argument_type<void(TY)>::type::find, "find_const" \
+        ) \
+        .m((bbl::detail::argument_type<void(TY)>::type::iterator (bbl::detail::argument_type<void(TY)>::type::*)(bbl::detail::argument_type<void(TY)>::type::key_type const&)) \
+            &bbl::detail::argument_type<void(TY)>::type::find, "find" \
+        ) \
+        .ignore_all_unbound()
+
+#define BBL_STD_ITERATOR_METHODS(TY)                                                                                    \
+        .m(&bbl::detail::argument_type<void(TY)>::type::operator->, "op_deref")                                                   \
+        .m(&bbl::detail::argument_type<void(TY)>::type::operator==)                                                               \
+        .m((bbl::detail::argument_type<void(TY)>::type& (bbl::detail::argument_type<void(TY)>::type::*)())          \
+            &bbl::detail::argument_type<void(TY)>::type::operator++                                                               \
+        )                                                                                                               \
+        .ignore_all_unbound()
 
 /// XXX: Need to expand the macros here...
 #define BBL_STD_PAIR_FUNCTIONS(TY0, TY1, RENAME)                               \
