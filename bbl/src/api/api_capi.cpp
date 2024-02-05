@@ -1024,4 +1024,19 @@ bbl_result_t bbl_capi_qtype_get_array_size(bbl_capi_qtype_t qtype, size_t* size)
     return BBL_RESULT_WrongKind;
 }
 
+bbl_result_t bbl_capi_get_num_unbound_methods(bbl_capi_t capi, int* num_unbound_methods) {
+    *num_unbound_methods = capi->get_unbound_methods().size();
+    return BBL_RESULT_Success;
+}
+
+bbl_result_t bbl_capi_get_unbound_method(bbl_capi_t capi, int index, char const** method_signature) {
+    if (index < 0 || index >= capi->get_unbound_methods().size()) {
+        return BBL_RESULT_ArgumentOutOfRange;
+    }
+
+    *method_signature = capi->get_unbound_methods()[index].c_str();
+
+    return BBL_RESULT_Success;
+}
+
 }

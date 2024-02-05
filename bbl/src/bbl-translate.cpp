@@ -453,9 +453,7 @@ public:
         return std::chrono::duration<double, std::milli>(dur).count();
     }
 
-    void reset() {
-        _start = std::chrono::steady_clock::now();
-    }
+    void reset() { _start = std::chrono::steady_clock::now(); }
 };
 
 int main(int argc, char const** argv) {
@@ -531,7 +529,8 @@ int main(int argc, char const** argv) {
     timer.reset();
     bbl_capi_t capi = nullptr;
     if (bbl_capi_create(ctx, &capi) != BBL_RESULT_Success) {
-        SPDLOG_ERROR("failed to create C API after {}s", timer.elapsed_seconds());
+        SPDLOG_ERROR("failed to create C API after {}s",
+                     timer.elapsed_seconds());
         return 1;
     }
 
@@ -600,6 +599,37 @@ int main(int argc, char const** argv) {
             for (auto const& [name, plugin] : plugin_manager.plugins()) {
                 SPDLOG_ERROR("  \"{}\": {}", name, plugin.filename);
             }
+        }
+    }
+
+    // Write the signatures of all unbound methods to a report file
+    std::string unbound_report;
+    bool any_unbound = false;
+    int num_unbound_methods = 0;
+    bbl_capi_get_num_unbound_methods(capi, &num_unbound_methods);
+    if (num_unbound_methods != 0) {
+        any_unbound = true;
+
+        for (int i = 0; i < num_unbound_methods; ++i) {
+            char const* sig = nullptr;
+            bbl_capi_get_unbound_method(capi, i, &sig);
+            unbound_report = fmt::format("{}{}\n", unbound_report, sig);
+        }
+    }
+
+    if (any_unbound) {
+        if (output_directory.empty()) {
+            SPDLOG_WARN("unbound report:\n{}", unbound_report);
+        } else {
+            std::string path_unbound_report = fmt::format(
+                "{}/{}-unbound_report.txt", output_directory, project_name);
+            std::ofstream os_unbound_report;
+            os_unbound_report.open(path_unbound_report);
+            if (!os_unbound_report.is_open()) {
+                SPDLOG_ERROR("could not open {}", path_unbound_report);
+                return 6;
+            }
+            os_unbound_report << unbound_report;
         }
     }
 

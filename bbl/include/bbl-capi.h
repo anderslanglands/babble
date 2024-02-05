@@ -831,6 +831,26 @@ bbl_capi_qtype_get_array_element_type(bbl_capi_qtype_t qtype,
 bbl_result_t bbl_capi_qtype_get_array_size(bbl_capi_qtype_t qtype,
                                            size_t* size);
 
+
+/**
+ * @brief Get the number of methods that are unbound across all modules
+ * 
+ * @param capi 
+ * @param num_unbound_methods 
+ * @return bbl_result_t 
+ */
+bbl_result_t bbl_capi_get_num_unbound_methods(bbl_capi_t capi, int* num_unbound_methods);
+
+/**
+ * @brief Get the signature of the `index'th` unbound method
+ * 
+ * @param capi 
+ * @param index 
+ * @param method_signature 
+ * @return bbl_result_t 
+ */
+bbl_result_t bbl_capi_get_unbound_method(bbl_capi_t capi, int index, char const** method_signature);
+
 #ifdef __cplusplus
 }
 #endif

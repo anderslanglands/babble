@@ -546,6 +546,39 @@ auto evaluate_field_expression_bool(clang::RecordDecl const* rd,
     return result;
 }
 
+auto generate_function_signature(clang::FunctionDecl const* fd) -> std::string {
+    std::string result = fmt::format("{}(", fd->getNameAsString());
+
+    bool first = true;
+    for (clang::ParmVarDecl const* param : fd->parameters()) {
+        if (first) {
+            first = false;
+        } else {
+            result = fmt::format("{}, ", result);
+        }
+        result = fmt::format("{}{} {}",
+                             result,
+                             param->getType().getAsString(),
+                             param->getName());
+    }
+
+    result =
+        fmt::format("{}) -> {}", result, fd->getReturnType().getAsString());
+
+    return result;
+}
+
+auto generate_method_signature(clang::CXXMethodDecl const* cmd) -> std::string {
+    std::string result = generate_function_signature(cmd);
+
+    result = fmt::format("{}{}{}",
+                         result,
+                         cmd->isConst() ? " const" : "",
+                         cmd->isStatic() ? " static" : "");
+
+    return result;
+}
+
 auto Context::extract_class_binding(
     clang::CXXRecordDecl const* crd,
     std::string const& spelling,
@@ -567,6 +600,29 @@ auto Context::extract_class_binding(
     std::string name = crd->getNameAsString();
     std::vector<TemplateArg> template_args;
 
+    ankerl::unordered_dense::set<std::string> all_method_signatures;
+    for (clang::CXXMethodDecl const* cmd : crd->methods()) {
+        // Only record public "proper" methods
+        if (cmd->getAccess() != clang::AS_public) {
+            continue;
+        }
+
+        if (auto const* ccd = llvm::dyn_cast<clang::CXXConstructorDecl>(cmd)) {
+            continue;
+        }
+
+        if (auto const* cdd = llvm::dyn_cast<clang::CXXDestructorDecl>(cmd)) {
+            continue;
+        }
+
+        if (cmd->isCopyAssignmentOperator() ||
+            cmd->isMoveAssignmentOperator()) {
+            continue;
+        }
+
+        all_method_signatures.emplace(generate_method_signature(cmd));
+    }
+
     return Class{this,
                  qualified_name,
                  spelling,
@@ -585,7 +641,9 @@ auto Context::extract_class_binding(
                  rule_of_seven,
                  is_abstract,
                  is_superclass,
-                 id};
+                 id,
+                 {}, // pointee methods
+                 all_method_signatures};
 }
 
 auto Context::insert_class_binding(std::string const& mod_id,
@@ -1979,6 +2037,111 @@ extract_wrapped_method_from_decl_ref_expr(clang::DeclRefExpr const* dre,
     }
 }
 
+static auto extract_ignore_all_methods_from_decl_ref_expr(
+    clang::CXXMemberCallExpr const* cmce,
+    bbl::Context* bbl_ctx,
+    clang::ASTContext* ast_context,
+    clang::SourceManager& sm,
+    clang::MangleContext* mangle_context) -> void {
+    // find the CXXConstructExpr to get the class we're
+    // attaching to
+    // XXX: handle object instance not ctor
+    auto const* cce_target =
+        find_first_descendent_of_type<clang::CXXConstructExpr>(cmce);
+    if (cce_target == nullptr) {
+        BBL_THROW("could not get CXXConstructExpr from "
+                  "CXXMemberCallExpr {}",
+                  get_source_text(cmce->getSourceRange(), sm));
+    }
+
+    // And finally get the target class
+    clang::CXXRecordDecl const* crd_target =
+        get_record_to_extract_from_construct_expr(cce_target);
+
+    // Check that if there's a mismatch between the parent class of
+    // this method and the target class we are binding to, that the
+    // target class is derived from the binding class this is
+    // because in the AST methods always have their parent as the
+    // class on which they were declared, not the derived class
+    std::string target_class_id = get_mangled_name(crd_target, mangle_context);
+
+    bbl::Class* cls = bbl_ctx->get_class(target_class_id);
+    if (!cls) {
+        // this shouldn't be possible in the bindings, but just to make sure
+        BBL_THROW("ignore_all called on unextracted class {}",
+                  crd_target->getQualifiedNameAsString());
+    }
+
+    cls->ignore_all_unbound = true;
+}
+
+static auto
+extract_ignore_method_from_decl_ref_expr(clang::DeclRefExpr const* dre,
+                                         bbl::Context* bbl_ctx,
+                                         clang::ASTContext* ast_context,
+                                         clang::SourceManager& sm,
+                                         clang::MangleContext* mangle_context)
+    -> void {
+    auto const* cmd = llvm::dyn_cast<clang::CXXMethodDecl>(dre->getDecl());
+    if (!cmd) {
+        BBL_THROW("got decl ref expr but decl is not CXXMethodDecl");
+    }
+    clang::CXXRecordDecl const* crd_parent = cmd->getParent();
+
+    clang::CXXMemberCallExpr const* mce =
+        find_first_ancestor_of_type<clang::CXXMemberCallExpr>(dre, ast_context);
+    if (!mce) {
+        SPDLOG_WARN("Could not get CXXMemberCallExpr from DeclRefExpr "
+                    "{}",
+                    get_source_text(dre->getSourceRange(),
+                                    ast_context->getSourceManager()));
+    }
+
+    clang::CXXRecordDecl const* crd_target =
+        get_target_record_decl_from_member_call_expr(mce);
+
+    // Check that if there's a mismatch between the parent class of
+    // this method and the target class we are binding to, that the
+    // target class is derived from the binding class this is
+    // because in the AST methods always have their parent as the
+    // class on which they were declared, not the derived class
+    std::string target_class_id = get_mangled_name(crd_target, mangle_context);
+    std::string parent_id = get_mangled_name(crd_parent, mangle_context);
+    if (target_class_id != parent_id &&
+        !crd_target->isDerivedFrom(crd_parent)) {
+
+        std::string source_text = get_spelling_text(dre->getSourceRange(), sm);
+        int line = sm.getExpansionLineNumber(dre->getSourceRange().getBegin());
+        int col = sm.getExpansionColumnNumber(dre->getSourceRange().getBegin());
+        std::string filename =
+            sm.getFilename(dre->getSourceRange().getBegin()).str();
+
+        BBL_THROW("method {} is bound to class {} but {} is "
+                  "not derived from {} while extracting:\n{}\n at {}:{}:{}",
+                  cmd->getQualifiedNameAsString(),
+                  crd_target->getQualifiedNameAsString(),
+                  crd_target->getQualifiedNameAsString(),
+                  crd_parent->getQualifiedNameAsString(),
+                  source_text,
+                  filename,
+                  line,
+                  col);
+    }
+
+    bbl::Class* cls = bbl_ctx->get_class(target_class_id);
+    if (!cls) {
+        // this shouldn't be possible in the bindings, but just to make sure
+        BBL_THROW("method {} is targeting class {} but this class "
+                  "is not extracted",
+                  cmd->getQualifiedNameAsString(),
+                  crd_target->getQualifiedNameAsString());
+    }
+
+    // get the method signature and remove it from the class's methods list
+    std::string method_sig = generate_method_signature(cmd);
+    cls->all_method_signatures.erase(method_sig);
+}
+
 static auto
 extract_method_from_decl_ref_expr(clang::DeclRefExpr const* dre,
                                   bbl::Context* bbl_ctx,
@@ -2114,6 +2277,8 @@ extract_method_from_decl_ref_expr(clang::DeclRefExpr const* dre,
                                                 comment,
                                                 mangle_context);
             bbl_ctx->insert_method_binding(method_id, std::move(method));
+            std::string method_sig = generate_method_signature(cmd);
+            cls->all_method_signatures.erase(method_sig);
             cls->methods.emplace_back(std::move(method_id));
         } catch (std::exception& e) {
             BBL_RETHROW(
@@ -2810,7 +2975,13 @@ public:
                             _sm,
                             _mangle_context.get());
                     }
-
+                } else if (cmce->getMethodDecl()->getName() == "ignore") {
+                    extract_ignore_method_from_decl_ref_expr(
+                        dre,
+                        _bbl_ctx,
+                        _ast_context,
+                        _sm,
+                        _mangle_context.get());
                 } else {
                     SPDLOG_WARN(
                         "got CMCE but its name is {}",
@@ -2861,6 +3032,10 @@ public:
                     cmce, _bbl_ctx, _ast_context, _sm, _mangle_context.get());
             } else if (cmd->getName() == "smartptr_to") {
                 extract_smartptr_to_from_member_call_expr(
+                    cmce, _bbl_ctx, _ast_context, _sm, _mangle_context.get());
+            } else if (cmce->getMethodDecl()->getName() ==
+                       "ignore_all_unbound") {
+                extract_ignore_all_methods_from_decl_ref_expr(
                     cmce, _bbl_ctx, _ast_context, _sm, _mangle_context.get());
             }
         }
@@ -2999,10 +3174,10 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
             std::vector<std::string> inherited_method_ids;
             std::vector<std::string> bound_method_signiatures;
 
-            for (std::string const& method_id: cls.methods) {
-                Method const& method =
-                    _decl_maps.method_map.at(method_id);
-                bound_method_signiatures.emplace_back(get_method_as_string(method));
+            for (std::string const& method_id : cls.methods) {
+                Method const& method = _decl_maps.method_map.at(method_id);
+                bound_method_signiatures.emplace_back(
+                    get_method_as_string(method));
             }
 
             for (std::string const& super_id : cls.inherits_from) {
@@ -3022,7 +3197,8 @@ auto Context::compile_and_extract(int argc, char const** argv) noexcept(false)
                             _decl_maps.method_map.at(method_id);
                         std::string method_sig = get_method_as_string(method);
 
-                        if (!method.is_static && !contains(bound_method_signiatures, method_sig)) {
+                        if (!method.is_static &&
+                            !contains(bound_method_signiatures, method_sig)) {
                             bound_method_signiatures.push_back(method_sig);
                             inherited_method_ids.push_back(method_id);
                         }

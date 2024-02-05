@@ -154,6 +154,22 @@ public:
         return *this;
     }
 
+    /// Ignore the method given by member function pointer `fn`
+    ///
+    /// This does nothing except remove the method signature from the unbound method
+    /// report.
+    template <typename Result, typename RecordT, typename ...Args> Class ignore(MethodPtrT<Result, RecordT, Args...> fn) {
+        return *this;
+    }
+
+    /// Ignore all unbound methods on this Class
+    ///
+    /// This does nothing except remove the method signature from the unbound method
+    /// report.
+    Class ignore_all_unbound() {
+        return *this;
+    }
+
     /// Bind a method on Class C by passing a member function pointer to it and
     /// optionally a replacement name.
     ///
@@ -177,6 +193,14 @@ public:
     // }
     template <typename Result, typename RecordT, typename ...Args> Class m(ConstMethodPtrT<Result, RecordT, Args...> fn, const char* rename = "") {
         static_assert(std::is_base_of<RecordT, C>::value, "method is member of class that is not a base of this one");
+        return *this;
+    }
+
+    /// Ignore the method given by member function pointer `fn`
+    ///
+    /// This does nothing except remove the method signature from the unbound method
+    /// report.
+    template <typename Result, typename RecordT, typename ...Args> Class ignore(ConstMethodPtrT<Result, RecordT, Args...> fn, const char* rename = "") {
         return *this;
     }
 
@@ -206,6 +230,14 @@ public:
         return *this;
     }
 
+    /// Ignore the method given by member function pointer `fn`
+    ///
+    /// This does nothing except remove the method signature from the unbound method
+    /// report.
+    template <typename Result, typename RecordT, typename ...Args> Class ignore(ConstRefMethodPtrT<Result, RecordT, Args...> fn, const char* rename = "") {
+        return *this;
+    }
+
     /// Bind a method on Class C by passing a member function pointer to it and
     /// optionally a replacement name.
     ///
@@ -231,9 +263,13 @@ public:
         return *this;
     }
 
-    // template <typename Result, typename ...Args, typename Lambda> Class m(Wrap<MethodPtrT<Result, C, Args...>, Lambda> wrapper, char const* rename = "") {
-    //     return *this;
-    // }
+    /// Ignore the method given by function pointer `fn`
+    ///
+    /// This does nothing except remove the method signature from the unbound method
+    /// report.
+    template <typename Result, typename ...Args> Class ignore(FunctionPtrT<Result, Args...> fn, const char* rename = "") {
+        return *this;
+    }
 
     Class m(Wrap wrapper, char const* rename = "") {
         return *this;
@@ -436,6 +472,22 @@ public:
         return *this;
     }
 
+    /// Ignore the method given by member function pointer `fn`
+    ///
+    /// This does nothing except remove the method signature from the unbound method
+    /// report.
+    template <typename Result, typename RecordT, typename ...Args> Superclass ignore(MethodPtrT<Result, RecordT, Args...> fn, const char* rename = "") {
+        return *this;
+    }
+
+    /// Ignore all unbound methods on this Class
+    ///
+    /// This does nothing except remove the method signature from the unbound method
+    /// report.
+    Superclass ignore_all_unbound() {
+        return *this;
+    }
+
     /// Bind a method on Class C by passing a member function pointer to it and
     /// optionally a replacement name.
     ///
@@ -462,6 +514,14 @@ public:
         return *this;
     }
 
+    /// Ignore the method given by member function pointer `fn`
+    ///
+    /// This does nothing except remove the method signature from the unbound method
+    /// report.
+    template <typename Result, typename RecordT, typename ...Args> Superclass ignore(ConstMethodPtrT<Result, RecordT, Args...> fn, const char* rename = "") {
+        return *this;
+    }
+
     /// Bind a method on Class C by passing a member function pointer to it and
     /// optionally a replacement name.
     ///
@@ -485,6 +545,14 @@ public:
     // }
     template <typename Result, typename RecordT, typename ...Args> Superclass m(ConstRefMethodPtrT<Result, RecordT, Args...> fn, const char* rename = "") {
         static_assert(std::is_base_of<RecordT, C>::value, "method is member of class that is not a base of this one");
+        return *this;
+    }
+
+    /// Ignore the method given by member function pointer `fn`
+    ///
+    /// This does nothing except remove the method signature from the unbound method
+    /// report.
+    template <typename Result, typename RecordT, typename ...Args> Superclass ignore(ConstRefMethodPtrT<Result, RecordT, Args...> fn, const char* rename = "") {
         return *this;
     }
 

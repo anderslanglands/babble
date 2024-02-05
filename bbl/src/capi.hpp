@@ -159,6 +159,7 @@ class C_API {
     C_StdFunctionMap _stdfunctions;
     C_EnumMap _enums;
     SubclassMap _subclasses;
+    std::vector<std::string> _unbound_methods;
 
     auto _translate_parameter_list(std::vector<Param> const& params,
                                    std::vector<C_Param>& c_params,
@@ -232,6 +233,8 @@ public:
     auto get_functions() const -> C_FunctionMap const&;
     auto get_stdfunctions() const -> C_StdFunctionMap const&;
     auto get_enums() const -> C_EnumMap const&;
+
+    auto get_unbound_methods() const -> std::vector<std::string> const&;
 };
 
 } // namespace bbl

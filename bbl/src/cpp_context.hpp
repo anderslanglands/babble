@@ -341,6 +341,8 @@ struct Class {
     bool is_superclass;
     std::string id;
     std::vector<std::string> pointee_methods;
+    ankerl::unordered_dense::set<std::string> all_method_signatures;
+    bool ignore_all_unbound = false;
 };
 
 /// A std::function specialization, bound by and detected from a

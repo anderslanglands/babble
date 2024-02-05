@@ -320,6 +320,13 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
                         e.what());
                 }
             }
+
+            // add any remaining methods to unbound list
+            if (!cpp_cls->ignore_all_unbound) {
+                for (std::string const& sig: cpp_cls->all_method_signatures) {
+                    _unbound_methods.emplace_back(fmt::format("{}::{}", cpp_cls->spelling, sig));
+                }
+            }
         }
 
         // Translate functions
@@ -2469,5 +2476,9 @@ auto C_API::get_stdfunctions() const -> C_StdFunctionMap const& {
 }
 
 auto C_API::get_enums() const -> C_EnumMap const& { return _enums; }
+
+auto C_API::get_unbound_methods() const -> std::vector<std::string> const& {
+    return _unbound_methods;
+}
 
 } // namespace bbl
