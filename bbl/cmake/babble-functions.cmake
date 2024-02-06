@@ -47,8 +47,8 @@ function(BBL_TRANSLATE_BINDING PROJECT_NAME)
         execute_process(COMMAND bash "-c" "c++ -xc++ /dev/null -E -Wp,-v 2>&1 | sed -n 's,^ ,,p'" OUTPUT_VARIABLE gcc_default_includes)
         string(STRIP ${gcc_default_includes} gcc_default_includes)
         string(REPLACE "\n" " -isystem " gcc_include_list "-isystem ${gcc_default_includes}")
-        string(REPLACE " " ";" gcc_include_list ${gcc_include_list})
         string(REPLACE "(framework directory)" "" gcc_include_list ${gcc_include_list})
+        string(REPLACE " " ";" gcc_include_list ${gcc_include_list})
     endif()
 
     add_custom_command(
