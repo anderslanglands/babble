@@ -715,10 +715,14 @@ public:
 
 /// Bind a free function
 template <typename Result, typename... Args>
-void fn(FunctionPtrT<Result, Args...> fun, const char* rename = "") {}
+inline void fn(FunctionPtrT<Result, Args...> fun, const char* rename = "") {}
 
 /// Bind a wrapping lambda in place of a free function
 inline void fn(Wrap wrapper, const char* rename = "") {}
+
+/// Binda a lambda to generate a new function definition
+template <typename Lambda>
+inline void fn(Lambda l, char const* name) {}
 
 inline void rename_namespace(const char* from, const char* to) {}
 inline void prepend_module_name(bool enable) {}

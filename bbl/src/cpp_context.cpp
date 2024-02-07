@@ -1300,7 +1300,7 @@ extract_module_from_function_decl(clang::FunctionDecl const* fd,
             source_filename, SourceFile{{}, {module_id}, source_filename});
     }
 
-    // fd->dumpColor();
+    fd->dumpColor();
 }
 
 static clang::CXXRecordDecl const*
@@ -2288,6 +2288,62 @@ extract_method_from_decl_ref_expr(clang::DeclRefExpr const* dre,
 }
 
 static auto
+extract_lambda_as_function_impl(clang::LambdaExpr const* le,
+                                bbl::Context* bbl_ctx,
+                                std::string const& mod_id,
+                                std::string const& function_name,
+                                std::string const& rename_str,
+                                std::string const& comment,
+                                clang::SourceManager& sm,
+                                clang::MangleContext* mangle_context) {
+    // extract the wrapping lambda and insert it as a new
+    // function in bblext:: that we'll call instead of the
+    // original method
+    // get the lambda source from the bindfile and take
+    // everything from the opening parentheses to get the impl
+    clang::CXXMethodDecl const* lambda_decl = le->getCallOperator();
+    std::string lambda_source = get_source_text(le->getSourceRange(), sm);
+    lambda_source =
+        lambda_source.substr(lambda_source.find("("), std::string::npos);
+
+    // the lambda name is just the function name
+    // concatenated
+    std::string lambda_name = rename_str.empty() ? function_name : rename_str;
+
+    // extract the lambda decl as a function
+    bbl::Function function = bbl_ctx->extract_function_binding(
+        lambda_decl,
+        rename_str,
+        // because we're converting our lambda to a direct function impl
+        // it will be placed in the bblext namespace
+        fmt::format("bblext::{}", lambda_name),
+        "",
+        // take the doc comment from the wrapped method decl
+        comment,
+        mangle_context);
+
+    // override the extracted function name with the lambda name because
+    // the lambda function itself is operator()
+    function.name = lambda_name;
+    function.rename = "";
+
+    // the lambda source has the parameter list, trailing return and body
+    // already, just add a prefixing "auto" and the name
+    std::string lambda_impl =
+        fmt::format("auto {}{}", lambda_name, lambda_source);
+
+    // mangle the lambda as an id
+    std::string mangled_name = get_mangled_name(lambda_decl, mangle_context);
+
+    // insert the generated lambda function impl.
+    // this will go in the bblext namespace
+    bbl_ctx->insert_function_impl(mod_id, lambda_impl);
+
+    // insert the generated function binding
+    bbl_ctx->insert_function_binding(mod_id, mangled_name, std::move(function));
+}
+
+static auto
 extract_function_from_decl_ref_expr(clang::DeclRefExpr const* dre_fn,
                                     bbl::Context* bbl_ctx,
                                     clang::ASTContext* ast_context,
@@ -2325,6 +2381,13 @@ extract_function_from_decl_ref_expr(clang::DeclRefExpr const* dre_fn,
         rename_str = rename_literal->getString().str();
     }
 
+    std::string mod_id;
+    if (!find_containing_module(dre_fn, ast_context, mangle_context, mod_id)) {
+        BBL_THROW("could not find containing module for {}",
+                  get_source_text(dre_fn->getSourceRange(),
+                                  ast_context->getSourceManager()));
+    }
+
     clang::DeclRefExpr const* dre_target = nullptr;
     visit_subtree(ce, [&](clang::Stmt const* stmt) -> bool {
         // Both the DeclRefExpr we want to bind as well as the `bbl::fn` one
@@ -2338,8 +2401,28 @@ extract_function_from_decl_ref_expr(clang::DeclRefExpr const* dre_fn,
     });
 
     if (dre_target == nullptr) {
-        dre_fn->dumpColor();
-        BBL_THROW("Got unexpected set of DeclRefExprs");
+        // we might be a direct lambda binding
+        auto const* le = find_first_child_of_type<clang::LambdaExpr>(ce);
+        if (le) {
+            SPDLOG_INFO("GOT LAMBDA");
+            if (rename_str.empty()) {
+                BBL_THROW("must pass a rename string when binding a lambda");
+            }
+
+            extract_lambda_as_function_impl(le,
+                                            bbl_ctx,
+                                            mod_id,
+                                            rename_str,
+                                            rename_str,
+                                            "",
+                                            sm,
+                                            mangle_context);
+
+            return;
+        } else {
+            dre_fn->dumpColor();
+            BBL_THROW("Got unexpected set of DeclRefExprs");
+        }
     }
 
     std::string spelling = expr_to_string(dre_target, ast_context);
@@ -2381,13 +2464,6 @@ extract_function_from_decl_ref_expr(clang::DeclRefExpr const* dre_fn,
 
     std::string comment = get_comment_from_decl(fd, ast_context);
 
-    std::string mod_id;
-    if (!find_containing_module(dre_fn, ast_context, mangle_context, mod_id)) {
-        BBL_THROW("could not find containing module for {}",
-                  get_source_text(dre_fn->getSourceRange(),
-                                  ast_context->getSourceManager()));
-    }
-
     // check if there's a wrapper lambda under the CallExpr
     if (auto const* ctoe =
             find_first_child_of_type<clang::CXXTemporaryObjectExpr>(ce)) {
@@ -2410,54 +2486,14 @@ extract_function_from_decl_ref_expr(clang::DeclRefExpr const* dre_fn,
                       location_to_string(ctoe, sm));
         }
 
-        // extract the wrapping lambda and insert it as a new
-        // function in bblext:: that we'll call instead of the
-        // original method
-        // get the lambda source from the bindfile and take
-        // everything from the opening parentheses to get the impl
-        clang::CXXMethodDecl const* lambda_decl = le->getCallOperator();
-        std::string lambda_source = get_source_text(le->getSourceRange(), sm);
-        lambda_source =
-            lambda_source.substr(lambda_source.find("("), std::string::npos);
-
-        // the lambda name is just the function name
-        // concatenated
-        std::string lambda_name =
-            rename_str.empty() ? fd->getNameAsString() : rename_str;
-
-        // extract the lambda decl as a function
-        bbl::Function function = bbl_ctx->extract_function_binding(
-            lambda_decl,
-            rename_str,
-            // because we're converting our lambda to a direct function impl
-            // it will be placed in the bblext namespace
-            fmt::format("bblext::{}", lambda_name),
-            "",
-            // take the doc comment from the wrapped method decl
-            comment,
-            mangle_context);
-
-        // override the extracted function name with the lambda name because
-        // the lambda function itself is operator()
-        function.name = lambda_name;
-        function.rename = "";
-
-        // the lambda source has the parameter list, trailing return and body
-        // already, just add a prefixing "auto" and the name
-        std::string lambda_impl =
-            fmt::format("auto {}{}", lambda_name, lambda_source);
-
-        // mangle the lambda as an id
-        std::string mangled_name =
-            get_mangled_name(lambda_decl, mangle_context);
-
-        // insert the generated lambda function impl.
-        // this will go in the bblext namespace
-        bbl_ctx->insert_function_impl(mod_id, lambda_impl);
-
-        // insert the generated function binding
-        bbl_ctx->insert_function_binding(
-            mod_id, mangled_name, std::move(function));
+        extract_lambda_as_function_impl(le,
+                                        bbl_ctx,
+                                        mod_id,
+                                        fd->getNameAsString(),
+                                        rename_str,
+                                        comment,
+                                        sm,
+                                        mangle_context);
 
     } else {
         // Just extract the function
