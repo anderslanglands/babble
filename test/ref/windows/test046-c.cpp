@@ -1,4 +1,6 @@
 
+#include <string>
+
 #if defined(__GNUC__) || defined(__clang__)
 #  define BBL_ALIGN(x) __attribute__ ((aligned(x)))
 #elif defined(_MSC_VER)
@@ -25,38 +27,27 @@ template <typename T, typename U> struct argument_type<T(U)> {
 } }
 
 
+namespace bblext {
 
-using test037_Bar_t = foo::Bar;
+auto Foo_do_thing(const foo::Foo &_this, int a) -> float {
+    return _this.f;
+}
+
+void normal_thing() {}
+}
+
+
+using test046_Foo_t = foo::Foo;
 
 extern "C" {
-int test037_Bar_get_int(test037_Bar_t* _this, int** _result) {
-    try {
-        *_result = &_this->get_int();
-        return 0;
-    } catch (std::exception& e) {
-        _bbl_error_message = e.what();
-        return 1;
-    }
-}
-
-int test037_Bar_get_bar(test037_Bar_t* _this, test037_Bar_t const** _result) {
-    try {
-        *_result = &_this->get_bar();
-        return 0;
-    } catch (std::exception& e) {
-        _bbl_error_message = e.what();
-        return 1;
-    }
-}
-
-int test037_Bar_dtor(test037_Bar_t* _this) {
+int test046_Foo_dtor(test046_Foo_t* _this) {
     delete _this;
     return 0;
 }
 
-int test037_get_float(float** _result) {
+int test046_Foo_do_thing(test046_Foo_t const* _this, int a, float* _result) {
     try {
-        *_result = &foo::get_float();
+        *_result = bblext::Foo_do_thing(*_this, a);
         return 0;
     } catch (std::exception& e) {
         _bbl_error_message = e.what();
@@ -64,9 +55,9 @@ int test037_get_float(float** _result) {
     }
 }
 
-int test037_get_bar_ref(test037_Bar_t const** _result) {
+int test046_normal_thing() {
     try {
-        *_result = &foo::get_bar_ref();
+        bblext::normal_thing();
         return 0;
     } catch (std::exception& e) {
         _bbl_error_message = e.what();

@@ -2,6 +2,19 @@
 
 #include "babble"
 
+// These are necessary to strip an extra set of parentheses around a macro argument
+// We require extra parens in order to pass type names that include commas to 
+// the macros here, but MSVC (of course) barfs on type arguments that double the
+// parentheses (clang is fine with them). So we strip an extra set of parens if
+// they are present using BBL_DEPAREN when we use the expanded type in the macro.
+// See for example BBL_STD_PAIR, below.
+// https://stackoverflow.com/questions/24481810/how-to-remove-the-enclosing-parentheses-with-macro
+#define BBL_VANBBL_ISH
+#define BBL_ISH(...) BBL_ISH __VA_ARGS__
+#define BBL_ESC_(...) BBL_VAN ## __VA_ARGS__
+#define BBL_ESC(...) BBL_ESC_(__VA_ARGS__)
+#define BBL_DEPAREN(X) BBL_ESC(BBL_ISH X)
+
 // Bind std::vector<TY>
 #define BBL_STD_VECTOR_METHODS(TY)                                                                                                          \
     .ctor(bbl::Class<std::vector<bbl::detail::argument_type<void(TY)>::type>>::Ctor<>(), "default")                                                  \
@@ -60,28 +73,117 @@
         ) \
         .ignore_all_unbound()
 
-#define BBL_STD_ITERATOR_METHODS(TY)                                                                                    \
-        .m(&bbl::detail::argument_type<void(TY)>::type::operator->, "op_deref")                                                   \
-        .m(&bbl::detail::argument_type<void(TY)>::type::operator==)                                                               \
-        .m((bbl::detail::argument_type<void(TY)>::type& (bbl::detail::argument_type<void(TY)>::type::*)())          \
-            &bbl::detail::argument_type<void(TY)>::type::operator++                                                               \
-        )                                                                                                               \
+#define BBL_STD_ITERATOR_METHODS(TY)                                                                                                \
+        .m(&bbl::detail::argument_type<void(TY)>::type::operator->, "op_deref")                                                     \
+        .m(&bbl::detail::argument_type<void(TY)>::type::operator==)                                                                 \
+        .m((bbl::detail::argument_type<void(TY)>::type& (bbl::detail::argument_type<void(TY)>::type::*)())                          \
+            &bbl::detail::argument_type<void(TY)>::type::operator++                                                                 \
+        )                                                                                                                           \
         .ignore_all_unbound()
 
-/// XXX: Need to expand the macros here...
-#define BBL_STD_PAIR_FUNCTIONS(TY0, TY1, RENAME)                               \
-    /* Can't do this because we can't get at the spelling after expansion.     \
-     Need to investigate further to make macros better to use.                          \
-     bbl::Class<std::pair<TY0, TY1>>(RENAME); */                               \
-    ; /* << this semicolon is in case users try to use this like hte METHODS   \
-         macros */                                                             \
-    bbl::fn((bbl::detail::argument_type<void(TY0)>::type & (*)(std::pair<bbl::detail::argument_type<void(TY0)>::type, bbl::detail::argument_type<void(TY1)>::type>&)) & std::get<0, bbl::detail::argument_type<void(TY0)>::type, bbl::detail::argument_type<void(TY1)>::type>,         \
-            RENAME "_get0");                                                   \
-    bbl::fn((bbl::detail::argument_type<void(TY0)>::type const& (*)(std::pair<bbl::detail::argument_type<void(TY0)>::type, bbl::detail::argument_type<void(TY1)>::type> const&)) &                     \
-                std::get<0, bbl::detail::argument_type<void(TY0)>::type, bbl::detail::argument_type<void(TY1)>::type>,                                         \
-            RENAME "_get0_const");                                             \
-    bbl::fn((bbl::detail::argument_type<void(TY1)>::type & (*)(std::pair<bbl::detail::argument_type<void(TY0)>::type, bbl::detail::argument_type<void(TY1)>::type>&)) & std::get<1, bbl::detail::argument_type<void(TY0)>::type, bbl::detail::argument_type<void(TY1)>::type>,         \
-            RENAME "_get1");                                                   \
-    bbl::fn((bbl::detail::argument_type<void(TY1)>::type const& (*)(std::pair<bbl::detail::argument_type<void(TY0)>::type, bbl::detail::argument_type<void(TY1)>::type> const&)) &                     \
-                std::get<1, bbl::detail::argument_type<void(TY0)>::type, bbl::detail::argument_type<void(TY1)>::type>,                                         \
-            RENAME "_get1_const");\
+#define BBL_STD_PAIR(TY, NAME)                                                                                                          \
+    bbl::Class<bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type>(#NAME).ignore_all_unbound();                                                 \
+    bbl::fn([](bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type& p) -> bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::first_type& {              \
+        return p.first;                                                                                                                 \
+    }, #NAME "_first");                                                                                                                 \
+    bbl::fn([](bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type& p) -> bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::second_type& {             \
+        return p.second;                                                                                                                \
+    }, #NAME "_second");                                                                                                                \
+    bbl::fn([](bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type const& p) -> bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::first_type const& {  \
+        return p.first;                                                                                                                 \
+    }, #NAME "_first_const");                                                                                                           \
+    bbl::fn([](bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type const& p) -> bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::second_type const& { \
+        return p.second;                                                                                                                \
+    }, #NAME "_second_const");
+
+#define BBL_STD_MAP(TY, NAME) \
+    bbl::Class<bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type>(#NAME) \
+        .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::mapped_type const& (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::*)(bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::key_type const&) const) \
+            &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::at, "at_const") \
+        .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::mapped_type& (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::*)(bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::key_type const&)) \
+            &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::at) \
+        .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::*)()) \
+            &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::begin \
+        ) \
+        .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::*)() const) \
+            &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::begin, "begin_const" \
+        ) \
+        .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::*)()) \
+            &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::end \
+        ) \
+        .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::*)() const) \
+            &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::end, "end_const" \
+        ) \
+        .m(&bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::size) \
+        .m(&bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::empty) \
+        .ignore_all_unbound() \
+    ; \
+    bbl::Class<bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator>(#NAME "Iterator") \
+        .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator& (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator::*)()) \
+            &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator::operator++ \
+        ) \
+        .m(&bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator::operator==) \
+        .ignore_all_unbound() \
+    ; \
+    bbl::fn([](bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator& _this) -> bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator::value_type::first_type& { \
+        return _this->first; \
+    }, #NAME "Iterator_first"); \
+    bbl::fn([](bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator& _this) -> bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator::value_type::second_type& { \
+        return _this->second; \
+    }, #NAME "Iterator_second"); \
+    bbl::Class<bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator>(#NAME "ConstIterator") \
+        /* .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator& (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator::*)()) \
+             &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator::operator++ \
+         ) */ \
+        .m(&bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator::operator==) \
+        .ignore_all_unbound() \
+    ; \
+    bbl::fn([](bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator& _this) -> bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator::value_type::first_type& { \
+        return _this->first; \
+    }, #NAME "ConstIterator_first"); \
+    bbl::fn([](bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator& _this) -> bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator::value_type::second_type const& { \
+        return _this->second; \
+    }, #NAME "ConstIterator_second"); \
+
+#define BBL_STD_SET(TY, NAME) \
+    bbl::Class<bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type>(#NAME) \
+        .m(&bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::empty) \
+        .m(&bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::size) \
+        .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::*)() const) \
+            &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::begin, "begin_const" \
+        ) \
+        .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::*)() const) \
+            &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::end, "end_const" \
+        ) \
+        .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::*)()) \
+            &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::begin, "begin" \
+        ) \
+        .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::*)()) \
+            &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::end, "end" \
+        ) \
+        .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::*)(bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::key_type const&) const) \
+            &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::find, "find_const" \
+        ) \
+        .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::*)(bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::key_type const&)) \
+            &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::find, "find" \
+        ) \
+        .ignore_all_unbound() \
+    ; \
+    bbl::Class<bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator>(#NAME "Iterator") \
+        .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator& (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator::*)()) \
+            &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator::operator++ \
+        ) \
+        .m(&bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator::operator*) \
+        .m(&bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator::operator==) \
+        .ignore_all_unbound() \
+    ; \
+    if constexpr(!std::is_same_v<bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator, bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator>) { \
+    bbl::Class<bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator>(#NAME "ConstIterator") \
+        .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator& (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator::*)()) \
+            &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator::operator++ \
+        ) \
+        .m(&bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator::operator*) \
+        .m(&bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator::operator==) \
+        .ignore_all_unbound() \
+    ; \
+    }

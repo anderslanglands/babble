@@ -402,7 +402,7 @@ auto C_API::_get_c_qtype_as_string(C_QType const& qt,
             try {
                 C_Enum const& c_enum = _enums.at(enum_id.id);
                 return fmt::format(
-                    "{}{}", c_enum.integer_type, name_with_space);
+                    "{}{}{}", c_enum.integer_type, s_const, name_with_space);
             } catch (std::exception& e) {
                 BBL_RETHROW(e, "enum id {} not found in enums", enum_id.id);
             }
@@ -895,6 +895,18 @@ auto C_API::_translate_method(Method const* method,
         // address operator in order to convert it back to a pointer
         if (is_lvalue_reference(method->function.return_type)) {
             receiving_call = ex_address(std::move(receiving_call));
+
+            // if we're returning a reference to an enum, we need to cast the 
+            // resulting pointer to the enum integer type
+            LValueReference const& lvr = std::get<LValueReference>(method->function.return_type.type);
+            if (auto opt_enum_id = as_enum(*lvr.pointee); opt_enum_id.has_value()) {
+                Enum const* enm = _cpp_ctx.get_enum(opt_enum_id->id);
+                char const* s_const = lvr.pointee->is_const ? " const" : "";
+                receiving_call =
+                    ex_reinterpret_cast(ExprToken::create(fmt::format(
+                                    "{}{}*", get_builtin(enm->integer_type), s_const)),
+                                std::move(receiving_call));
+            }
         } else if (is_opaque_ptr_by_value(method->function.return_type,
                                           _cpp_ctx)) {
             // need to construct a new object on the heap to return
@@ -985,6 +997,18 @@ auto C_API::_translate_function(Function const* function,
         // returning an opaqueptr
         if (is_lvalue_reference(function->return_type)) {
             expr_call = ex_address(std::move(expr_call));
+
+            // if we're returning a reference to an enum, we need to cast the 
+            // resulting pointer to the enum integer type
+            LValueReference const& lvr = std::get<LValueReference>(function->return_type.type);
+            if (auto opt_enum_id = as_enum(*lvr.pointee); opt_enum_id.has_value()) {
+                Enum const* enm = _cpp_ctx.get_enum(opt_enum_id->id);
+                char const* s_const = lvr.pointee->is_const ? " const" : "";
+                expr_call =
+                    ex_reinterpret_cast(ExprToken::create(fmt::format(
+                                    "{}{}*", get_builtin(enm->integer_type), s_const)),
+                                std::move(expr_call));
+            }
         } else if (is_opaque_ptr_by_value(function->return_type, _cpp_ctx)) {
             // need to construct a new object on the heap to return
             std::vector<ExprPtr> params;
@@ -1535,6 +1559,8 @@ auto C_API::_translate_parameter_list(std::vector<Param> const& params,
             }
         } else if (auto enum_id = as_lvalue_reference_to_enum(param.type);
                    enum_id.has_value()) {
+            LValueReference const& lvr = std::get<LValueReference>(param.type.type);
+            char const* s_const = lvr.pointee->is_const ? " const" : "";
             // we need to static cast a pointer to the enum type then deref
             Enum const* enm = _cpp_ctx.get_enum(enum_id.value().id);
             if (enm == nullptr) {
@@ -1544,10 +1570,12 @@ auto C_API::_translate_parameter_list(std::vector<Param> const& params,
                     param_name);
             }
             expr_params.emplace_back(ex_deref(
-                ex_reinterpret_cast(ex_token(fmt::format("{}*", enm->spelling)),
+                ex_reinterpret_cast(ex_token(fmt::format("{}{}*", enm->spelling, s_const)),
                                     ex_token(param_name))));
         } else if (auto enum_id = as_pointer_to_enum(param.type);
                    enum_id.has_value()) {
+            Pointer const& lvr = std::get<Pointer>(param.type.type);
+            char const* s_const = lvr.pointee->is_const ? " const" : "";
             // we need to static cast to the pointer to the enum type
             Enum const* enm = _cpp_ctx.get_enum(enum_id.value().id);
             if (enm == nullptr) {
@@ -1557,7 +1585,7 @@ auto C_API::_translate_parameter_list(std::vector<Param> const& params,
                     param_name);
             }
             expr_params.emplace_back(
-                ex_reinterpret_cast(ex_token(fmt::format("{}*", enm->spelling)),
+                ex_reinterpret_cast(ex_token(fmt::format("{}{}*", enm->spelling, s_const)),
                                     ex_token(param_name)));
         } else if (is_lvalue_reference(param.type) ||
                    is_rvalue_reference(param.type) ||

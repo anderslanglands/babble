@@ -31,13 +31,13 @@ typedef struct test_std_pair_StdPairIntFloat_t test_std_pair_StdPairIntFloat_t;
 
 int test_std_pair_StdPairIntFloat_dtor(test_std_pair_StdPairIntFloat_t* _this);
 
-int test_std_pair_StdPairIntFloat_get0(test_std_pair_StdPairIntFloat_t* _Pr, int** _result);
+int test_std_pair_StdPairIntFloat_first(test_std_pair_StdPairIntFloat_t* p, int** _result);
 
-int test_std_pair_StdPairIntFloat_get0_const(test_std_pair_StdPairIntFloat_t const* _Pr, int const** _result);
+int test_std_pair_StdPairIntFloat_second(test_std_pair_StdPairIntFloat_t* p, float** _result);
 
-int test_std_pair_StdPairIntFloat_get1(test_std_pair_StdPairIntFloat_t* _Pr, float** _result);
+int test_std_pair_StdPairIntFloat_first_const(test_std_pair_StdPairIntFloat_t const* p, int const** _result);
 
-int test_std_pair_StdPairIntFloat_get1_const(test_std_pair_StdPairIntFloat_t const* _Pr, float const** _result);
+int test_std_pair_StdPairIntFloat_second_const(test_std_pair_StdPairIntFloat_t const* p, float const** _result);
 
 int test_std_pair_foo(int a);
 

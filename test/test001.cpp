@@ -25,6 +25,7 @@ class Bum {
 public:
     void baz(int b);
     char bum(short d);
+    float boo(float f);
 };
 }
 
@@ -56,6 +57,10 @@ BBL_MODULE(test01) {
     //             `-CXXConstructExpr bbl::Class<Foo>
     //               `-ImplicitCastExpr
     //                 `-StringLiteral "Foo"
-    // auto class_bum = bbl::Class<qux::Bum>("Bum");
-    // class_bum.m(&qux::Bum::baz).m(&qux::Bum::bum);
+    auto class_bum = bbl::Class<qux::Bum>("Bum");
+    class_bum
+        .m(&qux::Bum::baz)
+        .m(&qux::Bum::bum);
+    class_bum
+        .m(&qux::Bum::boo);
 }

@@ -37,7 +37,11 @@ typedef struct test016_Foo_t test016_Foo_t;
 
 int test016_Foo_take_enum(test016_Foo_t const* _this, int64_t b);
 
+int test016_Foo_take_enum_constref(test016_Foo_t const* _this, int64_t const* b);
+
 int test016_Foo_return_enum(test016_Foo_t* _this, int64_t* _result);
+
+int test016_Foo_return_enum_by_ref(test016_Foo_t* _this, int64_t** _result);
 
 int test016_Foo_ctor(test016_Foo_t** _result);
 

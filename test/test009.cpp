@@ -11,9 +11,7 @@ namespace baz = bar;
 
 
 BBL_MODULE(test_std_pair) {
-    bbl::Class<std::pair<int, float>>("StdPairIntFloat")
-        .opaque_ptr();
-    BBL_STD_PAIR_FUNCTIONS(int, float, "StdPairIntFloat");
+    BBL_STD_PAIR((std::pair<int, float>), StdPairIntFloat);
 
     bbl::fn(&baz::foo);
 }

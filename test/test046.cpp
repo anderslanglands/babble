@@ -11,6 +11,7 @@ namespace foo {
 
 class Foo {
 public:
+    float f = 42.0f;
 };
 
 }
@@ -20,8 +21,8 @@ BBL_MODULE(test046) {
     bbl::Class<foo::Foo>();
 
     bbl::fn([](foo::Foo const& _this, int a) -> float {
-        return 17.0f;
+        return _this.f;
     }, "Foo_do_thing");
 
-    bbl::fn(&bblext::normal_thing);
+    bbl::fn((void (*)())&bblext::normal_thing);
 }
