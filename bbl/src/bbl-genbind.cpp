@@ -494,7 +494,7 @@ auto write_enum_to_string(Enum const& enm) -> std::string {
     return fmt::format("    bbl::Enum<{}>();\n", enm.qualified_name);
 }
 
-auto replace_all(std::string subject, std::string find, std::string replace)
+static auto replace_all(std::string subject, std::string find, std::string replace)
     -> std::string {
     size_t pos = 0;
     while ((pos = subject.find(find, pos)) != std::string::npos) {

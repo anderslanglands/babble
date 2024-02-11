@@ -343,6 +343,7 @@ struct Class {
     std::vector<std::string> pointee_methods;
     ankerl::unordered_dense::set<std::string> all_method_signatures;
     bool ignore_all_unbound = false;
+    ankerl::unordered_dense::set<std::string> bound_method_signiatures;
 };
 
 /// A std::function specialization, bound by and detected from a
