@@ -176,14 +176,4 @@
         .m(&bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator::operator*) \
         .m(&bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator::operator==) \
         .ignore_all_unbound() \
-    ; \
-    if constexpr(!std::is_same_v<bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator, bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator>) { \
-    bbl::Class<bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator>(#NAME "ConstIterator") \
-        .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator& (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator::*)()) \
-            &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator::operator++ \
-        ) \
-        .m(&bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator::operator*) \
-        .m(&bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator::operator==) \
-        .ignore_all_unbound() \
-    ; \
-    }
+    ;
