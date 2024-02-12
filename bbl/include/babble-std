@@ -73,13 +73,17 @@
         ) \
         .ignore_all_unbound()
 
-#define BBL_STD_ITERATOR_METHODS(TY)                                                                                                \
-        .m(&bbl::detail::argument_type<void(TY)>::type::operator->, "op_deref")                                                     \
-        .m(&bbl::detail::argument_type<void(TY)>::type::operator==)                                                                 \
-        .m((bbl::detail::argument_type<void(TY)>::type& (bbl::detail::argument_type<void(TY)>::type::*)())                          \
-            &bbl::detail::argument_type<void(TY)>::type::operator++                                                                 \
+#define BBL_STD_ITERATOR(TY, NAME)                                                                                                        \
+    bbl::Class<bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type>(#NAME) \
+        .m(&bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::operator*)                                                                   \
+        .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type& (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::*)())                          \
+            &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::operator++                                                                 \
         )                                                                                                                           \
-        .ignore_all_unbound()
+        .ignore_all_unbound() \
+    ; \
+    bbl::fn([](bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type const& l, bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type const& r) -> bool { \
+        return l == r; \
+    }, #NAME "_op_eq"); 
 
 #define BBL_STD_PAIR(TY, NAME)                                                                                                          \
     bbl::Class<bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type>(#NAME).ignore_all_unbound();                                                 \
@@ -122,7 +126,6 @@
         .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator& (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator::*)()) \
             &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator::operator++ \
         ) \
-        .m(&bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator::operator==) \
         .ignore_all_unbound() \
     ; \
     bbl::fn([](bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator& _this) -> bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator::value_type::first_type& { \
@@ -131,11 +134,13 @@
     bbl::fn([](bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator& _this) -> bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator::value_type::second_type& { \
         return _this->second; \
     }, #NAME "Iterator_second"); \
+    bbl::fn([](bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator const& l, bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator const& r) -> bool { \
+        return l == r; \
+    }, #NAME "Iterator_op_eq");  \
     bbl::Class<bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator>(#NAME "ConstIterator") \
         /* .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator& (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator::*)()) \
              &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator::operator++ \
          ) */ \
-        .m(&bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator::operator==) \
         .ignore_all_unbound() \
     ; \
     bbl::fn([](bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator& _this) -> bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator::value_type::first_type& { \
@@ -144,25 +149,19 @@
     bbl::fn([](bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator& _this) -> bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator::value_type::second_type const& { \
         return _this->second; \
     }, #NAME "ConstIterator_second"); \
+    bbl::fn([](bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator const& l, bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator const& r) -> bool { \
+        return l == r; \
+    }, #NAME "ConstIterator_op_eq");  \
 
 #define BBL_STD_SET(TY, NAME) \
     bbl::Class<bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type>(#NAME) \
         .m(&bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::empty) \
         .m(&bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::size) \
-        .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::*)() const) \
-            &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::begin, "begin_const" \
-        ) \
-        .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::*)() const) \
-            &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::end, "end_const" \
-        ) \
         .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::*)()) \
             &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::begin, "begin" \
         ) \
         .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::*)()) \
             &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::end, "end" \
-        ) \
-        .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::const_iterator (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::*)(bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::key_type const&) const) \
-            &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::find, "find_const" \
         ) \
         .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::*)(bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::key_type const&)) \
             &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::find, "find" \
@@ -174,6 +173,8 @@
             &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator::operator++ \
         ) \
         .m(&bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator::operator*) \
-        .m(&bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator::operator==) \
         .ignore_all_unbound() \
-    ;
+    ; \
+    bbl::fn([](bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator const& l, bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::iterator const& r) -> bool { \
+        return l == r; \
+    }, #NAME "Iterator_op_eq"); 
