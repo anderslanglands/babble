@@ -29,23 +29,35 @@ template <typename T, typename U> struct argument_type<T(U)> {
 
 namespace bblext {
 
-static float custom_foo(Foo const& foo) {
-    return foo.get<float>();
+auto Foo_do_thing(const foo::Foo &_this, int a) -> float {
+    return _this.f;
 }
+
+void normal_thing() {}
 }
 
 
-using test0022_Foo_t = Foo;
+using test046_Foo_t = foo::Foo;
 
 extern "C" {
-int test0022_Foo_dtor(test0022_Foo_t* _this) {
+int test046_Foo_dtor(test046_Foo_t* _this) {
     delete _this;
     return 0;
 }
 
-int test0022_custom_foo(test0022_Foo_t const* foo, float* _result) {
+int test046_Foo_do_thing(test046_Foo_t const* _this, int a, float* _result) {
     try {
-        *_result = bblext::custom_foo(*foo);
+        *_result = bblext::Foo_do_thing(*_this, a);
+        return 0;
+    } catch (std::exception& e) {
+        _bbl_error_message = e.what();
+        return 1;
+    }
+}
+
+int test046_normal_thing() {
+    try {
+        bblext::normal_thing();
         return 0;
     } catch (std::exception& e) {
         _bbl_error_message = e.what();

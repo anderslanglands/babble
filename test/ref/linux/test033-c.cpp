@@ -16,16 +16,28 @@
 
 static thread_local std::string _bbl_error_message;
 
+// This is necessary for some type definitions in lambdas defined in binding macros
+namespace bbl { namespace detail {
+
+template <typename T> struct argument_type;
+template <typename T, typename U> struct argument_type<T(U)> {
+    typedef U type;
+};
+
+} }
+
+
 namespace bblext {
 
 auto Foo_set_name_wrapped(qux::Foo& foo, char const* name) -> int {
                 return foo.set_name(name);
             }
-auto get_name_wrapped(char const** chars, size_t* len) -> void {
-        std::string_view sv = qux::get_name();
-        *chars = sv.data();
-        *len = sv.size();
-    }
+auto get_name_wrapped(const char **chars, size_t *len) -> void {
+    std::string_view sv = qux::get_name();
+    *chars = sv.data();
+    *len = sv.size();
+}
+
 }
 
 

@@ -1,4 +1,3 @@
-
 #include <string>
 
 #if defined(__GNUC__) || defined(__clang__)
@@ -27,30 +26,33 @@ template <typename T, typename U> struct argument_type<T(U)> {
 } }
 
 
-namespace bblext {
 
-static float custom_foo(Foo const& foo) {
-    return foo.get<float>();
-}
-}
-
-
-using test0022_Foo_t = Foo;
+using test043_Foo_t = foo::Foo;
 
 extern "C" {
-int test0022_Foo_dtor(test0022_Foo_t* _this) {
-    delete _this;
-    return 0;
-}
-
-int test0022_custom_foo(test0022_Foo_t const* foo, float* _result) {
+int test043_Foo_foo1(test043_Foo_t const* _this, int* _result) {
     try {
-        *_result = bblext::custom_foo(*foo);
+        *_result = _this->foo1();
         return 0;
     } catch (std::exception& e) {
         _bbl_error_message = e.what();
         return 1;
     }
+}
+
+int test043_Foo_foo1(test043_Foo_t* _this, int* _result) {
+    try {
+        *_result = _this->foo1();
+        return 0;
+    } catch (std::exception& e) {
+        _bbl_error_message = e.what();
+        return 1;
+    }
+}
+
+int test043_Foo_dtor(test043_Foo_t* _this) {
+    delete _this;
+    return 0;
 }
 
 } // extern "C"

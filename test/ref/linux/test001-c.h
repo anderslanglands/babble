@@ -31,6 +31,8 @@ extern "C" {
 /// and some more detail
 typedef struct test01_Foo_t test01_Foo_t;
 
+typedef struct test01_Bum_t test01_Bum_t;
+
 
 
 
@@ -40,6 +42,14 @@ typedef struct test01_Foo_t test01_Foo_t;
 int test01_Foo_bar(test01_Foo_t* _this, float a, int* _result);
 
 int test01_Foo_dtor(test01_Foo_t* _this);
+
+int test01_Bum_baz(test01_Bum_t* _this, int b);
+
+int test01_Bum_bum(test01_Bum_t* _this, short d, char* _result);
+
+int test01_Bum_boo(test01_Bum_t* _this, float f, float* _result);
+
+int test01_Bum_dtor(test01_Bum_t* _this);
 
 
 
