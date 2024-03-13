@@ -74,6 +74,22 @@ function(BBL_TRANSLATE_BINDING PROJECT_NAME)
                 ${languages}
         COMMAND_EXPAND_LISTS
     )
+
+    # Ouptut the link libraries to a text file we can read downstream
+    # First generate a stub main source file, then compile and link it with our
+    # echo linker
+    file(GENERATE OUTPUT ${PROJECT_NAME}-link-libraries.cpp CONTENT "int main() {return 0;}")
+    add_executable(${PROJECT_NAME}-link-libraries ${PROJECT_NAME}-link-libraries.cpp)
+    target_link_libraries(${PROJECT_NAME}-link-libraries ${TARGET_NAME})
+
+    set_target_properties(
+        ${PROJECT_NAME}-link-libraries
+            PROPERTIES
+                LINKER_LANGUAGE
+                    ECHO
+                SUFFIX
+                    ".txt"
+    )
 endfunction()
 
 function(BBL_GENERATE_BINDING PROJECT_NAME GENFILE NAMESPACE)
@@ -113,5 +129,6 @@ function(BBL_GENERATE_BINDING PROJECT_NAME GENFILE NAMESPACE)
                 ${NAMESPACE}
         COMMAND_EXPAND_LISTS
     )
+
 endfunction()
 
