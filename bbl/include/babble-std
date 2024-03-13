@@ -75,9 +75,9 @@
 
 #define BBL_STD_ITERATOR(TY, NAME)                                                                                                        \
     bbl::Class<bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type>(#NAME) \
-        .m(&bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::operator*)                                                                   \
+        .m(&bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::operator*, "op_deref")                                                                   \
         .m((bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type& (bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::*)())                          \
-            &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::operator++                                                                 \
+            &bbl::detail::argument_type<void(BBL_DEPAREN(TY))>::type::operator++, "op_inc"                                                                 \
         )                                                                                                                           \
         .ignore_all_unbound() \
     ; \
