@@ -4,3 +4,4 @@
 /.vscode
 /.cache
 /bbl-build-rs/target
+/compile_commands.json
