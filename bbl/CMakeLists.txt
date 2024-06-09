@@ -7,7 +7,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_INSTALL_MESSAGE LAZY)
 
 # bbl
-add_library(bbl STATIC 
+add_library(bbl STATIC
   src/cpp_context.cpp
   src/capi.cpp
   src/astutil.cpp
@@ -21,9 +21,9 @@ target_link_libraries(
   bbl
     PUBLIC
       clangAST
-      clangTooling 
-      clangBasic 
-      clangASTMatchers 
+      clangTooling
+      clangBasic
+      clangASTMatchers
       ${CMAKE_THREAD_LIBS_INIT}
 )
 
@@ -38,6 +38,9 @@ target_include_directories(
 
 target_include_directories(bbl PRIVATE ${LLVM_INCLUDE_DIRS})
 
+set_property(TARGET bbl PROPERTY CXX_STANDARD 17)
+target_compile_options(bbl PUBLIC -std=c++17)
+
 
 add_library(bind INTERFACE)
 add_library(babble::bind ALIAS bind)
@@ -50,7 +53,7 @@ target_include_directories(
 
 # bbl-translate
 add_executable(bbl-translate src/bbl-translate.cpp)
-target_link_libraries(bbl-translate 
+target_link_libraries(bbl-translate
   PUBLIC
     bbl
 )
@@ -62,11 +65,11 @@ target_include_directories(
 
 # bbl-genbind
 add_executable(bbl-genbind src/bbl-genbind.cpp)
-target_include_directories(bbl-genbind 
+target_include_directories(bbl-genbind
   PRIVATE ${LLVM_INCLUDE_DIRS}
   ${CMAKE_CURRENT_SOURCE_DIR}/../ext/spdlog/include
 )
-target_link_libraries(bbl-genbind 
+target_link_libraries(bbl-genbind
   PRIVATE
     bbl
 )
@@ -85,24 +88,24 @@ if(UNIX AND NOT LLVM_ENABLE_RTTI)
 endif()
 
 install(
-  TARGETS 
+  TARGETS
     bbl bbl-translate bbl-genbind bind
-  EXPORT 
+  EXPORT
     bbl-targets
-  LIBRARY 
+  LIBRARY
     DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE 
+  ARCHIVE
     DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  RUNTIME 
+  RUNTIME
     DESTINATION ${CMAKE_INSTALL_BINDIR}
-  INCLUDES 
+  INCLUDES
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 set(
-  HEADERS 
-    include/bbl-context.h 
-    include/bbl-capi.h 
+  HEADERS
+    include/bbl-context.h
+    include/bbl-capi.h
     include/bbl-detail.h
     include/babble
     include/babble-std
@@ -111,13 +114,13 @@ set(
 install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 install(
-  EXPORT 
+  EXPORT
     bbl-targets
-  FILE 
+  FILE
     bbl-targets.cmake
-  NAMESPACE 
+  NAMESPACE
     babble::
-  DESTINATION 
+  DESTINATION
     ${CMAKE_INSTALL_LIBDIR}/cmake/babble
 )
 
@@ -128,13 +131,13 @@ configure_package_config_file(
   ${CMAKE_CURRENT_BINARY_DIR}/babble-config.cmake
   INSTALL_DESTINATION
     ${CMAKE_INSTALL_LIBDIR}/cmake/babble
-  PATH_VARS 
+  PATH_VARS
     INCLUDE_INSTALL_DIR
 )
 
 write_basic_package_version_file(
   ${CMAKE_CURRENT_BINARY_DIR}/babble-config-version.cmake
-  COMPATIBILITY 
+  COMPATIBILITY
     SameMinorVersion # change this to SameMajorVersion when we hit 1.0
 )
 
@@ -148,7 +151,7 @@ install(
 )
 
 # copy the clang resource dir to the installation so we can pick up the headers
-# first need to extract the major version to get the right path from the 
+# first need to extract the major version to get the right path from the
 # llvm installation
 install(
   DIRECTORY
@@ -159,7 +162,7 @@ install(
 
 # also copy it to the binary dir so we can pick it up in the test runner
 file(
-  COPY 
+  COPY
     ${CLANG_INSTALL_PREFIX}/lib/clang/${LLVM_VERSION_MAJOR}/include
   DESTINATION
     ${CMAKE_BINARY_DIR}
