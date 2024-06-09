@@ -83,14 +83,14 @@ function(BBL_TRANSLATE_BINDING PROJECT_NAME)
     add_executable(${PROJECT_NAME}-link-libraries ${PROJECT_NAME}-link-libraries.cpp)
     target_link_libraries(${PROJECT_NAME}-link-libraries ${TARGET_NAME})
 
-    set_target_properties(
-        ${PROJECT_NAME}-link-libraries
-            PROPERTIES
-                LINKER_LANGUAGE
-                    ECHO
-                SUFFIX
-                    ".txt"
-    )
+    # set_target_properties(
+    #     ${PROJECT_NAME}-link-libraries
+    #         PROPERTIES
+    #             LINKER_LANGUAGE
+    #                 ECHO
+    #             SUFFIX
+    #                 ".txt"
+    # )
 endfunction()
 
 function(BBL_GENERATE_BINDING PROJECT_NAME GENFILE NAMESPACE)
