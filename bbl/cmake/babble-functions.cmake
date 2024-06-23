@@ -76,21 +76,22 @@ function(BBL_TRANSLATE_BINDING PROJECT_NAME)
         COMMAND_EXPAND_LISTS
     )
 
-    # Ouptut the link libraries to a text file we can read downstream
+    # Ouptut the link libraries to a text file so that we can read the link link downstream
     # First generate a stub main source file, then compile and link it with our
-    # echo linker
+    # "echo" linker.
+    # The link line will be read directly from the build.ninja
     file(GENERATE OUTPUT ${PROJECT_NAME}-link-libraries.cpp CONTENT "int main() {return 0;}")
     add_executable(${PROJECT_NAME}-link-libraries ${PROJECT_NAME}-link-libraries.cpp)
     target_link_libraries(${PROJECT_NAME}-link-libraries ${TARGET_NAME})
 
-    # set_target_properties(
-    #     ${PROJECT_NAME}-link-libraries
-    #         PROPERTIES
-    #             LINKER_LANGUAGE
-    #                 ECHO
-    #             SUFFIX
-    #                 ".txt"
-    # )
+    set_target_properties(
+        ${PROJECT_NAME}-link-libraries
+            PROPERTIES
+                LINKER_LANGUAGE
+                    ECHO
+                SUFFIX
+                    ".txt"
+    )
 endfunction()
 
 function(BBL_GENERATE_BINDING PROJECT_NAME GENFILE NAMESPACE)
