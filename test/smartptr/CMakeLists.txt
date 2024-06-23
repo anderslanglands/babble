@@ -7,6 +7,7 @@ set(bindfiles
 )
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/../../bbl/cmake)
+include(babble-test-config)
 include(babble-functions)
 
 bbl_translate_binding(
