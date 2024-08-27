@@ -88,6 +88,7 @@ public:
 
     template <typename... Args> struct Ctor {
         template <typename... CtorArgs> Ctor(CtorArgs...) {
+            static_assert(std::is_abstract_v<C> == false, "cannot construct an abstract class");
             // Make sure length of provided name args matches the length of the type
             // args
             if constexpr (sizeof...(CtorArgs) > 0) {
@@ -104,6 +105,7 @@ public:
     /// Bind a constructor
     template <typename T = C, typename... Args>
     Class ctor(Ctor<Args...> ctor, const char* rename = "") {
+        static_assert(std::is_abstract_v<C> == false, "cannot construct an abstract class");
         static_assert(std::is_constructible<T, Args...>::value,
                       "can not construct class with these arguments");
 
