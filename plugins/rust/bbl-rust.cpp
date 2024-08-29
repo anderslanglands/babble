@@ -295,7 +295,7 @@ BBL_PLUGIN_API int bbl_plugin_exec(bbl_context_t cpp_ctx,
             }
         }
 
-        source = fmt::format("{}extern \"C\" {{\n\n", source);
+        source = fmt::format("{}unsafe extern \"C\" {{\n\n", source);
 
         for (auto fun_id : mod.functions()) {
             try {
