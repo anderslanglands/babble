@@ -8,7 +8,7 @@ int msgfn(inh_MessageBase_t const* _this, char const** result, void* userdata) {
 }
 
 int msgcount(inh_MessageBase_t const* _this, char const* msg, void* userdata) {
-    printf("msgcount %llu\n", strlen(msg));
+    printf("msgcount %u\n", (unsigned)strlen(msg));
     return 0;
 }
 
