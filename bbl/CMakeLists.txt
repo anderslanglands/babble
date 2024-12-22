@@ -25,6 +25,8 @@ target_link_libraries(
       clangBasic
       clangASTMatchers
       ${CMAKE_THREAD_LIBS_INIT}
+    PRIVATE
+      "$<LINK_LIBRARY:WHOLE_ARCHIVE,spdlog::spdlog>"
 )
 
 target_include_directories(
@@ -32,8 +34,6 @@ target_include_directories(
     PUBLIC
       "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
       "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
-    PRIVATE
-      ${CMAKE_CURRENT_SOURCE_DIR}/../ext/spdlog/include
 )
 
 target_include_directories(bbl PRIVATE ${LLVM_INCLUDE_DIRS})
@@ -56,11 +56,8 @@ add_executable(bbl-translate src/bbl-translate.cpp)
 target_link_libraries(bbl-translate
   PUBLIC
     bbl
-)
-target_include_directories(
-  bbl-translate
-    PRIVATE
-      ${CMAKE_CURRENT_SOURCE_DIR}/../ext/spdlog/include
+  PRIVATE
+    spdlog::spdlog
 )
 
 # bbl-genbind
@@ -75,16 +72,16 @@ target_link_libraries(bbl-genbind
 )
 
 if(UNIX)
-  target_compile_options(bbl PUBLIC -Wno-deprecated-declarations)
-  target_compile_options(bbl-genbind PUBLIC -Wno-deprecated-declarations)
+    target_compile_options(bbl PUBLIC -Wno-deprecated-declarations)
+    target_compile_options(bbl-genbind PUBLIC -Wno-deprecated-declarations)
 else()
-  target_compile_options(bbl PUBLIC /bigobj)
+    target_compile_options(bbl PUBLIC /bigobj)
 endif()
 
 # LLVM is normally built without RTTI. Be consistent with that.
 if(UNIX AND NOT LLVM_ENABLE_RTTI)
-  target_compile_options(bbl PRIVATE -fno-rtti)
-  target_compile_options(bbl-genbind PRIVATE -fno-rtti)
+    target_compile_options(bbl PRIVATE -fno-rtti)
+    target_compile_options(bbl-genbind PRIVATE -fno-rtti)
 endif()
 
 install(
