@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION  3.15)
-project(babble VERSION 0.8.0 LANGUAGES C CXX)
+cmake_minimum_required(VERSION  3.24)
+project(babble VERSION 0.9.0 LANGUAGES C CXX)
 
 find_package(Clang REQUIRED)
 string(REGEX MATCH "^([0-9]+)\\.([0-9]+)\\.([0-9]+)"
@@ -32,6 +32,7 @@ endif()
 set(BUILD_SHARED_LIBS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+add_subdirectory(ext/spdlog)
 add_subdirectory(bbl)
 
 # Define required locations in the build tree - these will be set automatically in babble-config
