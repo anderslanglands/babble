@@ -50,7 +50,7 @@ jobs:
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
 
     - name: Install dependencies Ubuntu
-      if: startsWith(matrix.config.os, "ubuntu")
+      if: startsWith(matrix.config.os, 'ubuntu')
       run: |
         sudo apt update
         sudo apt install ninja-build cmake libclang-15-dev python-is-python3
