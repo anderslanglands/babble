@@ -36,26 +36,33 @@ jobs:
       id: strings
       shell: bash
       run: |
-        echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+        echo "build-output-dir=${{ github.workspace }}/build;" >> "$GITHUB_OUTPUT"
 
     - name: Install dependencies Ubuntu
-      # if: startsWith(matrix.config.os, 'ubuntu')
+      # if: startsWith(matrix.os, 'ubuntu')
+      id: deps
+      working-directory: ${{ github.workspace }}
       run: |
-        echo $CWD
+        echo $PWD
         sudo apt update
-        sudo apt install ninja-build cmake libclang-15-dev python-is-python3
+        sudo apt install ninja-build cmake python-is-python3
         ninja --version
         cmake --version
+        wget https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/clang+llvm-17.0.6-x86_64-linux-gnu-ubuntu-22.04.tar.xz
+        tar xf clang+llvm-17.0.6-x86_64-linux-gnu-ubuntu-22.04.tar.xz
+        echo "llvm-dir=${{ github.workspace }}/clang+llvm-17.0.6-x86_64-linux-gnu-ubuntu-22.04;" >> "$GITHUB_OUTPUT" 
       
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      working-directory: ${{ github.workspace }}
       run: >
-        cmake -B ${{ steps.strings.outputs.build-output-dir }}
+        cmake -B build
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -DCMAKE_PREFIX_PATH=${{ steps.deps.outputs.llvm-dir }}
         -S ${{ github.workspace }}
 
     - name: Build
