@@ -39,7 +39,7 @@ jobs:
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
 
     - name: Install dependencies Ubuntu
-      if: startsWith(matrix.config.os, 'ubuntu')
+      # if: startsWith(matrix.config.os, 'ubuntu')
       run: |
         echo $CWD
         sudo apt update
