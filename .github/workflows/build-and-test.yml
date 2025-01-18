@@ -41,6 +41,7 @@ jobs:
     - name: Install dependencies Ubuntu
       if: startsWith(matrix.config.os, 'ubuntu')
       run: |
+        echo $CWD
         sudo apt update
         sudo apt install ninja-build cmake libclang-15-dev python-is-python3
         ninja --version
