@@ -1,4 +1,4 @@
-![example workflow](https://github.com/github/docs/actions/workflows/main.yml/build-and-test.svg)
+![example workflow](https://github.com/anderslanglands/babble/actions/workflows/build-and-test.yml/badge.svg)
 
 # Usage
 
