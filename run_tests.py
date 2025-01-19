@@ -118,7 +118,11 @@ for test in tests_to_run:
     out_cpp_path = os.path.join(TEST_OUTPUT_PATH, f"{test}.cpp")
     out_h_path = os.path.join("build", "test", "out", f"{test}.h")
 
-    cmd = f"{exe_path} {bindfile_path} -- --std=c++17 -Ibbl/include -idirafter build/include -- {test} -o {TEST_OUTPUT_PATH}"
+    extra_args = ""
+    if "EXTRA_ARGS" in os.environ:
+        extra_args = os.environ["EXTRA_ARGS"]
+
+    cmd = f"{exe_path} {bindfile_path} -- --std=c++17 -Ibbl/include {extra_args} -idirafter build/include -- {test} -o {TEST_OUTPUT_PATH}"
     if args.verbose:
         print(f"# {cmd}")
     os.system(cmd)
