@@ -146,7 +146,7 @@ C_API::C_API(Context const& cpp_ctx) : _cpp_ctx(cpp_ctx) {
 
         // translate all classes
         for (auto const& cpp_class_id : cpp_mod.classes) {
-            auto const* cpp_cls = _cpp_ctx.get_class(cpp_class_id);
+            Class const* cpp_cls = _cpp_ctx.get_class(cpp_class_id);
             assert(cpp_cls);
 
             // Construct the struct name from the name of the module, and the
