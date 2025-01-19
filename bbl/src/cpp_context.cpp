@@ -617,6 +617,11 @@ auto Context::extract_class_binding(
             continue;
         }
 
+        // Ignore deleted methods
+        if (cmd->isDeleted()) {
+            continue;
+        }
+
         all_method_signatures.emplace(generate_method_signature(cmd));
     }
 
