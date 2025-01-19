@@ -1,3 +1,5 @@
+![example workflow](https://github.com/github/docs/actions/workflows/main.yml/build-and-test.svg)
+
 # Usage
 
 Download the release for your platform from the Releases page and unpack it somewhere. For building from source, see the instructions below.
